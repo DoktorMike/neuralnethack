@@ -1,0 +1,15 @@
+Här kommer lite info om datafilen
+
+Col       Beskrivning
+1	  Ålder
+2	  Kön (Kvinna = 1, Man = 0)
+3-7	  Diabetes (nej, tablett, insulin, kost, vet ej)
+8-11	  Angina Pectoris (Nej, Ny < 1mån, Över > 1 mån, vet ej)
+12-15	  Tidigare hjärtinfarkt (Nej, 0-1 mån, 1-6 mån, > 6 mån, vet ej)
+16	  Tidigare PTCA (ballongvidgning) (ja/nej)
+17	  Tidigare CAGB (by-pass operation) (ja/nej)
+18	  Pågående symtom (ja/nej)
+19-24	  symtom duration (0-6 h, 6-12 h, 12-24 h, 24-48 h > 48 h, vet ej)
+25	  diastoliskt blodtryck
+26	  Target (1=ACS, 0=Inte ACS)
+27	  ID nummer
