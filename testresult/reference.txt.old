@@ -1,0 +1,12 @@
+Output when training on config-ecg.txt
+This is supposed to work as an consistency check for the gradient descent
+approach. So after making drastic changes this should still yield the same
+values. Using seed(1) on the weights of course.
+
+Parsing and storing Configuration.
+
+Parsing and adding data to the DataSet.
+Error is 0.0515174 in epoch 100
+Error is 0.0420645 in epoch 200
+The error in epoch 200 is 0.0420645
+

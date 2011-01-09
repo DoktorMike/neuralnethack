@@ -2,8 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(neuralnethack, 0.9.5, michael@thep.lu.se, neuralnethack)
-AC_CONFIG_SRCDIR([neuralnethack/NeuralNetHack.cc])
+AC_INIT(NeuralNetHack, 0.2.3, michael@thep.lu.se, neuralnethack)
+AC_CONFIG_SRCDIR([src/main.cc])
 #This is replaced with AM version since I am using automake. Should I have
 #used only autoconf I should use AC version again.
 #AC_CONFIG_HEADER(config.h) 
@@ -11,56 +11,32 @@ AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(autotools)
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION,$PACKAGE_BUGREPORT)
 
-# Set the language
-AC_LANG(C++)
 
 # Checks for programs.
 AC_PROG_CXX
-AC_PROG_CXXCPP
-AC_PROG_LIBTOOL
-# Make libtool shut up
-#LIBTOOL="$LIBTOOL --silent"
 
-# Macro flags for DEBUG mode
-CXXFLAGS="-Wall -pedantic -O3"
-#CXXFLAGS="$CXXFLAGS -Wall -pedantic -g3 -gdwarf-2 -O0" # GDB mode
-#CXXFLAGS="$CXXFLAGS -pg" # Benchmark mode
-#CPPFLAGS="-D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_DEBUG_PEDANTIC"
+CXXFLAGS="$CXXFLAGS -Wall -pedantic" # -pg"
+LDFLAGS="-static"
 
-# Macro flags for release mode
-#CXXFLAGS="$CXXFLAGS -Wall -pedantic -O3"
-CPPFLAGS="$CPPFLAGS -DNDEBUG"
-
-#LDFLAGS="$LDFLAGS -static -all-static"
-LDFLAGS="$LDFLAGS"
-
-# Checks for libraries. Not needed if LIBTOOL is used.
-# AC_PROG_RANLIB
+# Checks for libraries.
+AC_PROG_RANLIB
 
 # Checks for header files.
-AC_CHECK_HEADERS([cctype cmath cassert cstdlib numeric utility vector string sstream fstream iomanip iostream istream ostream algorithm functional iterator])
 
 # Checks for typedefs, structures, and compiler characteristics.
-#AC_HEADER_STDBOOL
-#AC_C_CONST
-#AC_C_INLINE
+AC_HEADER_STDBOOL
+AC_C_CONST
 
 # Checks for library functions.
-#AC_FUNC_ERROR_AT_LINE
-#AC_CHECK_FUNCS([pow sqrt])
-#AC_CHECK_LIB(m, round)
+AC_FUNC_ERROR_AT_LINE
+AC_CHECK_FUNCS([pow sqrt])
 
 AC_SUBST(CXXFLAGS)
-AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 
 AC_CONFIG_FILES([Makefile
-		 neuralnethack/Makefile
-		 neuralnethack/datatools/Makefile
-		 neuralnethack/evaltools/Makefile
-		 neuralnethack/matrixtools/Makefile
-		 neuralnethack/mlp/Makefile
-		 neuralnethack/parser/Makefile
 		 src/Makefile
-		 test/Makefile])
+		 datatools/Makefile
+		 evaltools/Makefile
+		 mlp/Makefile])
 AC_OUTPUT
