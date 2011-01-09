@@ -1,0 +1,78 @@
+Filename        ../datafiles/Ecg1664.dat
+InCol           1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 
+OutCol          40 
+NLay            3
+Size            39 20 1 
+ActFcn          logsig logsig 
+ErrFcn          sumsqr
+MinMethod       gd
+MaxEpochs       100
+GDParam         1664 0.1 0.99 0.8
+
+Using: -O3, no inlines, no -DNDEBUG.
+real    0m19.871s
+user    0m19.398s
+sys     0m0.020s
+
+Using: -O3, no inlines, -DNDEBUG.
+real    0m18.388s
+user    0m17.919s
+sys     0m0.026s
+
+Using: -O2, no inlines, no -DNDEBUG.
+real    0m21.364s
+user    0m20.842s
+sys     0m0.026s
+
+Using: -O2, no inlines, -DNDEBUG.
+real    0m19.391s
+user    0m18.886s
+sys     0m0.023s
+
+Using: -O2, inlines, no -DNDEBUG.
+real    0m17.948s
+user    0m17.491s
+sys     0m0.022s
+
+Using: -O2, inlines, -DNDEBUG.
+real    0m15.865s
+user    0m15.447s
+sys     0m0.017s
+
+Using: -O0, no inlines, no -DNDEBUG.
+real    3m48.092s
+user    3m42.965s
+sys     0m0.151s
+
+Using: -O0, no inlines, -DNDEBUG.
+real    2m24.688s
+user    2m21.190s
+sys     0m0.097s
+
+Using: -O0, inlines, -DNDEBUG.
+real    2m24.588s
+user    2m21.170s
+sys     0m0.102s
+
+
+Filename        ../datafiles/Ecg1664.dat
+InCol           1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39
+OutCol          40
+NLay            3
+Size            39 20 1
+ActFcn          logsig logsig
+ErrFcn          sumsqr
+MinMethod       gd
+MaxEpochs       200
+GDParam         1664 0.1 0.99 0.8
+
+Using: -O0, no inlines, -NDEBUG.
+real    4m46.587s
+user    4m39.874s
+sys     0m0.171s
+
+Using: -O0, no inlines, no -NDEBUG.
+real	7m40.430s
+user	7m28.797s
+sys		0m0.279s
+

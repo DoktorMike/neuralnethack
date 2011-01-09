@@ -15,7 +15,7 @@
 #
 # Procedure:
 #
-# $Id: runann.pl 1526 2006-03-10 14:08:02Z michael $
+# $Id: runann.pl 1244 2005-03-24 07:42:42Z michael $
 ##################################
 
 use strict; #For good programming practice.
@@ -28,7 +28,6 @@ sub printConfig(@); #Print the config file.
 sub usage(@); #Print usage information.
 sub changeConfig(@); #Change one of the variables and it's values.
 sub varyParameter(@); #Vary the variable specified by --var.
-sub varyRecursive(@); #Vary the variable specified by --var.
 sub runAnn(@); #Run neuralnethack on the current configuration.
 
 use vars qw(%Opt); # The options read from the commandline
@@ -50,7 +49,7 @@ changeConfig("FileName", 0, "$Opt{'Training'}") unless $Opt{'Training'} eq "";
 changeConfig("FileNameT", 0, "$Opt{'Testing'}") unless $Opt{'Testing'} eq "";
 
 open(RESFILE, ">$Opt{'OutputFile'}") or die "Couldn't open file $Opt{'OutputFile'}: $!\n";
-open(LOGFILE, ">runann".rand(time).".log") or die "Couldn't open file: $!\n";
+open(LOGFILE, ">runann.log") or die "Couldn't open file: $!\n";
 varyParameter();
 close(LOGFILE);
 close(RESFILE);
@@ -97,12 +96,18 @@ sub parseVariates(@)
 	my @config = <VARS>;
 	close(VARS);
 
+	my $numCheck;
 	foreach my $line (@config){
 		next if $line =~ /^\s*(#.*|\s*)$/;
 		my @tokens = split(' ', $line);
 		push(@varConfItems, shift @tokens);
 		push(@varConfItemNames, shift @tokens);
 		push(@varConfItemOffsets, shift @tokens);
+		$numCheck = scalar @tokens if not defined $numCheck;
+		if($numCheck != @tokens){
+			print STDERR "Error: You must supply the same number of variates.\n";
+			exit(-1);
+		}
 		push(@varConfItemValues, \@tokens);
 	}
 }
@@ -151,39 +156,31 @@ sub changeConfig(@)
 sub varyParameter(@)
 {
 	if(scalar @varConfItems == 0){ # We don't have anything to vary.
-		printf RESFILE ("%10s%10s%10s%10s%10s%10s\n", "trnAuc", "valAuc", "tstAuc", "trnCee", "valCee", "tstCee");
-		my ($trnAuc, $valAuc, $tstAuc, $trnCee, $valCee, $tstCee) = runAnn();
-		printf RESFILE ("%10.6f%10.6f%10.6f%10.6f%10.6f%10.6f\n", $trnAuc, $valAuc, $tstAuc, $trnCee, $valCee, $tstCee);
+		printf RESFILE ("%10s%10s%10s\n", "trnAuc", "valAuc", "tstAuc");
+		my ($trnAuc, $valAuc, $tstAuc) = runAnn();
+		printf RESFILE ("%10.6f%10.6f%10.6f\n", $trnAuc, $valAuc, $tstAuc);
 	}else{
 		printf RESFILE ("#%9s", "$varConfItemNames[0]"); 
 		for(my $i=1; $i<@varConfItemNames; ++$i){
 			my $name = $varConfItemNames[$i];
 			printf RESFILE ("%10s", "$name");
 		}
-		printf RESFILE ("%10s%10s%10s%10s%10s%10s\n", "trnAuc", "valAuc", "tstAuc", "trnCee", "valCee", "tstCee");
-		varyRecursive((scalar @varConfItems) - 1, "", "$Opt{'Suffix'}");
-	}
-}
+		printf RESFILE ("%10s%10s%10s\n", "trnAuc", "valAuc", "tstAuc");
 
-sub varyRecursive(@)
-{
-	my $variateIndex = $_[0];
-	my $prefix = $_[1];
-	my $suffix = $_[2];
-	if($variateIndex < 0){
-		changeConfig("Suffix", 0, $suffix);
-		print RESFILE $prefix;
-		my ($trnAuc, $valAuc, $tstAuc, $trnCee, $valCee, $tstCee) = runAnn();
-		printf RESFILE ("%10.6f%10.6f%10.6f%10.6f%10.6f%10.6f\n", $trnAuc, $valAuc, $tstAuc, $trnCee, $valCee, $tstCee);
-	}else{
-		my $valuesref = $varConfItemValues[$variateIndex];
-		my $offset = $varConfItemOffsets[$variateIndex];
-		my $item = $varConfItems[$variateIndex];
-		foreach my $val (@$valuesref){
-			my $prefixAdd = sprintf("%10.6s", $val); 
-			my $suffixAdd = "-$item"."$varConfItemNames[$variateIndex]"."$val";
-			changeConfig($item, $offset, $val);
-			varyRecursive($variateIndex - 1, $prefixAdd.$prefix, $suffix.$suffixAdd);
+		my $numElems = scalar @{$varConfItemValues[0]};
+
+		for(my $i=0; $i<$numElems; ++$i){
+			my $suffix = "$Opt{'Suffix'}";
+			for(my $j=0; $j<@varConfItems; ++$j){
+				my $item = $varConfItems[$j];
+				my $valuesref = $varConfItemValues[$j];
+				changeConfig($item, $varConfItemOffsets[$j], @$valuesref[$i]);
+				printf RESFILE ("%10.6s", @$valuesref[$i]); #works ok.
+				$suffix = $suffix."-$item"."$varConfItemNames[$j]"."@$valuesref[$i]";
+			}
+			changeConfig("Suffix", 0, $suffix);
+			my ($trnAuc, $valAuc, $tstAuc) = runAnn();
+			printf RESFILE ("%10.6f%10.6f%10.6f\n", $trnAuc, $valAuc, $tstAuc);
 		}
 	}
 }
@@ -196,19 +193,17 @@ sub runAnn(@)
 	printConfig(*OUTFILE);
 	close(OUTFILE);
 	open(ANNOUT, "neuralnethack $tmpconf |");
-	my ($trnAuc, $valAuc, $tstAuc) = ("0", "0", "0");
-	my ($trnCee, $valCee, $tstCee) = ("0", "0", "0");
+	my $trnAuc = "0";
+	my $valAuc = "0";
+	my $tstAuc = "0";
 	while(my $line = <ANNOUT>){
 		print LOGFILE $line;
 		$trnAuc = $1 if($line =~ /.*training AUC: (\d+\.\d+|\d)/);
 		$valAuc = $1 if($line =~ /.*validation AUC: (\d+\.\d+|\d)/);
 		$tstAuc = $1 if($line =~ /.*testing AUC: (\d+\.\d+|\d)/);
-		$trnCee = $1 if($line =~ /.*training CEE: (\d+\.\d+|\d)/);
-		$valCee = $1 if($line =~ /.*validation CEE: (\d+\.\d+|\d)/);
-		$tstCee = $1 if($line =~ /.*testing CEE: (\d+\.\d+|\d)/);
 	}
 	close(ANNOUT);
 	system("rm $tmpconf");
-	return $trnAuc, $valAuc, $tstAuc, $trnCee, $valCee, $tstCee;
+	return $trnAuc, $valAuc, $tstAuc;
 }
 

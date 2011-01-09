@@ -1,0 +1,108 @@
+% This is the input file for the mlp program
+% 
+% Everything after a % sign and until a end-of-line character
+% is treated as a comment.
+%
+% The format is like
+% {Identifier}  {Value} {Value} ....
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%>>>>>>>>>>> Logging options <<<<<<<<<<<
+LogFileLevel    Normal          % Normal,Debug,Screen,All,Nolog
+ScreenLevel     Screen          % Screen,Normal,Debug,Silent
+
+%>>>>>>>>>>> Project Identification <<<<<<<<<<<
+ProjectID    Test problem       % Project identifier
+ResultDir    ./result           % result directory, default=./result
+Suffix       001                % Suffix for the produced files, default=001
+
+%>>>>>>>>>>> Datafiles  <<<<<<<<<<<
+FileName     ../../../../LUNAR/data/Ecg1664.dat     % File path 
+InCol        1-39		% E.g. 1,5-6
+OutCol       40                	% E.g. 1-3,5
+RowRange     0			% E.g. 1-100 or 0 for all rows
+
+%>>>>>>>>>>> Optional test datafile <<<<<<<<<<<
+%FileNameT   ./Pima_tst.dat     % File path 
+InColT       1-7              	% E.g. 1-4,6,8
+OutColT      8               	% E.g. 1-3,5 or 0 for unlabeled testdata 
+RowRangeT    0			% E.g. 1-100 or 0 for all rows
+
+%>>>>>>>>>>> Problem Type <<<<<<<<<<<
+PType        class	        % class or regr
+
+%>>>>>>>>>>> The size of the network <<<<<<<<<<<
+NLay         3
+Size         39 20 1
+
+%>>>>>>>>>>> Activation functions <<<<<<<<<<<
+ActFcn       logsig logsig      % tansig, logsig, purelin or softmax
+
+%>>>>>>>>>>> Error function <<<<<<<<<<<
+ErrFcn       kullback            % sumsqr or kullback
+
+%>>>>>>>>>>> Minimization method <<<<<<<<<<<
+MinMethod    qn			% gd, cg, qn or lm
+MaxEpochs    1000		% Maximum number of epochs, when needed 
+
+%>>>>>>>>>>> Gradient descent parameters <<<<<<<<<<<
+GDParam      1664 0.1 0.99 0.8  % batchsize, learningrate, decrease of lr, momentum.
+				
+%>>>>>>>>>>> Sampling parameters when training <<<<<<<<<<<
+SampPar      0 0.5 ser
+
+% arg 1: Toggle assymetric sampling on/off 
+% arg 2: Size of asymmetric sampling [0,1]
+% arg 3: Data selection mode, rnd or ser
+
+%>>>>>>>>>>> Regularization <<<<<<<<<<<
+WeightElim   0 0.002 1.0   % Toggle on/off, alpha parameter and W_o
+OBD          0 0.5         % Toggle OBD on/off + parameter
+OBS          0 0.5         % Toggle OBS on/off + parameter
+
+%>>>>>>>>>>> Ensemble definitions <<<<<<<<<<<<<
+EnsParam     10 bagg 0
+
+% arg 1: The size of the ensemble
+% arg 2: Data selection method. cp, bagg, no, cv
+% arg 3: Should we use different weights (toggle)
+
+%>>>>>>>>>>> Cross validation for model selection <<<<<<<<<<<
+MSParam      2 2 rnd 0.75
+
+% arg 1: Number of independent cross validations.
+% arg 2: The number of subsets (K) in K-fold cross validation
+% arg 3: Split mode, rnd or ser
+% arg 4: Number of trainingdata if arg2=1, fraction or number
+
+%>>>>>>>>>>> Cross testing to estimate generalization performance <<<<<<<<<
+MSGParam		0 1 rnd 0.33
+
+% arg 1: Number of independent cross validations. (if 0, no cross testing)
+% arg 2: Number of subsets for cross testing 
+% arg 3: Split mode, rnd or ser
+% arg 4: < 1 = splitratio, > 1 = # of rows or row-range. This is only for arg2=1
+
+%>>>>>>>>>>> Misc <<<<<<<<<<<
+SaveSession  1       % Save all networks in the training-session
+Info         2       % 0,1,2 0=Silent, 1=Some info, 2 = A lot
+
+%>>>>>>>>>>> Input/Output data normalization <<<<<<<<<<<
+InDataNorm   uv		% zo,mo,const,uv,cuv or no
+InNormConst  10.0	% Rescaling constant if "const" above
+OutDataNorm  no		% max,uv,const or no
+OutNormConst 10.0	% Rescaling constant if "const" above
+
+%>>>>>>>>>>> Model selection setup <<<<<<<<<<<
+% For info how to use this function run
+% mlp -hID MultiPar or mlp -hID MultiPar_[Identifier]
+% Up to two parameters can be varied simulaneously
+
+MultiPar_WeightElim   0 0.01 0.05 10 varseed
+MultiPar_HiddenNodes  0 5 10 1 fixseed 
+MultiPar_Inputs       0 1 varseed 
+MultiPar_CVSubSets    0 5 10 1 fixseed 
+MultiPar_GDLr         0 0.01 0.02 10 varseed
+
+%%%%%%%%%%%%% This part is used for the test mode %%%%%%%%%%%%%%%%%%%%

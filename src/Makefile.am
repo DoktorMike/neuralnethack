@@ -1,27 +1,39 @@
-# $Id: Makefile.am 1699 2008-02-02 17:20:39Z michael $
-
+# $Id: Makefile.am 1222 2005-03-17 17:18:35Z michael $
 MAINTAINERCLEANFILES = Makefile.in
-INCLUDES = -I$(srcdir) -I$(top_srcdir) -I$(top_srcdir)/neuralnethack -I/home/whitman/michael/include
+SUBDIRS	= mlp .
+#INCLUDES		= -I$(srcdir) -I$(top_srcdir) 
+bin_PROGRAMS	= neuralnethack testing
+neuralnethack_SOURCES = main.cc \
+						Factory.cc Factory.hh \
+						PrintUtils.cc PrintUtils.hh \
+						Parser.cc Parser.hh \
+						ModelEstimator.cc ModelEstimator.hh \
+						CrossValidator.cc CrossValidator.hh \
+						Bootstrapper.cc Bootstrapper.hh \
+						Committee.cc Committee.hh \
+						EnsembleBuilder.cc EnsembleBuilder.hh \
+						CrossSplitter.cc CrossSplitter.hh \
+						Bagger.cc Bagger.hh \
+						Config.cc Config.hh \
+						ErrorMeasures.cc ErrorMeasures.hh \
+						NeuralNetHack.cc NeuralNetHack.hh
 
-bin_PROGRAMS = neuralnethack ann modelselector featureselector featureselector2 saliency auc
+testing_SOURCES = testing.cc \
+				  Factory.cc Factory.hh \
+				  PrintUtils.cc PrintUtils.hh \
+				  Parser.cc Parser.hh \
+				  ModelEstimator.cc ModelEstimator.hh \
+				  CrossValidator.cc CrossValidator.hh \
+				  Bootstrapper.cc Bootstrapper.hh \
+				  Committee.cc Committee.hh \
+				  EnsembleBuilder.cc EnsembleBuilder.hh \
+				  CrossSplitter.cc CrossSplitter.hh \
+				  Bagger.cc Bagger.hh \
+				  Config.cc Config.hh \
+				  ErrorMeasures.cc ErrorMeasures.hh \
+				  NeuralNetHack.cc NeuralNetHack.hh
 
-neuralnethack_SOURCES = neuralnethack.cc
-neuralnethack_LDADD	= $(top_srcdir)/neuralnethack/libneuralnethack.la
-
-ann_SOURCES = ann.cc
-ann_LDADD = $(top_srcdir)/neuralnethack/libneuralnethack.la
-
-modelselector_SOURCES = modelselector.cc
-modelselector_LDADD = $(top_srcdir)/neuralnethack/libneuralnethack.la
-
-featureselector_SOURCES = featureselector.cc
-featureselector_LDADD = $(top_srcdir)/neuralnethack/libneuralnethack.la
-
-featureselector2_SOURCES = featureselector2.cc
-featureselector2_LDADD = $(top_srcdir)/neuralnethack/libneuralnethack.la
-
-saliency_SOURCES = saliency.cc
-saliency_LDADD = $(top_srcdir)/neuralnethack/libneuralnethack.la
-
-auc_SOURCES = auc.cc
-auc_LDADD = $(top_srcdir)/neuralnethack/libneuralnethack.la
+LDADD			= ../datatools/libdatatools.a \
+				  ../evaltools/libevaltools.a \
+				  ../matrixtools/libmatrixtools.a \
+				  mlp/libmlp.a
