@@ -1,0 +1,70 @@
+CXX = g++
+
+OBJECTS = Neuron.o Sigmoid.o TanHyp.o Linear.o\
+	  Layer.o Mlp.o DataSet.o Pattern.o Parser.o \
+	  Supervisor.o Trainer.o GradientDescent.o QuasiNewton.o \
+	  Error.o SummedSquare.o \
+	  Evaluator.o Roc.o Committee.o Config.o Common.o \
+	  
+SRCS = Neuron.cc Sigmoid.cc TanHyp.cc Linear.cc\
+	  Layer.cc Mlp.cc DataSet.cc Pattern.cc Parser.cc \
+	  Supervisor.cc Trainer.cc GradientDescent.cc QuasiNewton.cc \
+	  Error.cc SummedSquare.cc \
+	  Evaluator.cc Roc.o Committee.cc Config.cc Common.cc \
+
+CXXFLAGS = -I. -ggdb3 -pedantic -ansi -Wall #-DNDEBUG \
+	   #-I/home/max/jari/local/include 
+
+LFLAGS = #-L/home/max/jari/local/lib
+
+LIBS = -lm
+
+
+nethack: $(OBJECTS) main.o 
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS) $(LFLAGS)
+testing: $(OBJECTS) TestWeights.o
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS) $(LFLAGS)
+clean:
+	rm -rf nethack testing *.o a.out *~ *.bak *.swp
+
+
+# DO NOT DELETE
+
+Committee.o: Committee.hh Mlp.hh Layer.hh Neuron.hh Common.hh
+Common.o: Common.hh
+Config.o: Config.hh Common.hh
+DataSet.o: DataSet.hh Pattern.hh Common.hh
+Error.o: Error.hh Mlp.hh Layer.hh Neuron.hh Common.hh
+Evaluator.o: Evaluator.hh Committee.hh Mlp.hh Layer.hh Neuron.hh Common.hh
+Evaluator.o: DataSet.hh Pattern.hh
+GradientDescent.o: GradientDescent.hh Trainer.hh DataSet.hh Pattern.hh
+GradientDescent.o: Common.hh Error.hh Mlp.hh Layer.hh Neuron.hh Committee.hh
+Layer.o: Layer.hh Neuron.hh Common.hh Sigmoid.hh TanHyp.hh Linear.hh
+Linear.o: Linear.hh Neuron.hh Common.hh
+main.o: Supervisor.hh Trainer.hh DataSet.hh Pattern.hh Common.hh Error.hh
+main.o: Mlp.hh Layer.hh Neuron.hh Committee.hh Config.hh Parser.hh
+Mlp.o: Mlp.hh Layer.hh Neuron.hh Common.hh
+Neuron.o: Neuron.hh Common.hh
+Parser.o: Parser_impl.hh Parser.hh DataSet.hh Pattern.hh Common.hh Config.hh
+Parser.o: /usr/include/ctype.h /usr/include/features.h
+Parser.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
+Parser.o: /usr/include/bits/types.h /usr/include/bits/wordsize.h
+Parser.o: /usr/lib/gcc-lib/i486-linux/3.3.4/include/stddef.h
+Parser.o: /usr/include/bits/typesizes.h /usr/include/endian.h
+Parser.o: /usr/include/bits/endian.h
+Pattern.o: Pattern.hh Common.hh
+QuasiNewton.o: QuasiNewton.hh Trainer.hh DataSet.hh Pattern.hh Common.hh
+QuasiNewton.o: Error.hh Mlp.hh Layer.hh Neuron.hh Committee.hh
+Roc.o: Roc.hh Evaluator.hh Committee.hh Mlp.hh Layer.hh Neuron.hh Common.hh
+Roc.o: DataSet.hh Pattern.hh
+Sigmoid.o: Sigmoid.hh Neuron.hh Common.hh
+SummedSquare.o: SummedSquare.hh Error.hh Mlp.hh Layer.hh Neuron.hh Common.hh
+Supervisor.o: Supervisor.hh Trainer.hh DataSet.hh Pattern.hh Common.hh
+Supervisor.o: Error.hh Mlp.hh Layer.hh Neuron.hh Committee.hh Config.hh
+Supervisor.o: GradientDescent.hh Roc.hh Evaluator.hh
+TanHyp.o: TanHyp.hh Neuron.hh Common.hh
+TestWeights.o: Supervisor.hh Trainer.hh DataSet.hh Pattern.hh Common.hh
+TestWeights.o: Error.hh Mlp.hh Layer.hh Neuron.hh Committee.hh Config.hh
+TestWeights.o: Parser.hh
+Trainer.o: Trainer.hh DataSet.hh Pattern.hh Common.hh Error.hh Mlp.hh
+Trainer.o: Layer.hh Neuron.hh Committee.hh SummedSquare.hh
