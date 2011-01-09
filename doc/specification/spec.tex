@@ -1,0 +1,61 @@
+\documentclass[a4paper, 10pt, twopage, notitlepage]{article}
+\usepackage[T1]{fontenc}
+\usepackage{pxfonts}
+\usepackage{graphics}
+\usepackage[english]{babel}
+
+\title{ANN project using C++}
+\author{Michael Green}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Specification} An MLP consists of several layers connected to each
+other by a set of weights.  Each of these layers has a number of residing
+neurons. Each neuron in a layer is connected to every other neuron in the
+previous and next layer. A neuron gets a weighted input based on the
+activation level of each neuron in the previous layer. The sum of all of these
+weighted input is called the local induced field(LIF). It then uses an
+activation function to calculate its own activation level from the LIF. A
+Neuron can have different activation functions: 
+
+\begin{enumerate}
+	\item linear:  \[f(v_i)=v_i\]
+	\item tanh: \[f(v_i)=tanh(\alpha v_i)\]
+	\item sigmoid: \[f(v_i)=\frac{1}{1+e^{-\alpha v_i}}\]
+	\item softmax: \[f(v_i)=\frac{e^{v_i}}{\sum_je^{v_j}}\]
+\end{enumerate}
+
+\noindent where $v_i$ is the LIF of neuron $i$ in the current layer.
+
+Input to an MLP propagates through the layers until it reaches the output
+layer. The output is then compared to the desired output thus defining an
+error. The following error functions should be implemented:
+
+\begin{enumerate}
+	\item Summed square error(SSE)
+		\[E=\frac{1}{2N}\sum_{n}^{N}\sum_{i}^{I}[d_i(n)-y_i(n)]^2\]
+	\item Cross-entropy error(CEE)
+		\[E=-\frac{1}{N}\sum_n^N\sum_i^I\left[d_i(n)\log\left(\frac{y_i(n)}{d_i(n)}\right)\right]\]
+\end{enumerate}
+
+\noindent This error is then back-propagated through the layers of the MLP using
+one of the following learning algorithms.
+
+\begin{enumerate}
+	\item Quasi Newton(QN);
+	\item Gradient Descent(GD);
+	\item GD using momentum and variable learning rate(GDX).
+\end{enumerate}
+
+\noindent Also the MLP should incorporate some regularisation e.g. weight
+elimination. 
+
+The MLP is trained using a training data set, and validated using a validation
+data set. Moreover the architecture and network specific constants should be read from a
+configuration file. An error function is needed in order to evaluate
+performance. 
+
+\end{document}
+
