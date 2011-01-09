@@ -1,0 +1,9 @@
+- Optimize the code to make it run faster.
+- Statistics:
+	* Write a gnuplotable learning curve to a file.
+	* Calculate a P-value for the ROC curve.
+- Other:
+	* Template the Matrix library.
+	* Softmax in output layer of MLP.
+	* Fix the checking for command line parsing in autoconf
+- Bugs:
