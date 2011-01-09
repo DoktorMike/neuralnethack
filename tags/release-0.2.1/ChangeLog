@@ -1,0 +1,22 @@
+NetHack 0.2.0:
+	* Learning Algorithms:
+		- Quasi Newton:
+			- BFGS updating rule.
+			- Initial bracketing of the minima.
+			- Brents line search.
+NetHack 0.1.0:
+	* Multi layer perceptron:
+		- Any number of neurons and layers.
+		- Tangens Hyperbolic activation function.
+		- Sigmoid activation function.
+		- Linear activation function.
+	* Learning Algorithms:
+		- Gradient Descent
+			- Variable learning rate.
+			- Momentum term aka poor mans conjugate gradient.
+		- Block updating.
+	* Error functions:
+		- Summed Square Error.
+	* Evaluation:
+		-ROC generation.
+		-AUC calculation using mann-whitney or trapezoidal rule.

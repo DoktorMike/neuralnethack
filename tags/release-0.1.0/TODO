@@ -1,0 +1,20 @@
+- Batch gradient should be calculated in the Error function and not in the
+  learning algorithm.
+- Set binary outputs in Normaliser to be [-1,1] even if it is [0,1] from the
+  beginning. Use z=2x-1 as a transformation for the values that are [-1,1] or
+  [0,1].
+- Errorfunction: CE.
+- Learning algorithms: QN.
+- Regularization: Weight elemination.
+- K-fold crossvalidation.
+- Softmax in output layer of MLP.
+- Problem type determine Evaluation in EvalTools.
+- Write the learning curve to a file called lc.dat or something.
+- Optimize the code to make it run faster.
+	* Inline proper functions i.e. accessors, mutators etc.
+	* Look throught the creation and maintenance of STL vectors.
+	* Profile the code using gprof and check the critical points.
+	* Everything else that comes to mind to speed things up.
+	* Use memset to put all elements in a STL vector to 0?
+- Possibility of saving committees.
+- Possibility of loading previously saved committees from a file.

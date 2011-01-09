@@ -1,0 +1,40 @@
+# WITHOUT normalization of the data set.
+Parsing and storing Configuration.
+Filename	../../LUNAR/data/Ecg1664.dat
+InCol		1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 
+OutCol		40 
+NLay		3
+Size		39 20 1 
+ActFcn		logsig logsig 
+ErrFcn		sumsqr
+MinMethod	gd
+MaxEpochs	200
+GDParam		1664 0.1 0.99 0.8
+MSParam		2 2 1 150
+WeightElim	0 0.002 1
+
+Parsing and adding data to the DataSet.
+
+Training error: 0.0437062 Epoch: 100
+Training error: 0.0399591 Epoch: 200
+
+
+# WITH normalization the error is higher strangely enough. :)
+Parsing and storing Configuration.
+Filename        ../../LUNAR/data/Ecg1664.dat
+InCol           1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 
+OutCol          40 
+NLay            3
+Size            39 20 1 
+ActFcn          logsig logsig 
+ErrFcn          sumsqr
+MinMethod       gd
+MaxEpochs       200
+GDParam         1664 0.1 0.99 0.8
+MSParam         2 2 1 150
+WeightElim      0 0.002 1
+
+Parsing and adding data to the DataSet.
+Training error: 0.0515174 Epoch: 100
+Training error: 0.0420645 Epoch: 200
+

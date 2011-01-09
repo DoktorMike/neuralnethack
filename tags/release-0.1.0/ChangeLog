@@ -1,0 +1,14 @@
+2004-08-23  Michael Green  <michael@thep.lu.se>
+
+	* nethack: initial version.
+	* features: 
+		-General Multi Layer Perceptron architecture.
+		-Gradient Descent:
+			-Variable learning rate.
+			-Momentum term.
+		-Error functions:
+			-Summed Square Error.
+		-Evaluation:
+			-ROC generation.
+			-AUC calculation using mann-whitney
+

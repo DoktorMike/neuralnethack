@@ -1,0 +1,44 @@
+- Errorfunction: 
+	* Cross Entropy:
+		- This error function needs information about the number of classes as
+		  well as the number of outputs.
+- Learning algorithms: 
+	* Maybe the Trainer should have an Mlp architecture and the types vector
+	  so that it can create and train an Mlp several times?
+	* Quasi Newton:
+		- Write a line minimization algorithm that can replace brent and the
+		  initial bracketing.
+		- Make block updating work with QuasiNewton. It works in GD
+		  due to the fact that it only evaluates the dataset during
+		  the gradient calculation. QN evaluates the DataSet once for
+		  gradient calculation and several other times while
+		  determining the step size. This evaluation should of course
+		  be done on the same data set as the gradient.
+	* Gradient Descent:
+		- Move all variables related to learning from Neuron to the
+		  Learning algorithms. Ex. An Mlp shouldn't know about it's
+		  gradients, local gradients, previous weight updates, or
+		  errors. QUESTIONABLE!
+- Regularization: 
+	* OBS or OBD.
+- Ensemble building:
+	* Bagging.
+- Model Selection:
+	* A model selection taking parameters to vary e.g. #hidden nodes.
+- Optimize the code to make it run faster.
+	* Inline proper functions i.e. accessors, mutators etc.
+	* Look throught the creation and maintenance of STL vectors.
+	* Profile the code using gprof and check the critical points.
+	* Everything else that comes to mind to speed things up.
+- Statistics:
+	* Write a gnuplotable learning curve to a file.
+	* Calculate a P-value for the ROC curve.
+- Other:
+	* Template the Matrix library.
+	* Possibility of saving committees.
+	* Possibility of loading previously saved committees from a file.
+	* Softmax in output layer of MLP.
+	* Set binary outputs in Normaliser to be [-1,1] even if it is [0,1]
+	  from the beginning. Use z=2x-1 as a transformation for the values
+	  that are [-1,1] or [0,1].
+	

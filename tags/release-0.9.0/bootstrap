@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#echo -n "Removing autotools:        " && rm -rf autotools && mkdir autotools && echo "Done!"
+#echo -n "Running aclocal:           " && aclocal > /dev/null 2>&1 && echo "Done!"
+#echo -n "Running autoheader:        " && autoheader > /dev/null 2>&1 && echo "Done!"
+#echo -n "Running automake:          " && automake --add-missing --gnu --copy > /dev/null 2>&1 && echo "Done!"
+#echo -n "Running autoconf:          " && autoconf > /dev/null 2>&1 && echo "Done!"
+
+#export PATH=~jari/local/bin:$PATH;
+set -x
+rm -rf autotools; mkdir autotools
+aclocal -I autotools
+libtoolize --force --copy
+autoheader
+automake --add-missing --gnu --copy
+autoconf
+

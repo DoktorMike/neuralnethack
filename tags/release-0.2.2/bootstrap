@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo -n "Removing autotools:        " && rm -rf autotools && mkdir autotools && echo "Done!"
+echo -n "Running aclocal:           " && aclocal && echo "Done!"
+echo -n "Running autoheader:        " && autoheader && echo "Done!"
+echo -n "Running automake:          " && automake --add-missing --gnu --copy && echo "Done!"
+echo -n "Running autoconf:          " && autoconf && echo "Done!"
+

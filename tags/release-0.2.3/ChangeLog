@@ -1,0 +1,54 @@
+NeuralNetHack 0.2.3:
+	* Multi layer perception:
+		- Speed up due to the removal of Neurons as a concept.
+		- General restructuring of class hierarchy.
+	* Evaluation:
+		- ROC analysis based on committee output.
+		- ROC no longer available for each run and part.
+		- ROC analysis on seperatly provided test set.
+	* Parsing:
+		- Test set is also parsed along with training set now.
+		- Various updates.
+NeuralNetHack 0.2.2:
+	* Learning Algorithms:
+		- QuasiNewton:
+			- DFP updating rule.
+		- Minor bugfixes.
+		- Weight decay.
+		- Weight elimination.
+	* Data tools:
+		- Sequential splitting of a data set.
+		- Randomised splitting of a data set.
+		- Data set normalization.
+		- Data set abstraction. 
+	* Evaluation:
+		- N runs of K-fold crossvalidation:
+			- ROC analysis for each run.
+			- ROC analysis for all runs.
+NeuralNetHack 0.2.1:
+	* Error functions:
+		- Structure cleanup.
+		- Documentation updates.
+		- Minor bugfixes.
+NeuralNetHack 0.2.0:
+	* Learning Algorithms:
+		- Quasi Newton:
+			- BFGS updating rule.
+			- Initial bracketing of the minima.
+			- Brents line search.
+NeuralNetHack 0.1.0:
+	* Multi layer perceptron:
+		- Any number of neurons and layers.
+		- Tangens Hyperbolic activation function.
+		- Sigmoid activation function.
+		- Linear activation function.
+	* Learning Algorithms:
+		- Gradient Descent
+			- Variable learning rate.
+			- Momentum term aka poor mans conjugate gradient.
+		- Block updating.
+	* Error functions:
+		- Summed Square Error.
+	* Evaluation:
+		-ROC generation.
+		-AUC calculation using mann-whitney or trapezoidal rule.

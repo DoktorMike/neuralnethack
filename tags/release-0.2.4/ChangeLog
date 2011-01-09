@@ -1,0 +1,1395 @@
+2005-03-24 Michael Green <michael@thep.lu.se>
+	
+	Updated the FEATURES.
+	
+2005-03-24 Michael Green <michael@thep.lu.se>
+	
+	runann: Made the suffix to NeuralNetHack unique.
+	
+2005-03-23 Michael Green <michael@thep.lu.se>
+	
+	runann: Fixed unique name for outputlist suffix for neuralnethack. Although I
+	may need to write out the names as well as the values for it to be truly
+	unique.
+	
+2005-03-23 Michael Green <michael@thep.lu.se>
+	
+	Error: Optimized the weightElimination calculation a bit.
+	
+2005-03-23 Michael Green <michael@thep.lu.se>
+	
+	runann: Fixed a bug where it crashed if now variates were given.
+	
+2005-03-23 Michael Green <michael@thep.lu.se>
+	
+	Moved the MultiLayerPerceptron namespace out out NeuralNetHack namespace since
+	it is self-contained.
+	
+2005-03-23 Michael Green <michael@thep.lu.se>
+	
+	runann: Command line now takes --suf instead of --out which means that the
+	user has to specify a suffix for the result file instead of the full name of
+	the resultfile.
+	
+2005-03-22 Michael Green <michael@thep.lu.se>
+	
+	Error: Renamed the weightElimination routines to weightElimGrad instead. Made
+	accessor methods const. Added a weightElim routine for calculating the weight
+	elimination term. Also weightEliminationGradients are now calculated in the
+	Error implementations since the Trainer implementations shouldn't need to
+	bother with that.
+	QuasiNewton: Removed weightElimination directive from source.
+	
+2005-03-22 Michael Green <michael@thep.lu.se>
+	
+	Removed the weightelimination directive from the Trainer implementations since
+	this should be included in the gradients from the start.
+	
+2005-03-22 Michael Green <michael@thep.lu.se>
+	
+	Parser, Config: Added an attribute seed so that the user may now set the seed
+	without recompiling.
+	main: Now using the Config.seed attribute instead of time(0).
+	
+2005-03-21 Michael Green <michael@thep.lu.se>
+	
+	Removed ugly print in main.
+	Added a new script that converts outputllists into simple target output list.
+	
+2005-03-21 Michael Green <michael@thep.lu.se>
+	
+	Removed debug messages from CrossValidator and CrossSplitter. Also confirmed
+	that cs with 1 1 gives the same result as just running a training session. 
+	Error: Fixed a bug where weightElimination was always added without checking
+	if it should have been.
+	DataManager: Removed annoying warning about splitting or joining with K<2.
+	
+2005-03-19 Michael Green <michael@thep.lu.se>
+	
+	Killed the bug in the DataManager. The problem was that it built an
+	indexvector from 0 to n even if the DataSet that went into the function could
+	very well have started att index 340 and went up to 1023. :) Also I commented
+	out a lot of the debugging shit.
+	
+2005-03-18 Michael Green <michael@thep.lu.se>
+	
+	Bugtesting everything. Nothing is working. I have found the bug though. It
+	happens in CrossSplitter.cc where I have written THIS IS WHERE THE BUG
+	HAPPENS.
+	
+2005-03-18 Michael Green <michael@thep.lu.se>
+	
+	Added weightElimination term to resetVectors method in QuasiNewton.
+	
+2005-03-18 Michael Green <michael@thep.lu.se>
+	
+	Made the QuasiNewton minimizer use the Mlp and DataSet members now instead of
+	local representations.
+	
+2005-03-18 Michael Green <michael@thep.lu.se>
+	
+	Made some variable renaming in Bagger as well.
+	
+2005-03-18 Michael Green <michael@thep.lu.se>
+	
+	Renamed the data set variables in the ModelEstimators to more useful names.
+	Also removed an unneccesary variable.
+	
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	runann: Added an ugly fix in order to make every outputlist generated from
+	neuralnethack unique. The problem is that I just put a random number as a
+	suffix so I can't trace which run the outputlist belong to.
+	
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Added runann.pl as EXTRA_DIST in top Makefile.am.
+	
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Fixed the outputfile generation for both of the ModelEstimators.
+	
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Added PrintUtils namespace with useful printing routines.
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Temporary commit.
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Fixed a bunch of stuff but not compiling. Don't use.
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Added printing to the ModelEstimators and EnsembleBuilders.
+	
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Updated the ChangeLog.
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	runann: Added a log file which prints all output from neuralnethack to a file
+	runann.log.
+	
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Config: Added ensParamSplitMode attribute.
+	Parser: Parsing ensParamSplitMode attribute.
+	main: Modelselection generates training and validation AUC, ensBuilding
+	generate training and testing AUC.
+	NeuralNetHack: Moved the defines of SSE and other into the
+	MultiLayerPerceptron namespace.
+	
+2005-03-17 Michael Green <michael@thep.lu.se>
+	
+	Added new namespace Factory that does exactly what it sounds like.
+	Modified the main.cc as to recognise these updates.
+	
+2005-03-16 Michael Green <michael@thep.lu.se>
+	
+	Still no luck.
+2005-03-16 Michael Green <michael@thep.lu.se>
+	
+	main: Cleaned up file. It won't compile but I know what I am doing.
+	
+2005-03-14 Michael Green <michael@thep.lu.se>
+	
+	ErrorMeasures: Fixed compilation error on whitman.
+	
+2005-03-13 Michael Green <michael@thep.lu.se>
+	
+	Fixed the structure of the config file to match the new interfaces.
+	
+2005-03-13 Michael Green <michael@thep.lu.se>
+	
+	ModelEstimator: Added printing of trn targets in the printOutputTarget
+	function.
+	
+2005-03-13 Michael Green <michael@thep.lu.se>
+	
+	CrossValidator: Fixed the printOutputTarget function.
+	ModelEstimator: - || -
+	
+2005-03-13 Michael Green <michael@thep.lu.se>
+	
+	CrossEntropy: Fixed the NaN bug in the outputError function.
+	QuasiNewton: Removed two defines and replaced them with one.
+	testing: Added a testing function for CrossValidator.
+	
+2005-03-12 Michael Green <michael@thep.lu.se>
+	
+	Finished the new CrossValidator. Now I need to test it and see if it works.
+2005-03-12 Michael Green <michael@thep.lu.se>
+	
+	Added CrossValidator again. Still needs some work.
+2005-03-12 Michael Green <michael@thep.lu.se>
+	
+	Removed CrossValidator and CrossResult.
+2005-03-12 Michael Green <michael@thep.lu.se>
+	
+	Patched one more place.
+	
+2005-03-12 Michael Green <michael@thep.lu.se>
+	
+	ModelEstimator now uses the buildOutputTargetVectors from the ErrorMeasures
+	instead of it's own internal, which was removed. :) 
+	
+2005-03-12 Michael Green <michael@thep.lu.se>
+	
+	CrossEntropy: Fixed the outputError function so that it always assumes a two
+	class problem if there is only one output. Also updated the documentation.
+	ErrorMeasures: Added a new namespace and class for dealing with error
+	measurement.
+	
+2005-03-12 Michael Green <michael@thep.lu.se>
+	
+	Fixed building error on my machine. cassert wasn't included where is should
+	be.
+	
+2005-03-11 Michael Green <michael@thep.lu.se>
+	
+	Cleaned up the Trainer interface and its sub classes. Now one has to make a
+	complete Trainer at construction time by the constructor. No more ad hoc shit!
+	This is supposed to be done to the Error interface aswell.
+	
+2005-03-10 Michael Green <michael@thep.lu.se>
+	
+	Removed the MultiLayerPerceptron prefix on Mlp.
+2005-03-10 Michael Green <michael@thep.lu.se>
+	
+	Moved the Error and all its sub classes into the mlp directory since they
+	belong together with that namespace.
+	
+2005-03-10 Michael Green <michael@thep.lu.se>
+	
+	Put the Trainer and it's subclasses into the mlp directory since it belongs to that namespace.
+2005-03-10 Michael Green <michael@thep.lu.se>
+	
+	Moved the Trainer and Error classes and their subclasses into the
+	MultiLayerPerceptron namespace since that namespace should contain enough
+	information to train an Mlp.
+	
+2005-03-09 Michael Green <michael@thep.lu.se>
+	
+	Moved the mlp directory down to src instead. Patched everything and tried it.
+	Seems to work. Also speeded things up a bit.
+	
+2005-03-09 Michael Green <michael@thep.lu.se>
+	
+	More using directive cleanup and also put the MultiLayerPerceptron namespace
+	back into NeuralNetHack namespace since it belong with the Trainer and such. 
+	
+2005-03-09 Michael Green <michael@thep.lu.se>
+	
+	More cleanouts of using directives from the .hh files. Completed the
+	Bootstrapper class and tested it. Everything seems to work unless for the fact
+	that it is very slow.
+	
+2005-03-09 Michael Green <michael@thep.lu.se>
+	
+	Removed the using directive from all header files. Generally it's bad manners
+	clogging up someone elses namespace.
+	
+2005-03-08 Michael Green <michael@thep.lu.se>
+	
+	Trainer: Added a DataSet pointer as a member.
+	QuasiNewton, GradientDescent: A call to train with an Mlp and a DataSet as
+	parameters now sets the members theDataSet and theMlp.
+	Bootstrapper: The member n now gets copied in the assignment operator.
+	
+2005-03-07 Michael Green <michael@thep.lu.se>
+	
+	Wrote the method estimateModel and added a type in ModelEstimator called
+	Estimation.
+	
+2005-03-07 Michael Green <michael@thep.lu.se>
+	
+	Added shell version of Bootstrapper ModelEstimator.
+	
+2005-03-07 Michael Green <michael@thep.lu.se>
+	
+	Added abstract base class for ModelEstimators. This will be a base class for
+	the future CrossValidator and Bootstrapper.
+	
+2005-03-07 Michael Green <michael@thep.lu.se>
+	
+	Updated the ChangeLog.
+2005-03-07 Michael Green <michael@thep.lu.se>
+	
+	Increased the number of mlps in testMlpCopy.
+	
+2005-03-07 Michael Green <michael@thep.lu.se>
+	
+	Updated the TODO, and commented on the testing.cc file.
+	
+2005-03-07 Michael Green <michael@thep.lu.se>
+	
+	Added another EnsembleBuilder called Bagger, and commented some more on
+	CrossSplitter. Also added Bagger.cc and Bagger.hh to the Makefile.am. I also
+	tested the routine.
+	
+2005-03-07 Michael Green <michael@thep.lu.se>
+	
+	Trainer: Renamed operation validate() to isValid(). Added the attribute theMlp
+	since I believe a trainer should have an Mlp. The operation mlp() no longer
+	access or modify theErrors mlp.
+	
+	Also pathed a bunch of files according to the new changes.
+	
+	
+2005-03-05 Michael Green <michael@thep.lu.se>
+	
+	EnsembleBuilder: Removed the theRandomSampling attribute since it is already
+	represented in the DataManager. I also fixed an assignment operator issue. Now
+	it's like clockwork. :)
+	CrossSplitter: Fixed the segfault that was due to the original mlp got lost
+	during cross splitting.
+	
+2005-03-04 Michael Green <michael@thep.lu.se>
+	
+	EnsembleBuilder: Added theRandomSampling attribute. Needs to be added to
+	constructor and mutator and accessor methods implemented.
+	
+2005-03-04 Michael Green <michael@thep.lu.se>
+	
+	Doxyfile: Fixed a new version of this file.
+	Roc: Removed the fix with adding 0.5 for equal outputs since it gave strange
+	performance with respect to trapezoidal rule.
+	testing: Now tstData gets normalised as well. This was the reason for the
+	strange outputs.
+	
+2005-03-04 Michael Green <michael@thep.lu.se>
+	
+	Roc: Renamed calcAucU to calcAucWmw and calcAucWmw to calcAucWmwFast for no
+	reason at all. Had to give them some names. Also I cleaned up the code
+	extensively.
+	
+2005-03-03 Michael Green <michael@thep.lu.se>
+	
+	Roc: Added another method of calculating the AUC.
+	testing: Used the new way here.
+	
+2005-03-03 Michael Green <michael@thep.lu.se>
+	
+	MatrixTools: Added a print method for vector<uint>.
+	testing: Added test method for Roc.
+	Roc: Fixed one bug in calcAucWmw, more remains.
+	
+2005-03-03 Michael Green <michael@thep.lu.se>
+	
+	QuasiNewton: The DataSet sent to the train function is now put directly into
+	Error.
+	CrossSplitter: Added accessor and mutator methods for n and k.
+	Mlp: Added accessor for softmax switch.
+	testing: Added a test suite for CrossSplitter.
+	
+2005-03-03 Michael Green <michael@thep.lu.se>
+	
+	Added new class CrossSplitter.
+	EnsembleBuilder: Added isValid() function to validate the class.
+	Makefile.am: Fix so that CrossSplitter compiles.
+	DataManager: Added include guard.
+	
+2005-03-03 Michael Green <michael@thep.lu.se>
+	
+	Added accessor and mutator methods for the attributes.
+	
+2005-03-03 Michael Green <michael@thep.lu.se>
+	
+	Updated the ChangeLog.
+	
+2005-03-02 Michael Green <michael@thep.lu.se>
+	
+	EnsembleBuilder: Added this abstract class.
+	Makefile.am: Added entry so that EnsembleBuilder will compile.
+	
+2005-03-02 Michael Green <michael@thep.lu.se>
+	
+	DataManager: split using a ratio now returns a std::pair instead of a
+	std::vector.
+	CrossValidator: Patch due to the change to the DataManager interface.
+	testing: Patch due to the change to the DataManager interface.
+	
+2005-03-02 Michael Green <michael@thep.lu.se>
+	
+	DataManager: Added a bootstrap split.
+	configure.ac: Added another CXXFLAGS option.
+	testing.cc: Set the seed to the time.
+	
+2005-03-02 Michael Green <michael@thep.lu.se>
+	
+	Removed unused include.
+	
+2005-03-02 Michael Green <michael@thep.lu.se>
+	
+	Added svn:keywords Id property to all *.cc and *.hh files.
+	
+2005-03-02 Michael Green <michael@thep.lu.se>
+	
+	Added the correct keyword properties. It is supposed to be svn:keywords Id
+	instead of keywords Id.
+	
+2005-03-02 Michael Green <michael@thep.lu.se>
+	
+	Added property keyword Id to all Makefile.am and also added the Id keyword to
+	them.
+	
+2005-03-02 Michael Green <michael@thep.lu.se>
+	
+	Added property keywords Id to runann.pl and also added the Id keyword to the
+	header of that file.
+	
+2005-03-01 Michael Green <michael@thep.lu.se>
+	
+	Added some flags to the configure.ac.
+	
+2005-02-28 Michael Green <michael@thep.lu.se>
+	
+	Added a function for building indices with replacement.
+	
+2005-02-28 Michael Green <michael@thep.lu.se>
+	
+	Forgot to add matrixtools directory to top Makefile.am.
+	
+2005-02-28 Michael Green <michael@thep.lu.se>
+	
+	Moved MatrixTools to it's own directory since it is well separeted from the
+	other code. Hence it should have it's own library.
+	
+2005-02-28 Michael Green <michael@thep.lu.se>
+	
+	Got rid of unneccesary variables.
+	
+2005-02-28 Michael Green <michael@thep.lu.se>
+	
+	Moved the CrossResult class into a separate file. Removed the stupid include
+	of Config.hh in CrossValidator. Updated the Makefile.am.
+	
+2005-02-23 Michael Green <michael@thep.lu.se>
+	
+	Made the Parser back into a class instead of only a namespace which was
+	cumbersome for the doxygen tool to handle. Made all the classes static though
+	since we don't really need containment of any data.
+	
+2005-02-23 Michael Green <michael@thep.lu.se>
+	
+	Added documentation for the CrossValidator.
+	
+2005-02-23 Michael Green <michael@thep.lu.se>
+	
+	Updated the ChangeLog.
+	
+2005-02-23 Michael Green <michael@thep.lu.se>
+	
+	Rename of calculateAuc to calculateMeanAuc which is more informative.
+	
+2005-02-23 Michael Green <michael@thep.lu.se>
+	
+	The problemType variable in Config is now a boolean. Changed the parser to use
+	that fact. Added a header to the outputlist generator.
+	
+2005-02-22 Michael Green <michael@thep.lu.se>
+	
+	Reorganised the printouts in the main more elaborate and functional. Also I
+	fixed an assertion failure in Committee.
+	
+2005-02-22 Michael Green <michael@thep.lu.se>
+	
+	Finished the new implementation of the Weight elimination scheme. It now
+	resides in Error instead of Trainer as it should sinse it is actually part of
+	the Error function when used. Also made the appropriate updates to the
+	Learning algorithms.
+	
+2005-02-21 Michael Green <michael@thep.lu.se>
+	
+	Moved the weightElimination stuff to Error instead of Trainer. This is a
+	reasonable approach since it's the gradients that are affected by the
+	regularization. Need to do the actual implementation in Error now though and
+	also incorporate it in the QuasiNewton and GradientDescent thing.
+	
+2005-02-21 Michael Green <michael@thep.lu.se>
+	
+	Removed the theType attribute from the Error classes. This should never be
+	needed in an implementation and I was wrong to even have considered them in
+	the first place.
+	
+2005-02-21 Michael Green <michael@thep.lu.se>
+	
+	Removed the theGradient vector since it is no longer used. This should have
+	been done sooner.
+	
+2005-02-20 Michael Green <michael@thep.lu.se>
+	
+	Set the seed to random again.
+	
+2005-02-20 Michael Green <michael@thep.lu.se>
+	
+	Added an entry about the bug fix for weight elimination in the FEATURES file.
+	
+2005-02-20 Michael Green <michael@thep.lu.se>
+	
+	Changed the commenting style on Mlp.hh. Complete rewrite of the weight
+	elimination in both the QuasiNewton.cc and GradientDescent.cc. Naturally the
+	trainer interface needed patching as well. Weight elemination now improves
+	performance for both algorithms.
+	
+2005-02-18 Michael Green <michael@thep.lu.se>
+	
+	Added a method in Layer for extracting the number of neurons in the previous
+	layer. Also I corrected the weight elimination calculation and updating of the
+	weights since it previously ran over all weights including biases. Now biases
+	are excluded as they should be. Also changed the seed to debug mode in main.
+	The QuasiNewton incorporates the new weight elimination changes and it seems
+	to be working meanwhile GradientDescent is still unfinished.
+	
+2005-02-17 Michael Green <michael@thep.lu.se>
+	
+	The printX methods in the mlp now take an output stream as an argument instead
+	of using cout.
+	
+2005-02-17 Michael Green <michael@thep.lu.se>
+	
+	Killed a bug in the parser where EnsParam was parsed incorrectly.
+	
+2005-02-16 Michael Green <michael@thep.lu.se>
+	
+	Messed up the main pretty bad with the output list generation this needs to be
+	performed more rigorous. Also I renamed some methods in CrossValidator.
+	
+2005-02-15 Michael Green <michael@thep.lu.se>
+	
+	Updated the ChangeLog.
+	
+2005-02-15 Michael Green <michael@thep.lu.se>
+	
+	Renamed produceList.pl to runann.pl since that is a more descriptive name.
+	
+2005-02-14 Michael Green <michael@thep.lu.se>
+	
+	Updated the FEATURES file.
+	
+2005-02-14 Michael Green <michael@thep.lu.se>
+	
+	Added parsing of the Suffix attribute. Also added an attribute to the MSParam
+	directive which tells the program whether to calculate the auc based on
+	committee or mean. Also added more error checking to the main program.
+	Hopefully the same executable can now be used to train both committees and
+	single mlp's using only the config file.
+	
+2005-02-14 Michael Green <michael@thep.lu.se>
+	
+	Added parsing of the EnsParam, SaveSession, SaveOutputList and Info attribute
+	of the config file. Also made the copy constructor of the CrossValidator
+	private since it doesn't make any sense to copy the crossResults vector. I
+	also restructured main quite a bit. It now correctly decides whether to
+	display the output lists or not. Also the output list generation seems to be
+	working just fine.
+	
+2005-02-14 Michael Green <michael@thep.lu.se>
+	
+	Put the attribute order in the Config file to follow the actual config file
+	layout.
+	
+2005-02-13 Michael Green <michael@thep.lu.se>
+	
+	Added parsing of EnsParam directive in config file. Also added a
+	SaveOutputList directive in the config file. No parsing of it yet though.
+	
+2005-02-10 Michael Green <michael@thep.lu.se>
+	
+	Finished the list printing method in CrossValidator. I still need to generate
+	the target for the whole training data file and the test file.
+	
+2005-02-10 Michael Green <michael@thep.lu.se>
+	
+	Began implementing a printOutLists method in CrossValidator that's supposed to
+	write out the output for each data point for each CrossValidation run and
+	part. Not finished though.
+	
+2005-02-08 Michael Green <michael@thep.lu.se>
+	
+	Killed a bug in the produceList.pl where an AUC of 1 wasn't parsed correctly
+	by the regexp.
+	
+2005-02-04 Michael Green <michael@thep.lu.se>
+	
+	Renamed the project to neuralnethack instead of nethack.
+	
+2005-02-04 Michael Green <michael@thep.lu.se>
+	
+	Updated the features file.
+	
+2005-02-02 Michael Green <michael@thep.lu.se>
+	
+	Fixed a bug in the script where no offset was given to changeConfig routine.
+	
+2005-02-02 Michael Green <michael@thep.lu.se>
+	
+	The script now reads from a file containing variates instead. This is more
+	general and extendable. Also I added a sample of what that variates file
+	should look like.
+	
+2005-02-02 Michael Green <michael@thep.lu.se>
+	
+	* Made the script more general and parses the config files better.
+	
+2005-02-01 Michael Green <michael@thep.lu.se>
+	
+	Produced two new functions in hope of making the value shifting a bit less
+	painful.
+	
+2005-02-01 Michael Green <michael@thep.lu.se>
+	
+	Made the produceList.pl script much better and easier on the eyes.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	Added some debugging for the main.cc. There seems to be a problem in the
+	Parser.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	Fixed the bug in the CrossValidator. Now the only indices receiving outputs
+	are the ones defined in indices from the DataSet. Thus the AUC is calculated
+	correctly this time. However it didn't make a difference now since I've been
+	using the same size on the DataSet as the CoreDataSet. So let's say I killed a
+	future bug.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	Commented some more. Also Discovered a bug in the CrossValidator that occurs
+	when generating AUC's from DataSet's with a different size than it's
+	CoreDataSet.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	Made one generic interface to the CrossValidator. The user now only supply the
+	N, K and ratio and it's up to the CrossValidator to figure out the rest.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	* Added a gnuified version of svn log as ChangeLog. The old ChangeLog is now
+	  named FEATURES.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	* Added a testing directory and moved the config files there instead.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	* Added an offset to the changeConfig function.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	* Added a running script for varying parameters.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	* Added parsing and storing of the cross testing section in the config.txt
+	  file.
+	
+2005-01-31 Michael Green <michael@thep.lu.se>
+	
+	* Updated the MSGParam section of the config files, since it is supposed to
+	  contain 4 arguments instead of 3.
+	
+2005-01-29 Michael Green <michael@thep.lu.se>
+	
+	* Just changed some pathnames in the config files.
+	
+2005-01-29 Michael Green <michael@thep.lu.se>
+	
+	* Merged the changes from devel-branch into trunk.
+	
+2004-11-26 Michael Green <michael@thep.lu.se>
+	
+	* Copied the nethack directory to nethack/trunk.
+	
+2004-11-26 Michael Green <michael@thep.lu.se>
+	
+	* QuasiNewton:
+		- Still this crap isn't working. Fixed a few bugs though.
+	* The other files are non important changes.
+	
+2004-11-26 Michael Green <michael@thep.lu.se>
+	
+	* QuasiNewton:
+		- Begun reimplementing the BFGS updating.
+		- Added DFP updating routine.
+	* Right now DFP might be working, but if so it is performing really bad. BFGS
+	  is not working at all. This needs debugging.
+	
+2004-11-16 Michael Green <michael@thep.lu.se>
+	
+	* Roc: Tested seriously and came to the conclusion that it works.
+	* CrossValidator: Fixed a bug in the crossValidate() function.
+	* GradientDescent: Nicer print outs from training.
+	
+2004-11-10 Michael Green <michael@thep.lu.se>
+	
+	* Neuron:
+		- Removed inlined functions and put them back in the cc file.
+	* Did some more benchmarks.
+	
+2004-11-09 Michael Green <michael@thep.lu.se>
+	
+	* Neuron:
+		- Inlined a bunch of functions.
+	* Added a file named speed.txt where I have logged benchmarks using various
+	  parameters i.e. inlines on the Neuron, -DNDEBUG and -O flags.
+	
+2004-11-09 Michael Green <michael@thep.lu.se>
+	
+	* Documentation updates and fixes.
+	
+2004-11-09 Michael Green <michael@thep.lu.se>
+	
+	* Updated the ChangeLog
+	* bootstrap:
+		- Added removal of autotools.
+		- Added --gnu --copy flags.
+	
+2004-11-09 Michael Green <michael@thep.lu.se>
+	
+	* autotools directory should not be here.
+2004-11-09 Michael Green <michael@thep.lu.se>
+	
+	* Parser:
+		- Remade functions parseSize and parseActFunc more C++ like using
+		  formatted input instead of C-style character input.
+	* CrossValidator:
+		- Added a function printStats responsible for printing statistics for one
+		  or all of the K runs.
+		- Tested performance using several data sets. It seems to work really good
+		  now.
+	* QuasiNewton:
+		- Fixed an initialisation bug causing one of the Matrixoperations to
+		  segfault.
+		- This needs optimization since it runs so slow that it's better to use
+		  the GradientDescent approach instead. It should not be so. :)
+	
+2004-11-08 Michael Green <michael@thep.lu.se>
+	
+	* CrossValidator:
+		- Fixed the pointer bug in ~CrossResult().
+	
+2004-11-08 Michael Green <michael@thep.lu.se>
+	
+	* This is NOT a suitable source tree to use for distribution since it
+	  segfaults. :)
+	
+	* CrossValidator: 
+		- Nearly completed, but the nested class CrossResult segfaults. Check this
+		  out. Could it have anything to do with the way the mlp is destroyd?
+	
+2004-11-06 Michael Green <michael@thep.lu.se>
+	
+	* Updated the ChangeLog.
+	* Spiced up the bootstrap script a bit.
+	
+2004-11-06 Michael Green <michael@thep.lu.se>
+	
+	* DataManager: 
+		- Fixed a bug in buildIndices. Algorithm find returns a result in the
+		  interval [first, last] thus last may NOT be myVector.end().
+	
+2004-11-06 Michael Green <michael@thep.lu.se>
+	
+	* Added a bootstrap script. 
+	
+2004-11-06 Michael Green <michael@thep.lu.se>
+	
+	* Main: Indentation fixes.
+	
+2004-11-05 Michael Green <michael@thep.lu.se>
+	
+	* Created a new class CrossValidator.
+	
+2004-11-05 Michael Green <michael@thep.lu.se>
+	
+	* Various updates.
+	
+	
+2004-11-05 Michael Green <michael@thep.lu.se>
+	
+	* Renamed DataSplitter to DataManager since it can do more than split
+	  DataSets.
+	
+2004-11-04 Michael Green <michael@thep.lu.se>
+	
+	* CoreDataSet: Added the source files.
+	
+2004-11-04 Michael Green <michael@thep.lu.se>
+	
+	* Config: Documentation fixes.
+	
+2004-11-04 Michael Green <michael@thep.lu.se>
+	
+	* DataSplitter: Removed unneccesary variables and member functions.
+	
+	
+2004-11-04 Michael Green <michael@thep.lu.se>
+	
+	* DataSplitter:
+		- Removed the use of a global DataSet and a global vector<DataSet>.
+		- Added a join function.
+	
+2004-11-04 Michael Green <michael@thep.lu.se>
+	
+	* Up to this point everything is validated and working with the same result as
+	  Golden standard I have in testresult directory.
+	
+	* Pattern: Fixed the print function to print tab separated values instead.
+	* Main: Just messing around.
+	
+	
+2004-11-03 Michael Green <michael@thep.lu.se>
+	
+	* DataSplitter: 
+		- Patched it and now it works as before only more general and without
+		  copying lots of data. I'm rather satisfied. Also tested the mlp and the
+		  DataSplitter.
+	* Parser:
+		- Documentation cleanup.
+	
+2004-11-03 Michael Green <michael@thep.lu.se>
+	
+	* DataSet:
+		- Changed the semantics of a DataSet. It now only points to the Actual
+		  data which is now stored in CoreDataSet. This allows to have many
+		  different DataSets without actually having any extra copies of the data.
+		  Only indices i.e. pointers are stored. This was needed in order to do
+		  K-fold cross validation.
+	* Added a class CoreDataSet which holds the data from a file.
+	* Note that the DataSplitter must be patched accordingly. It will break the
+	  way it is written now.
+	
+2004-11-02 Michael Green <michael@thep.lu.se>
+	
+	* Tagged revision 0.2.2
+	
+	
+2004-11-02 Michael Green <michael@thep.lu.se>
+	
+	* Removed Debug.hh and Debug.cc don't ask why.
+	* Updated the Makefile.am accordingly.
+	
+	
+2004-11-02 Michael Green <michael@thep.lu.se>
+	
+	* DataSplitter:
+		- Fixed a bug in the random index generation.
+		- Added sequential split.
+		- Added an attribute, with accessor and mutator, controlling wheather data
+		  split should be done randomly or sequentially.
+		  
+	* Main:
+		- Added a test function for the DataSplitter.
+		
+	* DataSet:
+		- Added a function for extracting a specified pattern from the data set.
+		
+	* Makefile:
+		- Added INCLUDE directive on . and ../.
+	
+2004-11-01 Michael Green <michael@thep.lu.se>
+	
+	* Added a DataSplitter capable of splitting a DataSet into k parts.
+	* Code and documentation clean up.
+	
+2004-11-01 Michael Green <michael@thep.lu.se>
+	
+	* Intentation and code documentation cleanups.
+	* Added cmath includes where needed.
+	
+2004-10-27 Michael Green <michael@thep.lu.se>
+	
+	* SummedSquare: Reset the DataSet before using it since we only do batch
+	  anyway.
+	
+2004-10-27 Michael Green <michael@thep.lu.se>
+	
+	* Fixed some documentation bugs.
+	* Error functions now only support full batch which it should. Thus it is from
+	  now on up to the Trainer interface to divide the DataSet into appropriate
+	  subgroups if online or block updating should be done.
+	
+2004-10-13 Michael Green <michael@thep.lu.se>
+	
+	* Updated the ChangeLog
+2004-10-13 Michael Green <michael@thep.lu.se>
+	
+	* Tagged version 0.2.1
+2004-10-13 Michael Green <michael@thep.lu.se>
+	
+	* Updated the design
+	* Error:
+		- Documentation and minor updates.
+		- Fixed the copy contructor in SummedSquare.
+	* Trainer:
+		- No longer uses the deprecated functions in Error.
+		- Still using deprecated Error constructor. Should it really be
+		  deprecated?
+	
+2004-10-13 Michael Green <michael@thep.lu.se>
+	
+	* Error:
+		- Updated documentation
+		- Added constructors and methods supporting assigning and Mlp and a
+		  DataSet to an Error.
+	* SummedSquare:
+		- Patched to fit with the new description of the Error.
+		- Needs a bit more work to finish off the use of Sending an Mlp and a
+		  DataSet with each method.
+	
+2004-10-13 Michael Green <michael@thep.lu.se>
+	
+	* Various:
+		- Updated documentation.
+	
+2004-10-08 Michael Green <michael@thep.lu.se>
+	
+	* Updated the TODO file.
+2004-10-06 Michael Green <michael@thep.lu.se>
+	
+	* Updated the UML diagram.
+2004-09-20 Michael Green <michael@thep.lu.se>
+	
+	* mlp/Makefile.am: Fixed a typo on a dependency.
+	
+2004-09-18 Michael Green <michael@thep.lu.se>
+	
+	* libmlp: Removed Makefile.in from version control.
+	
+2004-09-18 Michael Green <michael@thep.lu.se>
+	
+	* libmlp: Fixed a typo in Makefile.am.
+	
+2004-09-18 Michael Green <michael@thep.lu.se>
+	
+	* Moved all MLP code into it's own library.
+	
+2004-09-18 Michael Green <michael@thep.lu.se>
+	
+	Still doing it.
+2004-09-18 Michael Green <michael@thep.lu.se>
+	
+	Still fucking with it.
+2004-09-18 Michael Green <michael@thep.lu.se>
+	
+	Do not under any circumstances use this.
+2004-09-17 Michael Green <michael@thep.lu.se>
+	
+	Shit.
+2004-09-17 Michael Green <michael@thep.lu.se>
+	
+	 Don't use this commit.
+2004-09-17 Michael Green <michael@thep.lu.se>
+	
+	* Other:
+		- Restructured working directory a bit more.
+	
+2004-09-17 Michael Green <michael@thep.lu.se>
+	
+	* Other:
+		- Restructured working directory.
+	
+2004-09-16 Michael Green <michael@thep.lu.se>
+	
+	* ChangeLog:
+		- Fixed the structure.
+	
+2004-09-16 Michael Green <michael@thep.lu.se>
+	
+	* QuasiNewton:
+		- Tested extensively and it seems to work now.
+	* SummedSquare:
+		- Tested the gradient calculation extensively and it also seems to be
+		  working nicely.
+	* xor.dat:
+		- Changed representation from [0,1] to [-1,1] for the input pattern.
+	* Other:
+		- Tagged revision 0.2.0.
+	
+2004-09-15 Michael Green <michael@thep.lu.se>
+	
+	* QuasiNewton.cc:
+		- Removed some printouts.
+		- GDB is behaving REALLY weird. Check out the behaviour on the mnbrak
+		  function. Craaazy.
+	
+2004-09-15 Michael Green <michael@thep.lu.se>
+	
+	* QuasiNewton:
+		- Killed a bug in the err function. It didn't send the right weights
+		  to the Error Function. Also it didn't reset the weights to their
+		  initial value.
+		- Added a convergence check to prevent vectors p and v to become 0,
+		  since this leads to division by 0 which leads to nan everywhere.
+		- Tested the algorithm with a few examples and it minimizes the error
+		  nicely. Although the scaling alpha sometimes gets a large positive
+		  value which I believe shouldn't happen.
+	
+2004-09-14 Michael Green <michael@thep.lu.se>
+	
+	* main.cc: 
+		- Moved all the parsing into a function.
+		- Moved the Normaliser testing into it's own function.
+	* QuasiNewton:
+		- Added a line minimization function for the learning algorithm.
+		- Completed QuasiNewton learning. The shit isn't working though. For
+		  some reason the bracketing goes crazy.
+	* MatrixTools:
+		- Added functions for scaling vectors and matrices directly.
+	* SummedSquare:
+		- Fixed a bug in the outputError function.
+	* Trainer:
+		- Added a new outputError function.
+	
+	
+2004-09-13 Michael Green <michael@thep.lu.se>
+	
+	* Other:
+		- Added a directory called testresult. This contains the output the
+		  MLP should yield when running config-ecg.txt with the weights
+		  initiated randomly with seed=1. This is a good reference point.
+		- Verified the QuasiNewton calculation for 2 epochs straight using
+		  Matlab. No line minimiszation yet.
+	
+2004-09-13 Michael Green <michael@thep.lu.se>
+	
+	* Neuron.cc: 
+		- Moved a bunch of initialisations into Neuron from it's derived
+		  classes.
+		- Added a vector of previous weight updates.
+	* GradientDescent.cc: 
+		- Removed all using of Matrix and vector operations.
+		- GradientDescent no longer stores the previous weight updates. This
+		  is from now on up to the Neuron to keep track of.
+	* Other:
+		- All is verified and compared to previous versions. Thus this version
+		  is good to go using Gradient Descent only.
+		- Tagged version 0.1.0.
+	
+2004-09-12 Michael Green <michael@thep.lu.se>
+	
+	* SummedSquare.cc: 
+		- Implemented the full outputError function taking an Mlp and a
+		  DataSet.
+	* QuasiNewton.cc:
+		- Minor changes.
+	
+2004-09-11 Michael Green <michael@thep.lu.se>
+	
+	* configure.ac: 
+		- Added some flags to AM_INIT_AUTOMAKE in order to be able to make
+		  distributions with the make dist command.
+	
+2004-09-10 Michael Green <michael@thep.lu.se>
+	
+	* SummedSquare.cc:
+		- Added a batch version for calculating the gradient.
+	* GradientDescent.cc:
+		- Using the batch version of gradient from SummedSquare instead.
+	
+2004-09-10 Michael Green <michael@thep.lu.se>
+	
+	* MatrixTools.cc: 
+		- Added functions for printing a vector and a matrix.
+	* QuasiNewton.cc: 
+		- Finished the quasi newton learning but it is not working.
+	
+2004-09-09 Michael Green <michael@thep.lu.se>
+	
+	* MatrixTools.cc: 
+		- Cleaned up structure.
+		- Added functions that returns a new matrix/vector instead of
+		  demanding a result matrix/vector in the parameters.
+		- Added a matrix creation function.
+		- Added a function for creating the identity matrix.
+	* QuasiNewton.cc: 
+		- Finished the function responsible for building the inverse hessian.
+		- Finished the quasi newton learning but it is not working.
+	
+2004-09-08 Michael Green <michael@thep.lu.se>
+	
+	MatrixTools.cc: * Added a dot product between a vector and a matrix.
+			* Added a dot product between a matrix and a vector.
+	QuasiNewton.cc: * Added a few methods but it is not working.
+	
+	
+2004-09-08 Michael Green <michael@thep.lu.se>
+	
+	* Cleaned up some documentation.
+	* Removed inclution of Error.hh in Trainer.hh.
+	* Created and documented some variables needed in QuasiNewton.hh. The
+	  user who is training a committee shouldn't know anything about the
+	  error function except it's type.
+	
+2004-09-06 Michael Green <michael@thep.lu.se>
+	
+	Added some variables needed in QuasiNewton.
+2004-09-05 Michael Green <michael@thep.lu.se>
+	
+	Insignificant changes.
+2004-09-03 Michael Green <michael@thep.lu.se>
+	
+	* Added a namespace for linear algebra.
+2004-09-01 Michael Green <michael@thep.lu.se>
+	
+	* Removed unneccesary file.
+2004-09-01 Michael Green <michael@thep.lu.se>
+	
+	* Updated the TODO.
+2004-09-01 Michael Green <michael@thep.lu.se>
+	
+	* Updated the Supervisor.
+	* Removed unneccesary print outs.
+	* Updated the config files.
+	
+2004-08-31 Michael Green <michael@thep.lu.se>
+	
+	* Some minor optimizations.
+	* Added a normaliser to be able to normalise data sets.
+	* Updated the Makefile.am.
+	* Updated the TODO.
+	
+2004-08-30 Michael Green <michael@thep.lu.se>
+	
+	Alot of smalish things hardly worth mentioning.
+	Fixed the print function in DataSet and Pattern.
+	Documented the Roc better.
+	
+2004-08-30 Michael Green <michael@thep.lu.se>
+	
+	GradientDescent: Minor specification fixes.
+	QuasiNewton: Added batchSize attribute and methods.
+	
+2004-08-29 Michael Green <michael@thep.lu.se>
+	
+	Fixed the WMW bug in the AUC evaluation in Roc.cc. WMW now estimates the AUC
+	larger than Brute Force which it should.
+	
+	
+2004-08-29 Michael Green <michael@thep.lu.se>
+	
+	Removed an old include from Parser.
+	Updated the Doxyfile to read subdirectories recursively.
+	
+2004-08-29 Michael Green <michael@thep.lu.se>
+	
+	Restructured the build libraries a bit. 
+		* Added a datatools.a library.
+		* Added a evaltools.a library.
+	Updated the code to fit the changes.
+	
+2004-08-28 Michael Green <michael@thep.lu.se>
+	
+	Moved all things concerning Data Sets and stuff into a new namespace called
+	DataTools. This is probably for the best. The point is that this will contain
+	all methods needed for dividing a Data Set into K parts for crossvalidation.
+	
+2004-08-28 Michael Green <michael@thep.lu.se>
+	
+	Roc: Added a brute force AUC estimator.
+	Supervisor: Minor adjustments.
+	
+	
+2004-08-27 Michael Green <michael@thep.lu.se>
+	
+	Moved EvalTools to its own namespace. It is now separated from NetHack. Also Roc and Evaluator does no longer depend on any NetHack structures. Roc is working and Auc is seemingly working. Needs further testing though.
+2004-08-27 Michael Green <michael@thep.lu.se>
+	
+	Added and calcAuc method for taking two vectors instead. The Roc should never know about any other data structures.
+2004-08-27 Michael Green <michael@thep.lu.se>
+	
+	Renamed Common to NetHack instead.
+2004-08-27 Michael Green <michael@thep.lu.se>
+	
+	Fixed the ROC curve generation and AUC calculation.
+2004-08-26 Michael Green <michael@thep.lu.se>
+	
+	Found the ROC bug. The Bug is that I evaluate the rank of elements which haven't recieved their final rank yet, since the rank list is still being built. Thus I have to sort the output vector first then calc rank. In other words this will get ugly.
+2004-08-26 Michael Green <michael@thep.lu.se>
+	
+	Debugging the ROC. Not finished. Something is wrong with the ranksum.
+2004-08-25 Michael Green <michael@thep.lu.se>
+	
+	And the rest of the files.
+2004-08-25 Michael Green <michael@thep.lu.se>
+	
+	Fixed some stuff in the autoconf tools. Still not sure that this migration to autoconf was really needed.
+2004-08-25 Michael Green <michael@thep.lu.se>
+	
+	Tried to fix ROC evaluation but failed miserably. The Evaluator is not as messy as it was before. Also made the printing functions in ROC and Evaluator use ostreams instead of cout.
+2004-08-23 Michael Green <michael@thep.lu.se>
+	
+	Added an EvalTools namespace that encloses the Evaluator and the Roc classes. 
+2004-08-23 Michael Green <michael@thep.lu.se>
+	
+	Added the autotools directory. 
+2004-08-23 Michael Green <michael@thep.lu.se>
+	
+	Fixed the autoconf and automake stuff. It is working on my debian machine at least. Also added som useful txt files. 
+2004-08-23 Michael Green <michael@thep.lu.se>
+	
+	Added the QuasiNewton learning algorithm option in the Supervisor.
+2004-08-23 Michael Green <michael@thep.lu.se>
+	
+	Tried to use autoconf tools. Not working as of yet.
+2004-08-23 Michael Green <michael@thep.lu.se>
+	
+	Implemented TanHyp and Linear activation functions.
+2004-08-04 Michael Green <michael@thep.lu.se>
+	
+	Fixed ROC evaluation.
+2004-07-29 Michael Green <michael@thep.lu.se>
+	
+	Added some common stuff to the Roc. I need to rethink the communication between the Evaluator and the Roc a bit. Nothing much though.
+2004-07-29 Michael Green <michael@thep.lu.se>
+	
+	Finished the Evaluator which can evaluate and produce sensitivity and specificity for any number of classes and outputs. Also begun implementing the Roc which will handle the generation of the ROC curve and much more i.e. p-values and ROC area.
+2004-07-29 Michael Green <michael@thep.lu.se>
+	
+	Generalised the notion of a Committee. It is now a class. Probably for the best. Also implemented linear combination of outputs from the MLPs in the Committee.
+2004-07-28 Michael Green <michael@thep.lu.se>
+	
+	Begun changing documentation representation from QT style to JavaDoc style. The Error function created in Trainer gets deleted there as well now. Still have a non-working crude version of the Evaluator. Must be fixed.
+2004-07-28 Michael Green <michael@thep.lu.se>
+	
+	Implemented variable learning rate. Thus the variable decLearningRate is finally used and it improves perforrmance a LOT.
+2004-07-28 Michael Green <michael@thep.lu.se>
+	
+	Cleaned up structure of Gradient Descent learning and the Trainer interface. Also returned lenses.dat to its original form.
+2004-07-28 Michael Green <michael@thep.lu.se>
+	
+	Extended the configuration files. Only a subset of this gets parsed though.
+2004-07-27 Michael Green <michael@thep.lu.se>
+	
+	A VERY crude Evaluator. Must be genaralised.
+2004-07-27 Michael Green <michael@thep.lu.se>
+	
+	Parser is now a namespace instead of a Class. Its definition is split up in an implementation part and a user part.
+2004-07-27 Michael Green <michael@thep.lu.se>
+	
+	Documented and removed implementation details from NetHack namespace in Common.
+2004-07-27 Michael Green <michael@thep.lu.se>
+	
+	Tidied up and documented some of the code.
+2004-07-26 Michael Green <michael@thep.lu.se>
+	
+	Begun implementing the Evaluator.
+2004-07-26 Michael Green <michael@thep.lu.se>
+	
+	Time to go away from TestWeights for a bit. This project deserves its own main. Added and error creation function in the Trainer as well.
+2004-07-26 Michael Green <michael@thep.lu.se>
+	
+	Some renaming of datafiles.
+2004-07-26 Michael Green <michael@thep.lu.se>
+	
+	Generalised the weight set and update methods in the MLP. They now use corresponding methods defined in Layer and Neuron. As it should be. This is also a step to ease eventual exclusion of the Neuron abstraction.
+2004-07-26 Michael Green <michael@thep.lu.se>
+	
+	The ID string at the end of each line in the data files can now be handled by the Parser.
+2004-07-23 Michael Green <michael@thep.lu.se>
+	
+	Fixed column selection in the Parser. No need for redundant preprocessing of input files anymore. Also finished documenting the Parser.
+2004-07-22 Michael Green <michael@thep.lu.se>
+	
+	Sending a stream to the Parser instead of a filename which is more general and so on and so forth. Personally I think it is a load of crap.
+2004-07-22 Michael Green <michael@thep.lu.se>
+	
+	Added extra debugging information flag in the Makefile. Got rid of the int to uint comparison warning in the Assignment operator in the Mlp.
+2004-07-22 Michael Green <michael@thep.lu.se>
+	
+	Made the Mlp, Layer and Neuron copieable again because it might be a nice feature. Tested it as well.
+2004-07-22 Michael Green <michael@thep.lu.se>
+	
+	Added the momentum term to the gradient descent. Also moved some attributes, specific to the gradient descent, from the Trainer to the GradientDescent.
+2004-07-21 Michael Green <michael@thep.lu.se>
+	
+	Implemented the parsing of the Configuration file. A Config class is sent to the Supervisor now instead of a bunch of variables. What role should the Supervisor have. That needs to be determined.
+2004-07-20 Michael Green <michael@thep.lu.se>
+	
+	Working on the Parser. Added a Config class that is supposed to store all information about MLP configuration. This does not compile so far. Currently working on skipWhitespace in Parser.cc.
+2004-07-19 Michael Green <michael@thep.lu.se>
+	
+	Revised MLP structure and parts of the learning algorithm as well. Training is working for xor and medical test data. There is no longer a centralised structure for the weights. They are now along with the gradient, local gradient, and activations localised inside the neurons. Thus in order to produce the weight vector it has to be built up from every neuron in the network. This is expensive and I may have to remove the abstraction with the neurons and instead use a functions pointer in order to handle different types of neurons. The layer abstraction should in any case be left intact. Also I removed redundant source files not currently worked on.
+2004-07-15 Michael Green <michael@thep.lu.se>
+	
+	The layers and neurons are no longer copieable. Which is good because they shouldn't be. However the shit isn't working any longer. Fix it asswipa.
+2004-07-15 Michael Green <michael@thep.lu.se>
+	
+	Fixed the Weight.cc class and debugged it thouroghly. Major debugging flags set.
+2004-07-14 Michael Green <michael@thep.lu.se>
+	
+	Fix the Weights.cc.
+2004-07-14 Michael Green <michael@thep.lu.se>
+	
+	Added a new dataFile and bugsearched a lot. I think that there is nothing wrong with the gradient descent part. If so it could be something with the way I am updating the weights. I tested the gradient vector and came to the conclusion that it does what it should. 
+2004-07-14 Michael Green <michael@thep.lu.se>
+	
+	Supervisor can now train a committee of MLPs.
+2004-07-13 Michael Green <michael@thep.lu.se>
+	
+	Extended the Trainer class.
+2004-07-13 Michael Green <michael@thep.lu.se>
+	
+	One step closer to training a committee.
+2004-07-13 Michael Green <michael@thep.lu.se>
+	
+	Cleaned up include statements.
+2004-07-12 Michael Green <michael@thep.lu.se>
+	
+	MLP using gradient descent is finally working. Next step is to revise structure a bit before expanding it.
+2004-07-10 Michael Green <michael@thep.lu.se>
+	
+	Added dwarf-2 option for gdb compiling.
+2004-07-09 Michael Green <michael@thep.lu.se>
+	
+	Added a utility file.
+2004-07-09 Michael Green <michael@thep.lu.se>
+	
+	Error grows during iteration in batch mode. Shouldn't happen!
+2004-07-08 Michael Green <michael@thep.lu.se>
+	
+	Should have a fully working GD MLP by now. Not tested it though.
+2004-07-07 Michael Green <michael@thep.lu.se>
+	
+	Summed square error function fully implemented. Not tested at all though. Currently working on Gradient Descent trainer. This probably wont even compile.
+2004-07-06 Michael Green <michael@thep.lu.se>
+	
+	Started implementing the gradient descent utility functions. Changed the mlp pointer in SummedSqueare to a mlp reference instead.
+2004-07-05 Michael Green <michael@thep.lu.se>
+	
+	Added index operators to the Mlp, Layer and Neuron classes.
+2004-07-01 Michael Green <michael@thep.lu.se>
+	
+	Tidied up the code.
+2004-06-30 Michael Green <michael@thep.lu.se>
+	
+	Changed namespace to NetHack
+2004-06-30 Michael Green <michael@thep.lu.se>
+	
+	Do not use this version. It is used for backup purposes only..
+2004-06-29 Michael Green <michael@thep.lu.se>
+	
+	Added methods in the Mlp to fetch the number of weights contained. Will probably need to extend this a lot more when implementing the error functions.
+2004-06-29 Michael Green <michael@thep.lu.se>
+	
+	Bugtested code after namespace revision. Back to da roots man
+2004-06-29 Michael Green <michael@thep.lu.se>
+	
+	Added mlp namespace and Common.hh file to help get rid of std::blah:: and stuff.
+2004-06-28 Michael Green <michael@thep.lu.se>
+	
+	Added some classes in order to get the full structure clear.
+2004-06-24 Michael Green <michael@thep.lu.se>
+	
+	Stuff
+2004-06-24 Michael Green <michael@thep.lu.se>
+	
+	Some minor changes.
+2004-06-24 Michael Green <michael@thep.lu.se>
+	
+	Added the datafiles I have to work with.
+2004-06-24 Michael Green <michael@thep.lu.se>
+	
+	Killed the bug in the DataSet.
+2004-06-23 Michael Green <michael@thep.lu.se>
+	
+	Generalized the DataSet and the Parser.
+2004-06-23 Michael Green <michael@thep.lu.se>
+	
+	Added a very uncomplete trainer.
+2004-06-23 Michael Green <michael@thep.lu.se>
+	
+	Added a TODO file.
+2004-06-23 Michael Green <michael@thep.lu.se>
+	
+	DataSet does not require to know the number of data points any more.
+2004-06-22 Michael Green <michael@thep.lu.se>
+	
+	Added the Pattern files. Stupidsvn add Pattern.*
+2004-06-22 Michael Green <michael@thep.lu.se>
+	
+	-Need to fix the bug in the datafile. It's in the readFile. It reads past the file causing a seg fault. -Fixed the makefile.
+2004-06-22 Michael Green <michael@thep.lu.se>
+	
+	-Fixed the assignment operator bug. No need for vector<Neuron*> instead
+	        of vector<Neuron> anymore. Change?
+	-Completed the DataSet class.
+	-Took care of some initialisations.
+	
+2004-06-21 Michael Green <michael@thep.lu.se>
+	
+	Added the files:-)
+2004-06-21 Michael Green <michael@thep.lu.se>
+	
+	Begun implementation of the data set.
+2004-06-21 Michael Green <michael@thep.lu.se>
+	
+	Forward propagation part is working. No learning algorithm yet.
+2004-06-18 Michael Green <michael@thep.lu.se>
+	
+	A silly little neural network package.
+	

@@ -1,0 +1,45 @@
+- Errorfunction: 
+	* Cross Entropy.
+- Learning algorithms: 
+	* Move the creation of the ErrorFunction out of the Trainer. It
+	  shouldn't know how to create them. It should simply demand an
+	  ErrorFunction. Also the Trainer should not have access to an MLP as
+	  such. If needed it should ask the ErrorFunction for the MLP.
+	* Quasi Newton:
+		- Make block updating work with QuasiNewton. It works in GD
+		  due to the fact that it only evaluates the dataset during
+		  the gradient calculation. QN evaluates the DataSet once for
+		  gradient calculation and several other times while
+		  determining the step size. This evaluation should of course
+		  be done on the same data set as the gradient.
+	* Gradient Descent:
+		- Move all variables related to learning from Neuron to the
+		  Learning algorithms. Ex. An Mlp shouldn't know about it's
+		  gradients, local gradients, previous weight updates, or
+		  errors.
+- Regularization: 
+	* Weight elemination.
+- Model Selection:
+	* K-fold crossvalidation.
+	* DataManager that can split a data set into K splits.
+- Parsing:
+	* Use the Problem type definition for something useful.
+- Optimize the code to make it run faster.
+	* Inline proper functions i.e. accessors, mutators etc.
+	* Look throught the creation and maintenance of STL vectors.
+	* Profile the code using gprof and check the critical points.
+	* Everything else that comes to mind to speed things up.
+	* Use memset to put all elements in a STL vector to 0?
+- Statistics:
+	* Write a gnuplotable learning curve to a file.
+	* Calculate a P-value for the ROC curve.
+- Other:
+	* Possibility of saving committees.
+	* Possibility of loading previously saved committees from a file.
+	* Softmax in output layer of MLP.
+	* Move the Supervisor out of the NetHack namespace and merge it with
+	  main.
+	* Set binary outputs in Normaliser to be [-1,1] even if it is [0,1]
+	  from the beginning. Use z=2x-1 as a transformation for the values
+	  that are [-1,1] or [0,1].
+	
