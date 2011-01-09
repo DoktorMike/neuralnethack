@@ -1,4 +1,4 @@
-/*$Id: Ensemble.hh 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: Ensemble.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -126,7 +126,7 @@ namespace NeuralNetHack{
 			 * respective scaling to produce the output for this Ensemble.
 			 * \param input the input to propagate.
 			 */
-			std::vector<double> propagate(const std::vector<double>& input);
+			std::vector<double> propagate(std::vector<double>& input);
 
 		private:
 			/**A committee of MLPs. */

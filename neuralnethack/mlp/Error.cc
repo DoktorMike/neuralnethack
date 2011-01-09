@@ -1,4 +1,4 @@
-/*$Id: Error.cc 3344 2009-03-13 00:04:02Z michael $*/
+/*$Id: Error.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -35,13 +35,13 @@ using namespace std;
 
 Error::~Error(){}
 
-Mlp& Error::mlp(){return *theMlp;}
+Mlp* Error::mlp(){return theMlp;}
 
-void Error::mlp(Mlp& mlp){theMlp = &mlp;}
+void Error::mlp(Mlp* mlp){theMlp = mlp;}
 
-DataSet& Error::dset(){return *theDset;}
+DataSet* Error::dset(){return theDset;}
 
-void Error::dset(DataSet& dset){theDset = &dset;}
+void Error::dset(DataSet* dset){theDset = dset;}
 
 bool Error::weightElimOn() const {return theWeightElimOn;}
 
@@ -57,9 +57,9 @@ void Error::weightElimW0(double w0){theWeightElimW0 = w0;}
 
 //PROTECTED
 
-Error::Error(Mlp& mlp, DataSet& dset)
-	:theMlp(&mlp),theDset(&dset),
-	theWeightElimOn(false), theWeightElimAlpha(0), theWeightElimW0(0){std::cout<<"Creating Error"<<std::endl; std::cout.flush(); }
+Error::Error(Mlp* mlp, DataSet* dset)
+	:theMlp(mlp),theDset(dset),
+	theWeightElimOn(false), theWeightElimAlpha(0), theWeightElimW0(0){}
 
 double Error::weightElimGrad(double wi) const
 {

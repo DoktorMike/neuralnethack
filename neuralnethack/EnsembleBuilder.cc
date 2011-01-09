@@ -1,4 +1,4 @@
-/*$Id: EnsembleBuilder.cc 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: EnsembleBuilder.cc 1627 2007-05-08 16:40:20Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -62,7 +62,7 @@ Ensemble* EnsembleBuilder::getEnsemble()
 	}else{
 		ensemble = new Ensemble();
 		for(vector<Session>::iterator it = theSessions.begin(); it != theSessions.end(); ++it)
-			ensemble->addMlp(it->ensemble->mlp(0));
+			ensemble->addMlp(it->committee->mlp(0));
 	}
 	return ensemble;
 }
@@ -74,10 +74,9 @@ Ensemble* EnsembleBuilder::buildEnsemble()
 	Ensemble* ensemble = new Ensemble();
 	theSessions.clear();
 
-	uint cntr=1;
-	cout<<"Building ensemble of size "<<theSampler->howMany()<<endl;
+	//cout<<"Building ensemble using Bagging with N="<<n<<endl;
 	while(theSampler->hasNext()){
-		cout<<"Building MLP "<<cntr++<<" of "<<theSampler->howMany()<<endl;
+		//cout<<"Run (N): "<<i+1<<"\n";
 		pair<DataSet, DataSet>* dataSets = theSampler->next();
 		DataSet& trnData = dataSets->first;
 		DataSet& valData = dataSets->second;

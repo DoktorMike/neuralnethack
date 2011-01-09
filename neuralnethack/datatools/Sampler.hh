@@ -1,4 +1,4 @@
-/*$Id: Sampler.hh 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: Sampler.hh 1605 2007-01-24 20:47:36Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -47,11 +47,6 @@ namespace DataTools
 			 * \return true when there is at least one more sample in the que, false otherwise.
 			 */
 			virtual bool hasNext() const = 0;
-
-			/**Check how many samples we get in total.
-			 * \return the total number of samples we can draw from this Sampler.
-			 */
-			virtual uint howMany() const = 0;
 
 			/**Accessor for the random sampling attribute.
 			 * \return true if random sampling is on, false otherwise.

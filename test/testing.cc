@@ -1,4 +1,4 @@
-/*$Id: testing.cc 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: testing.cc 1626 2007-05-08 12:08:19Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -210,7 +210,7 @@ void testMlp(MultiLayerPerceptron::Mlp* mlp, DataTools::DataSet& dset)
 	for(uint i=0; i<dset.size(); ++i){
 		DataTools::Pattern& p = dset.pattern(i);
 		vector<double>& in = p.input();
-		const vector<double>& out = mlp->propagate(in);
+		vector<double>& out = mlp->propagate(in);
 		vector<double>& dout = p.output();
 		cout<<"In: ";
 		for(uint i=0; i<in.size(); ++i)
@@ -338,8 +338,8 @@ int main(int argc, char* argv[])
 	//testCoreDataSetAndDataSet(trnCoreData);
 	//testDataManager(trnData, config);
 	DataTools::Normaliser norm;
-	norm.calcAndNormalise(trnData, true);
-	norm.normalise(tstData);
+	norm.normalise(trnData, true);
+	norm.normalise(tstData, true);
 	//testEnsemble(config, trnData, tstData);
 	//testTrainer(config, trnData, tstData);
 	//testOddsRatio(config, trnData, tstData);

@@ -1,4 +1,4 @@
-/*$Id: SummedSquare.cc 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: SummedSquare.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -34,7 +34,9 @@ using namespace DataTools;
 using namespace MatrixTools;
 using std::vector;
 
-SummedSquare::SummedSquare(Mlp& mlp, DataSet& dset):Error(mlp, dset){}
+SummedSquare::SummedSquare():Error(0, 0){}
+
+SummedSquare::SummedSquare(Mlp* mlp, DataSet* dset):Error(mlp, dset){}
 
 SummedSquare::~SummedSquare(){}
 
@@ -56,7 +58,7 @@ double SummedSquare::gradient()
 	uint bs=theDset->size();
 	for(uint i=0; i<bs; ++i){
 		Pattern& p = theDset->pattern(i);
-		const vector<double>& out = theMlp->propagate(p.input());
+		vector<double>& out = theMlp->propagate(p.input());
 		Layer& last = (*theMlp)[theMlp->nLayers()-1];
 		localGradient(last, out, p.output());
 		backpropagate();
@@ -103,8 +105,8 @@ double SummedSquare::outputError() const
 
 //PRIVATE--------------------------------------------------------------------//
 
-SummedSquare::SummedSquare(const SummedSquare& sse):Error(*(sse.theMlp), 
-		*(sse.theDset)){*this = sse;}
+SummedSquare::SummedSquare(const SummedSquare& sse):Error(sse.theMlp, 
+		sse.theDset){*this = sse;}
 
 SummedSquare& SummedSquare::operator=(const SummedSquare& sse)
 {
@@ -113,13 +115,13 @@ SummedSquare& SummedSquare::operator=(const SummedSquare& sse)
 	return *this;
 }
 
-void SummedSquare::localGradient(Layer& ol, const vector<double>& out, 
-		const vector<double>& dout)
+void SummedSquare::localGradient(Layer& ol, vector<double>& out, 
+		vector<double>& dout)
 {
 	assert(out.size() == ol.size() && dout.size() == out.size());
 
-	vector<double>::const_iterator ito = out.begin();
-	vector<double>::const_iterator itdo = dout.begin();
+	vector<double>::iterator ito = out.begin();
+	vector<double>::iterator itdo = dout.begin();
 
 	for(uint i=0; i<ol.nNeurons(); ++i, ++ito, ++itdo)
 		ol.localGradients(i) = (*itdo - *ito) * ol.firePrime(i);

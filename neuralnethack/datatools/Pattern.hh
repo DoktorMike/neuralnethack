@@ -1,4 +1,4 @@
-/*$Id: Pattern.hh 3344 2009-03-13 00:04:02Z michael $*/
+/*$Id: Pattern.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -29,7 +29,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <cstdlib>
 
 namespace DataTools
 {

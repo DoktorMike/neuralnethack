@@ -1,4 +1,4 @@
-# $Id: Makefile.am 1694 2008-01-25 01:34:36Z michael $
+# $Id: Makefile.am 1615 2007-04-17 11:56:40Z michael $
 
 MAINTAINERCLEANFILES = Makefile.in
 SUBDIRS	= mlp datatools evaltools matrixtools parser .
@@ -8,7 +8,6 @@ lib_LTLIBRARIES = libneuralnethack.la
 
 pkginclude_HEADERS = Factory.hh \
 					 PrintUtils.hh \
-					 FeatureSelector.hh \
 					 ModelSelector.hh \
 					 ModelEstimator.hh \
 					 Ensemble.hh \
@@ -21,7 +20,6 @@ pkginclude_HEADERS = Factory.hh \
 
 libneuralnethack_la_SOURCES = Factory.cc \
 							  PrintUtils.cc \
-							  FeatureSelector.cc \
 							  ModelSelector.cc \
 							  ModelEstimator.cc \
 							  Ensemble.cc \

@@ -1,4 +1,4 @@
-/*$Id: LinearLayer.hh 1660 2007-07-10 11:54:49Z michael $*/
+/*$Id: LinearLayer.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -61,41 +61,30 @@ namespace MultiLayerPerceptron
 			//UTILS
 
 
-			double fire(const double lif) const;
+			double fire(double lif) const;
 
-			double fire(const uint i) const;
+			double fire(uint i) const;
 
-			double firePrime(const double lif) const;
+			double firePrime(double lif) const;
 
-			double firePrime(const uint i) const;
-
-			double firePrimePrime(const double lif) const;
-
-			double firePrimePrime(const uint i) const;
+			double firePrime(uint i) const;
 	};
 
-	inline double LinearLayer::fire(const double lif) const { return lif; }
+	inline double LinearLayer::fire(double lif) const { return lif; }
 
-	inline double LinearLayer::fire(const uint i) const
+	inline double LinearLayer::fire(uint i) const
 	{
 		assert(i<theOutputs.size());
 		return theOutputs[i];
 	}
 
-	inline double LinearLayer::firePrime(const double lif) const { return 1.0; }
+	inline double LinearLayer::firePrime(double lif) const { return 1.0; }
 
-	inline double LinearLayer::firePrime(const uint i) const
+	inline double LinearLayer::firePrime(uint i) const
 	{
 		assert(i<theOutputs.size());
 		return 1.0;
 	}
 
-	inline double LinearLayer::firePrimePrime(const double lif) const { return 0.0; }
-
-	inline double LinearLayer::firePrimePrime(const uint i) const
-	{
-		assert(i<theOutputs.size());
-		return 0.0;
-	}
 }
 #endif

@@ -1,4 +1,4 @@
-/*$Id: Mlp.cc 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: Mlp.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -156,10 +156,10 @@ void Mlp::regenerateWeights()
 		(*itl)->regenerateWeights();
 }
 
-const vector<double>& Mlp::propagate(const vector<double>& input)
+vector<double>& Mlp::propagate(vector<double>& input)
 {
 	vector<Layer*>::iterator it; 
-	const vector<double>* inOut = &input;
+	vector<double>* inOut = &input;
 
 	for(it=theLayers.begin(); it!=theLayers.end(); ++it)
 		inOut = &((*it)->propagate(*inOut));

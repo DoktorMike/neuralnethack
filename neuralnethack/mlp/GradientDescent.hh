@@ -1,4 +1,4 @@
-/*$Id: GradientDescent.hh 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: GradientDescent.hh 1626 2007-05-08 12:08:19Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -122,7 +122,7 @@ namespace MultiLayerPerceptron
 			 * \param cntr the cntr of where we last left off in the original DataSet.
 			 * \return true if cntr was resest, false otherwise.
 			 */
-			bool buildBlock(DataTools::DataSet& blockData, uint& cntr) const;
+			bool buildBlock(DataTools::DataSet* blockData, uint& cntr) const;
 
 			/**The learning rate. */
 			double theLearningRate;

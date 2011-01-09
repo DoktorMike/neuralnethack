@@ -1,4 +1,4 @@
-/*$Id: TanHypLayer.hh 1660 2007-07-10 11:54:49Z michael $*/
+/*$Id: TanHypLayer.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -60,45 +60,34 @@ namespace MultiLayerPerceptron
 
 			//UTILS
 
-			double fire(const double lif) const;
-			double fire(const uint i) const;
-			double firePrime(const double lif) const;
-			double firePrime(const uint i) const;
-			double firePrimePrime(const double lif) const;
-			double firePrimePrime(const uint i) const;
+			double fire(double lif) const;
+
+			double fire(uint i) const;
+
+			double firePrime(double lif) const;
+
+			double firePrime(uint i) const;
 	};
 
-	inline double TanHypLayer::fire(const double lif) const { return tanh(lif); }
+	inline double TanHypLayer::fire(double lif) const { return tanh(lif); }
 
-	inline double TanHypLayer::fire(const uint i) const
+	inline double TanHypLayer::fire(uint i) const
 	{
 		assert(i<theOutputs.size());
 		return theOutputs[i];
 	}
 
-	inline double TanHypLayer::firePrime(const double lif) const
+	inline double TanHypLayer::firePrime(double lif) const
 	{
 		double tmp = fire(lif);
 		return 1.0 - tmp * tmp;
 	}
 
-	inline double TanHypLayer::firePrime(const uint i) const
+	inline double TanHypLayer::firePrime(uint i) const
 	{
 		assert(i<theOutputs.size());
 		return 1.0 - theOutputs[i] * theOutputs[i];
 	}
 
-	inline double TanHypLayer::firePrimePrime(const double lif) const
-	{
-		double f = fire(lif);
-		return 2*f*(f*f-1);
-	}
-
-	inline double TanHypLayer::firePrimePrime(const uint i) const
-	{
-		assert(i<theOutputs.size());
-		double f = theOutputs[i];
-		return 2*f*(f*f-1);
-	}
 }
 #endif

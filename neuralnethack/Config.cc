@@ -1,4 +1,4 @@
-/*$Id: Config.cc 1666 2007-08-23 08:38:39Z michael $*/
+/*$Id: Config.cc 1627 2007-05-08 16:40:20Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -100,7 +100,7 @@ void Config::print(std::ostream& os)
 	for(map<string, vector<double> >::iterator it = theVary.begin();
 			it != theVary.end(); ++it){
 		os<<"Vary\t\t"<<it->first<<" ";
-		copy(it->second.begin(), it->second.end(), ostream_iterator<double>(os, " "));
+		copy(it->second.begin(), it->second.end(), ostream_iterator<double>(cout, " "));
 		os<<endl;
 	}
 	os<<"SaveSession\t"<<theSaveSession<<endl;

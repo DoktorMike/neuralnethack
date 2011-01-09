@@ -1,4 +1,4 @@
-/*$Id: NetworkParser.cc 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: NetworkParser.cc 1605 2007-01-24 20:47:36Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -31,8 +31,6 @@
 #include <algorithm>
 #include <ext/algorithm>
 #include <functional>
-#include <ostream>
-#include <iterator>
 
 using namespace std;
 using namespace NeuralNetHack;
@@ -47,41 +45,31 @@ NetworkParser::NetworkParser(){}
 pair<vector<Ensemble*>, Normaliser*> NetworkParser::parseXML(istream& is)
 {
 	string token;
-	vector<Ensemble*> ensembles;
+	vector<Ensemble*> committees;
 	Normaliser* normalisation = 0;
 
 	while(is>>token && token != "</networks>")
-		if(token == "<ensemble>") ensembles.push_back(parseXMLensemble(is));
+		if(token == "<committee>") committees.push_back(parseXMLcommittee(is));
 		else if(token == "<normalisation>") normalisation = parseXMLnormalisation(is);
-	if(normalisation->mean().size() == 0){
-		uint size = ensembles.front()->mlp(0).arch().front();
-		size += ensembles.front()->mlp(0).arch().back();
-		vector<double> mean(size, 0);
-		normalisation->mean(mean);
-		vector<double> stdDev(size, 1);
-		normalisation->stdDev(stdDev);
-		vector<bool> skip(size, false);
-		normalisation->skip(skip);
-	}
 
-	return pair<vector<Ensemble*>, Normaliser*>(ensembles, normalisation);
+	return pair<vector<Ensemble*>, Normaliser*>(committees, normalisation);
 }
 
-Ensemble* NetworkParser::buildEnsemble(vector<Ensemble*>& ensembles)
+Ensemble* NetworkParser::buildEnsemble(vector<Ensemble*>& committees)
 {
-	//cout<<"Found "<<ensembles.size()<<" ensembles"<<endl;
-	Ensemble* ensemble = new Ensemble();
-	for(vector<Ensemble*>::iterator it=ensembles.begin(); it!=ensembles.end(); ++it)
+	//cout<<"Found "<<committees.size()<<" ensembles"<<endl;
+	Ensemble* committee = new Ensemble();
+	for(vector<Ensemble*>::iterator it=committees.begin(); it!=committees.end(); ++it)
 		for(uint i=0; i<(*it)->size(); ++i)
-			ensemble->addMlp((*it)->mlp(i));
-	//cout<<"Created a new Ensemble with "<<ensemble->size()<<" mlps"<<endl;
-	return ensemble;
+			committee->addMlp((*it)->mlp(i));
+	//cout<<"Created a new Ensemble with "<<committee->size()<<" mlps"<<endl;
+	return committee;
 }
 
-void NetworkParser::killAll(vector<Ensemble*>& ensembles, Ensemble* ensemble, Normaliser* normalisation)
+void NetworkParser::killAll(vector<Ensemble*>& committees, Ensemble* committee, Normaliser* normalisation)
 {
-	for(vector<Ensemble*>::iterator it=ensembles.begin(); it!=ensembles.end(); ++it) delete *it;
-	delete ensemble;
+	for(vector<Ensemble*>::iterator it=committees.begin(); it!=committees.end(); ++it) delete *it;
+	delete committee;
 	delete normalisation;
 }
 
@@ -92,9 +80,6 @@ void NetworkParser::parseXMLvector(istream& is, vector<uint>& vec, string stop)
 
 void NetworkParser::parseXMLvector(istream& is, vector<double>& vec, string stop)
 {string token; while(is>>token && token != stop) vec.push_back(atof(token.c_str()));}
-
-void NetworkParser::parseXMLvector(istream& is, vector<bool>& vec, string stop)
-{string token; while(is>>token && token != stop) vec.push_back(atoi(token.c_str()));}
 
 void NetworkParser::parseXMLvector(istream& is, vector<string>& vec, string stop)
 {string token; while(is>>token && token != stop) vec.push_back(token);}
@@ -120,30 +105,30 @@ Mlp* NetworkParser::parseXMLmlp(istream& is)
 	return mlp;
 }
 
-Ensemble* NetworkParser::parseXMLensemble(istream& is)
+Ensemble* NetworkParser::parseXMLcommittee(istream& is)
 {
-	Ensemble* ensemble = new Ensemble();
+	Ensemble* committee = new Ensemble();
 	string token = "";
-	while(is>>token && token != "</ensemble>"){
+	while(is>>token && token != "</committee>"){
 		if(token == "<mlp>"){
 			Mlp* mlp = parseXMLmlp(is);
-			ensemble->addMlp(*mlp);
+			committee->addMlp(*mlp);
 			delete mlp;
 		}
 	}
-	return ensemble;
+	return committee;
 }
 
 Normaliser* NetworkParser::parseXMLnormalisation(istream& is)
 {
 	string token = "";
 	vector<double> mean, stddev;
-	vector<bool> skip;
 	while(is>>token && token != "</normalisation>")
 		if(token == "<mean>") parseXMLvector(is, mean, "</mean>");
 		else if(token == "<stddev>") parseXMLvector(is, stddev, "</stddev>");
-		else if(token == "<skip>") parseXMLvector(is, skip, "</skip>");
-	Normaliser* normalisation = new Normaliser(stddev, mean, skip);
+	Normaliser* normalisation = new Normaliser();
+	normalisation->stdDev(stddev);
+	normalisation->mean(mean);
 	return normalisation;
 }
 

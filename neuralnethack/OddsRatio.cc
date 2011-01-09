@@ -1,4 +1,4 @@
-/*$Id: OddsRatio.cc 1693 2008-01-03 17:42:38Z michael $*/
+/*$Id: OddsRatio.cc 1594 2007-01-12 16:20:01Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -41,7 +41,6 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::ostream;
-using std::unary_function;
 
 //Effective odds ratio calculations
 
@@ -59,27 +58,21 @@ vector<double> OddsRatio::oddsRatio(Ensemble& committee, DataSet& data)
 	return oddsrat;
 }
 
-template<class T> struct or_calc : public unary_function<T, void>
-{
-	or_calc(Ensemble& e, std::vector<T>& i) : ens(e), input(i), oddsrat(0)
-	{ oddsrat.reserve(input.size()); }
-	void operator()(T& x)
-	{ 
-		T inc = 0.1;
-		T p0 = ens.propagate(input).front(); x += inc;
-		T p1 = ens.propagate(input).front(); x -= inc;
-		oddsrat.push_back( ( p1*(1 - p0) ) / ( p0*(1-p1) ) );
-	}
-	Ensemble& ens;
-	std::vector<T>& input;
-	std::vector<T> oddsrat;
-};
-
 vector<double> OddsRatio::oddsRatio(Ensemble& committee, Pattern& pattern)
 {
-	vector<double>& input = pattern.input();
-	struct or_calc<double> ret = for_each(input.begin(), input.end(), or_calc<double>(committee, input) );
-	return ret.oddsrat;
+	vector<double> input = pattern.input();
+	vector<double> oddsrat(input.size(), 0);
+
+	for(uint i=0; i<input.size(); ++i){
+		double tmp = input[i];
+		input[i] = 0;
+		double absent = committee.propagate(input).front();
+		input[i] = 1;
+		double present = committee.propagate(input).front();
+		input[i] = tmp;
+		oddsrat[i] = (present/(1.0-present))/(absent/(1.0-absent));
+	}
+	return oddsrat;
 }
 
 //Utilities like printing and stuff

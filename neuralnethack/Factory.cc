@@ -1,4 +1,4 @@
-/*$Id: Factory.cc 1699 2008-02-02 17:20:39Z michael $*/
+/*$Id: Factory.cc 1604 2007-01-24 18:26:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -40,8 +40,11 @@ Mlp* Factory::createMlp(const Config& config)
 Error* Factory::createError(const Config& config, DataSet& data)
 {
 	Error* error = 0;
-	if(config.errFcn() == SSE) error = new SummedSquare(*createMlp(config), data);
-	else if(config.errFcn() == CEE) error = new CrossEntropy(*createMlp(config), data);
+	if(config.errFcn() == SSE)
+		error = new SummedSquare();
+	else if(config.errFcn() == CEE)
+		error = new CrossEntropy();
+	error->mlp(createMlp(config));
 	error->weightElimOn(config.weightElimOn());
 	error->weightElimAlpha(config.weightElimAlpha());
 	error->weightElimW0(config.weightElimW0());
@@ -54,11 +57,11 @@ Trainer* Factory::createTrainer(const Config& config, DataSet& data)
 	Error* error = createError(config, data);
 	if(config.minMethod() == GD){
 		trainer = new GradientDescent(
-				error->mlp(), data, *error,
+				*(error->mlp()), data, *error,
 				MAX_ERROR, config.batchSize(),
 				config.learningRate(), config.decLearningRate(), config.momentum());
 	}else{
-		trainer = new QuasiNewton(error->mlp(), data, *error, MAX_ERROR, config.batchSize());
+		trainer = new QuasiNewton(*(error->mlp()), data, *error, MAX_ERROR, config.batchSize());
 	}
 	trainer->numEpochs(config.maxEpochs());
 
@@ -67,19 +70,7 @@ Trainer* Factory::createTrainer(const Config& config, DataSet& data)
 
 DataTools::Sampler* Factory::createSampler(const Config& config, DataSet& data)
 {
-	DataTools::Sampler* sampler = 0;
- 	if(config.ensParamDataSelection() == "cs"){
-		sampler = new DataTools::CrossSplitSampler(data, config.ensParamN(), config.ensParamK());
-	}else if(config.ensParamDataSelection() == "bagg"){
-		sampler = new DataTools::BootstrapSampler(data, config.ensParamN());
-	}else if(config.ensParamDataSelection() == "hold"){
-		sampler = new DataTools::HoldOutSampler(data, 1.0, config.ensParamN());
-	}else if(config.ensParamDataSelection() == "none" || config.ensParamDataSelection() == "dummy"){
-		sampler = new DataTools::DummySampler(data, config.ensParamN());
-	}
-	sampler->randomSampling(config.ensParamSplitMode());
-
-	return sampler;
+	return 0;
 }
 
 EnsembleBuilder* Factory::createEnsembleBuilder(const Config& config, DataSet& data)
@@ -89,10 +80,10 @@ EnsembleBuilder* Factory::createEnsembleBuilder(const Config& config, DataSet& d
 		sampler = new DataTools::CrossSplitSampler(data, config.ensParamN(), config.ensParamK());
 	}else if(config.ensParamDataSelection() == "bagg"){
 		sampler = new DataTools::BootstrapSampler(data, config.ensParamN());
-	}else if(config.ensParamDataSelection() == "hold"){
-		sampler = new DataTools::HoldOutSampler(data, 1.0, config.ensParamN());
 	}else if(config.ensParamDataSelection() == "none" || config.ensParamDataSelection() == "dummy"){
 		sampler = new DataTools::DummySampler(data, config.ensParamN());
+	}else if(config.ensParamDataSelection() == "hold"){
+		sampler = new DataTools::HoldOutSampler(data, 1.0, config.ensParamN());
 	}
 	sampler->randomSampling(config.ensParamSplitMode());
 	EnsembleBuilder* eb = new EnsembleBuilder();

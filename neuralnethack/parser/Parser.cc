@@ -1,4 +1,4 @@
-/*$Id: Parser.cc 1701 2008-02-02 23:25:34Z michael $*/
+/*$Id: Parser.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -34,8 +34,7 @@ using namespace NeuralNetHack;
 using namespace DataTools;
 using namespace std;
 
-template <class T>
-string toString(T x){
+string toString(int x){
 	ostringstream oss;
 	oss<<x;
 	return oss.str();
@@ -44,35 +43,53 @@ string toString(T x){
 void Parser::readDataFile(istream& in, const int idCol, vector<uint> inCols,
 		vector<uint> outCols, vector<uint> rowRange, CoreDataSet& dataSet)
 {
-	//cerr<<"Checking stream"<<endl;
-	//cerr.flush();
 	checkStream(in);
 	vector<string> row;
 	string line;
 
-	vector<uint>::iterator validRow = rowRange.begin();
-	uint rowCount = 0;
-	//cerr<<"Getting lines"<<endl;
-	//cerr.flush();
+	uint rowCount = 1;
 	while(!getline(in, line, '\n').eof()){
-		if(in.fail() || !in.good() || in.bad()){ cerr<<"Stream failed."<<endl;	break; }
-		if(++rowCount == *validRow || rowRange.front() == 0){
-			if(*validRow != 0) validRow++; //Only increment if there are specific lines to add
+		if(in.fail() || !in.good()){ cerr<<"Stream failed."<<endl;	break; }
+		uint rowNum = rowRange[rowCount-1];
+		if(rowNum == rowCount){
 			row.clear();
-			//cerr<<"Building istringstream"<<endl;
-			//cerr.flush();
 			istringstream iss(line);
 			copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(row));
 			if(!row.size()){ cerr<<"Found empty line."<<endl; continue; }
-			//cerr<<"Doing select insertions"<<endl;
-			//cerr.flush();
 			selectInserter inp = for_each(inCols.begin(), inCols.end(), selectInserter(row));
 			selectInserter outp = for_each(outCols.begin(), outCols.end(), selectInserter(row));
-			//cerr<<"Creating a Pattern"<<endl;
-			//cerr.flush();
 			Pattern p((idCol > 0) ? row[idCol-1] : toString(rowCount), inp.vec, outp.vec);
 			dataSet.addPattern(p);
 		}
+		rowCount++;
+	}
+}
+
+void Parser::readDataFile(istream& in, const int nInput, 
+		const int nOutput, CoreDataSet& dataSet)
+{
+	checkStream(in);
+
+	vector<double> input(nInput);
+	vector<double> output(nOutput);
+	while(!in.eof()){
+		bool bad = false;
+		for(int j=0; j<nInput; j++){
+			if(in.good()) in >> input[j];	
+			else bad=true;
+		}
+		for(int j=0; j<nOutput; j++){
+			if(in.good()) in >> output[j];	
+			else bad=true;
+		}
+		if(!bad){
+			Pattern p("", input, output);
+			dataSet.addPattern(p);
+		}
+		else
+			break;
+		char tmp[255]; 
+		in.getline(tmp, 255); //Need this for crappy txt files.
 	}
 }
 
@@ -351,7 +368,7 @@ vector<double> Parser::readRow(istream& in)
 	getline(in, s);
 	istringstream iss(s);
 	copy(istream_iterator<double>(iss), istream_iterator<double>(), back_inserter(vec));
-	//cout<<s<<endl;
+	cout<<s<<endl;
 	/*
 	   uint i1, i2;
 	   i1 = 0;

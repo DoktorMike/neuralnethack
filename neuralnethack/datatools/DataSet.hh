@@ -1,4 +1,4 @@
-/*$Id: DataSet.hh 1701 2008-02-02 23:25:34Z michael $*/
+/*$Id: DataSet.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -106,11 +106,6 @@ namespace DataTools
 			 * \param os the output stream to print to.
 			 */
 			void print(std::ostream& os) const;
-
-			/**Free the CoreDataSet memory.
-			 * \return true if a deletion was made and false otherwise.
-			 */
-			bool killCoreData();
 
 		private:
 			/**Holds the indices. Each and every one of the indices refers to

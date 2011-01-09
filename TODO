@@ -5,5 +5,7 @@
 - Other:
 	* Template the Matrix library.
 	* Softmax in output layer of MLP.
+	* Set binary outputs in Normaliser to be [-1,1] even if it is [0,1]
+	  from the beginning. Use z=2x-1 as a transformation for the values
+	  that are [-1,1] or [0,1].
 	* Fix the checking for command line parsing in autoconf
-- Bugs:

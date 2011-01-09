@@ -1,4 +1,4 @@
-/*$Id: Config.hh 3344 2009-03-13 00:04:02Z michael $*/
+/*$Id: Config.hh 1627 2007-05-08 16:40:20Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -28,17 +28,9 @@
 #include <vector>
 #include <map>
 #include <ostream>
-#include <cstdlib>
 
 namespace NeuralNetHack
 {
-	/**An enum representing the different options for Error functions */
-	enum ErrorFuncType { SUMSQR, KULLBACK };
-	/**An enum representing the different options for Layer functions */
-	enum LayerFuncType { LOGSIG, TANSIG, PURELIN, SOFTMAX };
-	/**An enum representing the different options for Sampler functions */
-	enum SamplerType { CV, BOOT, HO, DUMMY };
-
 	/**A class representing all the needed configuration. Every outside 
 	 * configuration is to be put in this file via the Parser.
 	 */

@@ -1,4 +1,4 @@
-/*$Id: BootstrapSampler.hh 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: BootstrapSampler.hh 1605 2007-01-24 20:47:36Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -40,7 +40,6 @@ namespace DataTools
 
 			std::pair<DataSet, DataSet>* next();
 			bool hasNext() const;
-			uint howMany() const;
 			void reset();
 
 			uint numRuns() const;

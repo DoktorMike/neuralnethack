@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(neuralnethack, 0.9.5, michael@thep.lu.se, neuralnethack)
+AC_INIT(neuralnethack, 0.9.0, michael@thep.lu.se, neuralnethack)
 AC_CONFIG_SRCDIR([neuralnethack/NeuralNetHack.cc])
 #This is replaced with AM version since I am using automake. Should I have
 #used only autoconf I should use AC version again.
@@ -11,6 +11,7 @@ AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(autotools)
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION,$PACKAGE_BUGREPORT)
 
+
 # Set the language
 AC_LANG(C++)
 
@@ -18,8 +19,6 @@ AC_LANG(C++)
 AC_PROG_CXX
 AC_PROG_CXXCPP
 AC_PROG_LIBTOOL
-# Make libtool shut up
-#LIBTOOL="$LIBTOOL --silent"
 
 # Macro flags for DEBUG mode
 CXXFLAGS="-Wall -pedantic -O3"

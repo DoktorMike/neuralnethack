@@ -1,4 +1,4 @@
-/*$Id: saliency.cc 1689 2007-11-13 14:18:36Z michael $*/
+/*$Id: saliency.cc 1595 2007-01-12 16:24:32Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -64,8 +64,10 @@ vector<double> getInput(uint numInput, Normaliser* normalisation)
 	istringstream ss(s);
 	copy(istream_iterator<double>(ss), istream_iterator<double>(), back_inserter(input));
 	if(input.size() > 0 && input.size() > numInput) input.resize(numInput);
-	normalisation->normaliseInput(input);
-	//copy(input.begin(), input.end(), ostream_iterator<double>(cout, " "));
+	vector<double>& stdDev = normalisation->stdDev();
+	vector<double>& mean = normalisation->mean();
+	transform(input.begin(), input.end(), mean.begin(), input.begin(), minus<double>());
+	transform(input.begin(), input.end(), stdDev.begin(), input.begin(), divides<double>());
 	return input;
 }
 
@@ -91,7 +93,7 @@ int main(int argc, char* argv[])
 		if(input.size() == n){
 			Pattern p;
 			p.input(input);
-			vector<double> saliencies = Saliency::saliency(*committee, p, false);
+			vector<double> saliencies = Saliency::saliency(*committee, p);
 			//cout.precision(20);
 			copy(saliencies.begin(), saliencies.end(), ostream_iterator<double>(cout, "\t")); cout<<endl;
 		}

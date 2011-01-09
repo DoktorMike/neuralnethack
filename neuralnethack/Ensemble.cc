@@ -1,4 +1,4 @@
-/*$Id: Ensemble.cc 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: Ensemble.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -111,7 +111,7 @@ void Ensemble::scale(const uint i, double s)
 
 uint Ensemble::size() const {return theEnsemble.size();}
 
-vector<double> Ensemble::propagate(const vector<double>& input)
+vector<double> Ensemble::propagate(vector<double>& input)
 {
 	assert(theEnsemble.size() == theScales.size());
 	assert(!theEnsemble.empty());

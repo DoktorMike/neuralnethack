@@ -1,4 +1,4 @@
-/*$Id: testNormaliser.cc 1644 2007-05-29 08:15:18Z michael $*/
+/*$Id: testNormaliser.cc 1619 2007-05-07 13:39:55Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -41,7 +41,7 @@ int testNormaliser(DataTools::DataSet& data)
 	data.print(dataOrig);
 
 	DataTools::Normaliser norm;
-	norm.calcAndNormalise(data, true);
+	norm.normalise(data, true);
 	data.print(dataNorm);
 
 	norm.unnormalise(data);

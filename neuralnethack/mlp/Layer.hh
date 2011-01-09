@@ -1,4 +1,4 @@
-/*$Id: Layer.hh 3344 2009-03-13 00:04:02Z michael $*/
+/*$Id: Layer.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -29,7 +29,6 @@
 #include <string>
 #include <vector>
 #include <cassert>
-#include <cstdlib>
 
 namespace MultiLayerPerceptron
 {
@@ -216,25 +215,13 @@ namespace MultiLayerPerceptron
 			 * \param lif the local induced field for a neuron.
 			 * \return the derivative of the activation for the neuron.
 			 */
-			virtual double firePrime(const double lif) const = 0;
+			virtual double firePrime(double lif) const = 0;
 
 			/**Get the derivative of the activation value for the specified neuron.
 			 * \param i the neuron in this layer which activation to return.
 			 * \return the derivative of the activation for the neuron.
 			 */
 			virtual double firePrime(const uint i) const = 0;
-
-			/**The 2nd derivative of the activation function.
-			 * \param lif the local induced field for a neuron.
-			 * \return the derivative of the activation for the neuron.
-			 */
-			virtual double firePrimePrime(const double lif) const = 0;
-
-			/**Get the 2nd derivative of the activation value for the specified neuron.
-			 * \param i the neuron in this layer which activation to return.
-			 * \return the derivative of the activation for the neuron.
-			 */
-			virtual double firePrimePrime(const uint i) const = 0;
 
 			/**Propagates an input pattern through this layer. 
 			 * Note that the bias should not be included in the parameter 

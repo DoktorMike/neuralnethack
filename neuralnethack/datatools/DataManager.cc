@@ -1,4 +1,4 @@
-/*$Id: DataManager.cc 3344 2009-03-13 00:04:02Z michael $*/
+/*$Id: DataManager.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -27,8 +27,6 @@
 #include <cmath>
 #include <cassert>
 #include <ext/numeric>
-#include <fstream>
-#include <iterator>
 
 using namespace DataTools;
 using namespace std;

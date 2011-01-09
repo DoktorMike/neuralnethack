@@ -1,4 +1,4 @@
-/*$Id: Normaliser.hh 1656 2007-07-05 14:02:29Z michael $*/
+/*$Id: Normaliser.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -44,13 +44,6 @@ namespace DataTools
 			/**Basic constructor. */
 			Normaliser();
 
-			/**Constructor for fully defining the state of the Normaliser. 
-			 * \param means the vector of means.
-			 * \param stds the vector of standard deviations.
-			 * \param skips the vector of variables to skip.
-			 */
-			Normaliser(std::vector<double>& stds, std::vector<double>& means, std::vector<bool>& skips);
-
 			/**Copy constructor.
 			 * \param n the Normaliser to copy from.
 			 */
@@ -64,14 +57,6 @@ namespace DataTools
 			 */
 			Normaliser& operator=(const Normaliser& n);
 
-			/**Normalise a DataSet. Normalise a DataSet using already
-			 * predefined mean ans std vectors.
-			 * \param d the DataSet to normalise.
-			 * \param doSkip flag whether to do skipping or not.
-			 * \return the normalised DataSet.
-			 */
-			DataSet& normalise(DataSet& d);
-
 			/**Normalise a DataSet. In the normal case every variable in the
 			 * DataSet gets normalised. However this method is able to search
 			 * through the DataSet to see if any variables are binary and if
@@ -83,19 +68,13 @@ namespace DataTools
 			 * \param doSkip flag whether to do skipping or not.
 			 * \return the normalised DataSet.
 			 */
-			DataSet& calcAndNormalise(DataSet& d, bool doSkip=false);
+			DataSet& normalise(DataSet& d, bool doSkip=false);
 
 			/**Normalise a Pattern.
 			 * \param p the Pattern to normalise.
 			 * \return the normalised Pattern.
 			 */
 			Pattern& normalise(Pattern& p);
-
-			/**Normalise an input vector.
-			 * \param i the input vector to normalise.
-			 * \return the normalized input vector.
-			 */
-			std::vector<double>& normaliseInput(std::vector<double>& i);
 
 			/**Unnormalise a DataSet.
 			 * \param d the DataSet to unnormalise.
@@ -133,18 +112,6 @@ namespace DataTools
 			 */
 			void mean(std::vector<double>& m);
 
-			/**Return the skips for the current DataSet.
-			 * This is the skips of the DataSet as calculated before
-			 * normalisation.
-			 * \return the skips of the DataSet.
-			 */
-			std::vector<bool>& skip();
-
-			/**Set the skips for the current DataSet.
-			 * \param m the skips to set.
-			 */
-			void skip(std::vector<bool>& m);
-
 		private:
 			/**The standard deviation for each variable in the original 
 			 * DataSet. This will be used to restore a DataSet to its 
@@ -157,7 +124,7 @@ namespace DataTools
 			 */
 			std::vector<double> theMean;
 
-			/**Contains the indices of the variables to skip in the DataSet.
+			/**Contains the indeces of the variables to skip in the DataSet.
 			 * Thus the values in the columns which index is in theSkip will
 			 * not be rescaled.
 			 */
@@ -194,20 +161,6 @@ namespace DataTools
 			 * \return true if the value indicates skipping and false otherwise.
 			 */
 			bool skipSig(double val) const;
-
-			/**Transform [0,1] binary encoding to [-1,1]. This is useful for
-			 * the network learning process. Currently only the inputs are
-			 * changed. The target stays at [0,1].
-			 * \param data the DataSet to transform.
-			 */
-			void transformBinaryCoding(DataSet& data);
-
-			/**Transform [0,1] binary encoding to [-1,1]. This is useful for
-			 * the network learning process. This method only operates on an
-			 * input vector directly.
-			 * \param data the DataSet to transform.
-			 */
-			void transformBinaryCoding(std::vector<double>& input);
 	};		
 }
 #endif

@@ -1,4 +1,4 @@
-/*$Id: OddsRatio.hh 1676 2007-09-12 14:36:58Z michael $*/
+/*$Id: OddsRatio.hh 1595 2007-01-12 16:24:32Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -31,7 +31,6 @@
 
 #include <vector>
 #include <ostream>
-#include <functional>
 
 namespace NeuralNetHack
 {
@@ -51,22 +50,68 @@ namespace NeuralNetHack
 		 * average. This performs an extra sum where we simply take the
 		 * average over Mlp:s and data points.
 		 * \f[\sum_c^C\sum_n^N \overline{OR_n}\f] where \f$N\f$ is the total number 
-		 * of data points, and \f$C\f$ is the total number of ensemble members.
+		 * of data points, and \f$C\f$ is the total number of committee members.
 		 * \param mlp the Mlp to use.
 		 * \param pattern the DataSet to calculate OR:s for each data point on.
 		 * \return the average OR for each Mlp and input in the DataSet.
 		 */
-		std::vector<double> oddsRatio(Ensemble& ensemble, DataTools::DataSet& data);
+		std::vector<double> oddsRatio(Ensemble& committee, DataTools::DataSet& data);
 
 		/**Calculates the odds ratios for each variable in the pattern. 
 		 * This performs an extra sum where we simply take the
 		 * average over Mlp:s. \f[\sum_c^C \overline{OR_c}\f] where \f$C\f$ 
-		 * is the total number of ensemble members.
+		 * is the total number of committee members.
 		 * \param mlp the Mlp to use.
 		 * \param pattern the DataSet to calculate OR:s for each data point on.
 		 * \return the average OR for each Mlp and input in the DataSet.
 		 */
-		std::vector<double> oddsRatio(Ensemble& ensemble, DataTools::Pattern& pattern);
+		std::vector<double> oddsRatio(Ensemble& committee, DataTools::Pattern& pattern);
+
+		/**Calculates the odds ratios for each data point and return the
+		 * average.
+		 * \f[\sum_n^N \overline{OR_n}\f] where \f$N\f$ is the total number of data
+		 * points.
+		 * \param mlp the Mlp to use.
+		 * \param pattern the DataSet to calculate OR:s for each data point on.
+		 * \return the average OR for each input in the DataSet.
+		 */
+		std::vector<double> oddsRatio(MultiLayerPerceptron::Mlp& mlp, DataTools::DataSet& data);
+
+		/**Calculates the odds ratio for each input value. The odds ratio for
+		 * each input is calculated by setting it to zero and
+		 * propagate it through the Mlp. The comparison is made by propagating
+		 * the original input pattern through the mlp and take the ratio
+		 * between them. After a few simplifications it falls out as
+		 * \f[\exp(g(\overline{\omega}, \overline{x^{absent}})-g(\overline{\omega}, \overline{x^{present}}))\f]
+		 * where \f$g\f$ is the local induced field for the ouput neuron given
+		 * input and weights.
+		 * \param mlp the Mlp to use.
+		 * \param pattern the Pattern to calculate OR:s for each input on.
+		 * \return the OR for each input in pattern.
+		 */
+		std::vector<double> oddsRatioComplex(MultiLayerPerceptron::Mlp& mlp, DataTools::Pattern& pattern);
+
+		/**Calculates the odds ratio for each input value. The odds ratio for
+		 * each input is calculated by setting it to zero and
+		 * propagate it through the Mlp. The comparison is made by propagating
+		 * the original input pattern through the mlp and take the ratio
+		 * between them. This is slightly more computationally demanding than
+		 * the Complex version.
+		 * \param mlp the Mlp to use.
+		 * \param pattern the Pattern to calculate OR:s for each input on.
+		 * \return the OR for each input in pattern.
+		 */
+		std::vector<double> oddsRatioSimple(MultiLayerPerceptron::Mlp& mlp, DataTools::Pattern& pattern);
+
+		/**Propagates an input through an Mlp up to the last layer. This seems
+		 * very similar to the propagate function in the mlp, but they differ
+		 * in that this propagate does not activate the last layer, but thus
+		 * only calculates the induced local field.
+		 * \param mlp the mlp to propagate the input through.
+		 * \param input the input to propagate.
+		 * \return the local induced field for the output neuron.
+		 */
+		double propagate(MultiLayerPerceptron::Mlp& mlp, std::vector<double>& input);
 
 		/**Print the result of an OddsRatio calculation for all Inputs in the
 		 * DataSet.
@@ -74,7 +119,6 @@ namespace NeuralNetHack
 		 * \param oddsrat the oddsratios to write.
 		 */
 		void print(std::ostream& os, std::vector<double>& oddsrat);
-
 	}
 }
 

@@ -1,4 +1,4 @@
-/*$Id: ModelSelector.hh 1648 2007-06-01 15:39:10Z michael $*/
+/*$Id: ModelSelector.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -38,8 +38,10 @@ class ModelSelector
 {
 	public:
 		ModelSelector();
+		ModelSelector(const ModelSelector& ms);
 		virtual ~ModelSelector();
-		std::pair<Config, double> findBestModel(DataTools::DataSet& trnData, Config& config);
+		ModelSelector& operator=(const ModelSelector& ms);
+		Config findBestModel(DataTools::DataSet& trnData, Config& config);
 
 	private:
 		/** Method for constructing a full sequence from a vector seq.

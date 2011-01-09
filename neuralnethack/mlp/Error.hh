@@ -1,4 +1,4 @@
-/*$Id: Error.hh 1654 2007-07-04 21:55:36Z michael $*/
+/*$Id: Error.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -69,7 +69,7 @@ namespace MultiLayerPerceptron
 			virtual double outputError(MultiLayerPerceptron::Mlp& mlp, 
 					DataTools::DataSet& dset) = 0;
 
-			/**Calculate the error for this Mlp and DataSet.
+			/**Calculate the summed square error for this Mlp and DataSet.
 			 * \return the error.
 			 */
 			virtual double outputError() const = 0;
@@ -77,22 +77,22 @@ namespace MultiLayerPerceptron
 			/**Accessor method for the Mlp.
 			 * \return the Mlp belonging to the Error.
 			 */
-			MultiLayerPerceptron::Mlp& mlp();
+			MultiLayerPerceptron::Mlp* mlp();
 
 			/**Mutator method for the Mlp.
 			 * \param mlp the Mlp to assign to this Error.
 			 */
-			void mlp(MultiLayerPerceptron::Mlp& mlp);
+			void mlp(MultiLayerPerceptron::Mlp* mlp);
 
 			/**Accessor method for the DataSet.
 			 * \return the DataSet belonging to the Error.
 			 */
-			DataTools::DataSet& dset();
+			DataTools::DataSet* dset();
 
 			/**Mutator method for the DataSet.
 			 * \param dset the DataSet to assign to this Error.
 			 */
-			void dset(DataTools::DataSet& dset);
+			void dset(DataTools::DataSet* dset);
 
 			/**Accessor for theWeightElimOn.
 			 * \return the theWeightElimOn.
@@ -130,9 +130,9 @@ namespace MultiLayerPerceptron
 			 * \param mlp the mlp to use.
 			 * \param dset the dataset to use.
 			 */
-			Error(MultiLayerPerceptron::Mlp& mlp, DataTools::DataSet& dset);
+			Error(MultiLayerPerceptron::Mlp* mlp, DataTools::DataSet* dset);
 
-			/**Calculate the error for this output.
+			/**Calculate the summed square error for this output.
 			 * \param out the output from the MLP.
 			 * \param dout the desired output.
 			 * \return the error.

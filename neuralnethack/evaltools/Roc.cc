@@ -1,4 +1,4 @@
-/*$Id: Roc.cc 1667 2007-08-23 11:58:24Z michael $*/
+/*$Id: Roc.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -29,19 +29,9 @@
 #include <iomanip>
 #include <iostream>
 #include <cassert>
-#include <ostream>
-#include <iterator>
 
 using namespace EvalTools;
-using std::ostream_iterator;
-using std::ostream;
-using std::setprecision;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::vector;
-using std::pair;
-using std::copy;
+using namespace std;
 
 Roc::Roc():theRoc(0), theAuc(0)
 {theEval=new Evaluator();}
@@ -62,16 +52,15 @@ Roc& Roc::operator=(const Roc& roc)
 
 double Roc::calcAucWmw(vector<double>& out, vector<uint>& dout)
 {
-	if(out.size()!=dout.size()){
-		cerr<<"Error: output and target vectors must have the same size"<<endl; 
-		abort();
-	}
+//	cout<<"output: "; printVector(out); cout<<"target: "; printVector(dout);
+	assert(out.size()==dout.size());
 	vector<double> posOut(0); vector<double> negOut(0);
 	for(uint i=0; i<out.size(); ++i)
 		if(dout[i] > 0) 
 			posOut.push_back(out[i]);
 		else 
 			negOut.push_back(out[i]);
+//	cout<<"Pos output: "; printVector(posOut); cout<<"Neg output: "; printVector(negOut);
 	uint m = posOut.size(); uint n = negOut.size(); double r = 0;
 	for(uint i=0; i<m; ++i)
 		for(uint j=0; j<n; ++j)
@@ -86,10 +75,8 @@ double Roc::calcAucWmw(vector<double>& out, vector<uint>& dout)
 
 double Roc::calcAucWmwFast(vector<double>& out, vector<uint>& dout)
 {
-	if(out.size()!=dout.size()){
-		cerr<<"Error: output and target vectors must have the same size"<<endl; 
-		abort();
-	}
+//	cout<<"output: "; printVector(out); cout<<"target: "; printVector(dout);
+	assert(out.size()==dout.size());
 	uint m=0; uint n=0;
 	vector< pair<double, uint> > rank(0);
 	for(uint i=0; i<out.size(); ++i){
@@ -149,12 +136,18 @@ void Roc::print(ostream& os)
 
 //PRIVATE---------------------------------------------------------------------//
 
-template<class T>
-void Roc::printVector(vector<T>& vec)
+void Roc::printVector(vector<uint>& vec)
 {
-	typename vector<T>::iterator it;
-	copy(vec.begin(), vec.end(), ostream_iterator<T>(cout, " "));
-	for(it = vec.begin(); it != vec.end(); ++it) 
+	for(vector<uint>::iterator it = vec.begin(); it != vec.end(); ++it) 
 		cout<<*it<<" ";
 	cout<<endl;
 }
+
+void Roc::printVector(vector<double>& vec)
+{
+	for(vector<double>::iterator it = vec.begin(); it != vec.end(); ++it)
+		cout<<*it<<" ";
+	cout<<endl;
+}
+
+

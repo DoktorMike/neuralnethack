@@ -1,4 +1,4 @@
-/*$Id: testSaliency.cc 1644 2007-05-29 08:15:18Z michael $*/
+/*$Id: testSaliency.cc 1626 2007-05-08 12:08:19Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -181,8 +181,8 @@ int main(int argc, char* argv[])
 	srand48(config.seed() == 0 ? time(0) : config.seed()); //This is the ONLY place one may set the seed!
 
 	if(config.normalization() == "Z"){
-		norm.calcAndNormalise(trnData, true); 
-		norm.normalise(tstData);
+		norm.normalise(trnData, true); 
+		norm.normalise(tstData, true);
 	}
 
 	int retval = testSimpleSaliency();

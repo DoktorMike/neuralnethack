@@ -1,4 +1,4 @@
-/*$Id: DataSet.cc 1701 2008-02-02 23:25:34Z michael $*/
+/*$Id: DataSet.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -102,12 +102,4 @@ void DataSet::print(ostream& os) const
 		theCoreDataSet->pattern(*itp).print(os);
 }
 
-bool DataSet::killCoreData()
-{
-	if(theCoreDataSet != 0){
-		delete theCoreDataSet;
-		theCoreDataSet = 0;
-		return true;
-	}
-	return false;
-}
+

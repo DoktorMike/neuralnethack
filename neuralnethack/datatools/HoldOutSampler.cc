@@ -1,4 +1,4 @@
-/*$Id: HoldOutSampler.cc 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: HoldOutSampler.cc 1605 2007-01-24 20:47:36Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -64,8 +64,6 @@ void HoldOutSampler::reset()
 }
 
 bool HoldOutSampler::hasNext() const {return (index < n) ? true : false;}
-
-uint HoldOutSampler::howMany() const {return n;}
 
 uint HoldOutSampler::numRuns() const {return n;}
 

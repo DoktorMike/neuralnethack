@@ -1,4 +1,4 @@
-/*$Id: modelselector.cc 1642 2007-05-27 07:41:21Z michael $*/
+/*$Id: modelselector.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -146,7 +146,7 @@ void trainAndTest(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Co
 			cerr<<"Could not open output file: "<<fname<<endl;
 			abort();
 		}
-		PrintUtils::printTstEnslist(os, *sessions, trnData, tstData, config);
+		PrintUtils::printEnslist(os, *sessions, trnData, tstData, config);
 		os.close();
 	}
 	if(config.saveSession() == true){ //This should be replaced later.
@@ -240,8 +240,8 @@ int main(int argc, char* argv[])
 
 	//Normalise training data last since those are the coeff we want printed
 	if(config.normalization() == "Z"){
-		norm.calcAndNormalise(trnData, true);
-		norm.normalise(tstData); 
+		norm.normalise(tstData, true);
+		norm.normalise(trnData, true); 
 	}
 
 	//Find the best weight elimanation constant and test it.

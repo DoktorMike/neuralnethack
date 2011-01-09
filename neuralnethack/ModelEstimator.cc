@@ -1,4 +1,4 @@
-/*$Id: ModelEstimator.cc 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: ModelEstimator.cc 1627 2007-05-08 16:40:20Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -54,7 +54,7 @@ void ModelEstimator::sampler(Sampler* s){theSampler = s;}
 vector<Session>& ModelEstimator::sessions(){return theSessions;}
 
 pair<double, double>* ModelEstimator::estimateModel(
-		double (*errorFunc)(Ensemble& ensemble, DataSet& data))
+		double (*errorFunc)(Ensemble& committee, DataSet& data))
 {
 	double trnAuc = 0;
 	double valAuc = 0;
@@ -62,10 +62,10 @@ pair<double, double>* ModelEstimator::estimateModel(
 	for(vector<Session>::iterator it = theSessions.begin(); 
 			it != theSessions.end(); ++it)
 	{
-		double tmp = (*errorFunc)(*(it->ensemble), *(it->trnData));
+		double tmp = (*errorFunc)(*(it->committee), *(it->trnData));
 		//cout<<"----------trnAUC 2: "<<tmp<<endl; //DEBUG
 		trnAuc += tmp;
-		tmp = (*errorFunc)(*(it->ensemble), *(it->valData));
+		tmp = (*errorFunc)(*(it->committee), *(it->valData));
 		//cout<<"----------valAUC 2: "<<tmp<<endl; //DEBUG
 		valAuc += tmp;
 	}
@@ -75,14 +75,13 @@ pair<double, double>* ModelEstimator::estimateModel(
 }
 
 pair<double, double>* ModelEstimator::runAndEstimateModel(
-		double (*errorFunc)(Ensemble& ensemble, DataSet& data))
+		double (*errorFunc)(Ensemble& committee, DataSet& data))
 {
 	assert(theEnsembleBuilder && theSampler);
 
-	cout<<"Estimating model in "<<theSampler->howMany()<<" runs"<<endl;
-	uint cntr = 1;
+	//cout<<"Estimating model using Bootstrapper with N="<<n<<endl;
 	while(theSampler->hasNext()){
-		cout<<"Estimation run "<<cntr++<<" of "<<theSampler->howMany()<<endl;
+		//cout<<"Run (N): "<<i+1<<"\n";
 		pair<DataSet, DataSet>* dataSets = theSampler->next();
 		DataSet& trnData = dataSets->first;
 		DataSet& valData = dataSets->second;
@@ -90,9 +89,9 @@ pair<double, double>* ModelEstimator::runAndEstimateModel(
 		//cout<<"ValData Size: "<<valData.size()<<endl;
 		theEnsembleBuilder->sampler()->data(&trnData);
 		theEnsembleBuilder->sampler()->reset();
-		Ensemble* ensemble = theEnsembleBuilder->buildEnsemble();
-		//cout<<" Ens Size: "<<ensemble->size()<<endl;
-		Session e(ensemble, new DataSet(trnData), new DataSet(valData));
+		Ensemble* committee = theEnsembleBuilder->buildEnsemble();
+		//cout<<" Ens Size: "<<committee->size()<<endl;
+		Session e(committee, new DataSet(trnData), new DataSet(valData));
 		theSessions.push_back(e);
 		delete dataSets;
 	}

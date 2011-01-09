@@ -1,4 +1,4 @@
-/*$Id: SigmoidLayer.hh 1658 2007-07-05 21:53:26Z michael $*/
+/*$Id: SigmoidLayer.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -68,10 +68,6 @@ namespace MultiLayerPerceptron
 			double firePrime(const double lif) const;
 
 			double firePrime(const uint i) const;
-
-			double firePrimePrime(const double lif) const;
-
-			double firePrimePrime(const uint i) const;
 	};
 
 	inline double SigmoidLayer::fire(const double lif) const
@@ -93,21 +89,6 @@ namespace MultiLayerPerceptron
 	{
 		assert(i<theOutputs.size());
 		return theOutputs[i]*(1-theOutputs[i]);
-	}
-
-	inline double SigmoidLayer::firePrimePrime(const double lif) const
-	{
-		double f = fire(lif);
-		double fp = f*(1-f);
-		return fp-2*f*fp;
-	}
-
-	inline double SigmoidLayer::firePrimePrime(const uint i) const
-	{
-		assert(i<theOutputs.size());
-		double f = theOutputs[i];
-		double fp = f*(1-f);
-		return fp-2*f*fp;
 	}
 }
 #endif

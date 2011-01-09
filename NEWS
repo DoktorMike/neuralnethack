@@ -1,14 +1,3 @@
-NeuralNetHack 0.9.5:
-	* Misc:
-		- Changed interface for Trainer and Error classes so that most
-		  arguments are passed by reference and not by pointer. 
-	* Normalization:
-		- Automatic rescaling of inputs from [0,1] range to [-1,1] range instead.
-	* Bugs:
-		- Fixed the issue with export of sessions.
-		- Saliency calculation now works with an arbitrary number of layers.
-		- Fixed Gradient Descent bug where learning rate was not reset between
-		  training sessions.
 NeuralNetHack 0.9.0:
 	* Config:
 		- Introduced a new parameter in the configuration file called Vary

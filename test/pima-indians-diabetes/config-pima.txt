@@ -10,21 +10,19 @@
 %
 
 %>>>>>>>>>>> Project Identification <<<<<<<<<<<
-Suffix			pima			% Suffix for the produced files, default=001
+Suffix			001			% Suffix for the produced files, default=001
 
 %>>>>>>>>>>> Datafiles	<<<<<<<<<<<
-FileName    ./pima.trn.tab	% File path 
+FileName    ./pima.tab	% File path 
 IdCol		0
 InCol		1-8			% E.g. 1,5-6
 OutCol		9			% E.g. 1-3,5
-RowRange	0
 
 %>>>>>>>>>>> Optional test datafile <<<<<<<<<<<
-FileNameT   ./pima.tst.tab	% File path 
+FileNameT   ./pima.tab	% File path 
 IdColT		0
 InColT		1-8			% E.g. 1,5-6
 OutColT		9			% E.g. 1-3,5
-RowRangeT	0
 
 %>>>>>>>>>>> Problem Type <<<<<<<<<<<
 PType		class			% class or regr
@@ -40,17 +38,17 @@ ActFcn		tansig logsig	% tansig, logsig, purelin or softmax
 ErrFcn		kullback		% sumsqr or kullback
 
 %>>>>>>>>>>> Minimization method <<<<<<<<<<<
-MinMethod	gd				% gd, qn
+MinMethod	qn				% gd, qn
 MaxEpochs	1000			% Maximum number of epochs, when needed 
 
 %>>>>>>>>>>> Gradient descent parameters <<<<<<<<<<<
-GDParam	1000 0.02 0.99 0.8	% batchsize, learningrate, decrease of lr, momentum.
+GDParam	1000 0.2 0.99 0.8	% batchsize, learningrate, decrease of lr, momentum.
 				
 %>>>>>>>>>>> Regularization <<<<<<<<<<<
-WeightElim	1 0.012 1.0	% Toggle on/off, alpha parameter and W_o
+WeightElim		1 0.012 1.0	% Toggle on/off, alpha parameter and W_o
 
 %>>>>>>>>>>> Ensemble definitions <<<<<<<<<<<<<
-EnsParam	bagg 5 2 rnd 0
+EnsParam		bagg 5 2 rnd 0
 
 % arg 1: Data selection method. cs, bagg.
 % arg 2: Number of independent runs.
@@ -59,23 +57,13 @@ EnsParam	bagg 5 2 rnd 0
 % arg 5: Should we use different weights (toggle)
 
 %>>>>>>>>>>> Model selection <<<<<<<<<<<
-MSParam	cv 2 2 rnd 0.2
+MSParam			cv 2 2 rnd 0.2
 
-% arg 1: Data selection method. cv, boot, hold, none, dummy
+% arg 1: Data selection method. cv, boot.
 % arg 2: Number of independent runs.
 % arg 3: The number of parts if arg1 = cv. 
 % arg 4: Split mode, rnd or ser
 % arg 5: Number of trainingdata if arg2=1, fraction or number
-
-%%%%%%%%%%%% Model selection parameters %%%%%%%%%%%
-Vary    WeightElim 2 0 1.0 0.4
-%Vary   Size 2 1 10 1
-
-% arg 1: Parameter to vary
-% arg 2: Subparameter to vary
-% arg 3: Start value
-% arg 4: Stop value
-% arg 5: Step value
 
 %>>>>>>>>>>> Misc <<<<<<<<<<<
 SaveSession		1			% Save all networks in the training-session

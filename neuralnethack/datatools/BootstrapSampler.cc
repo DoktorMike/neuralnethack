@@ -1,4 +1,4 @@
-/*$Id: BootstrapSampler.cc 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: BootstrapSampler.cc 1605 2007-01-24 20:47:36Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -63,8 +63,6 @@ void BootstrapSampler::reset()
 }
 
 bool BootstrapSampler::hasNext() const {return (index < n) ? true : false;}
-
-uint BootstrapSampler::howMany() const {return n;}
 
 uint BootstrapSampler::numRuns() const {return n;}
 

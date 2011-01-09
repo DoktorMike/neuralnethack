@@ -1,4 +1,4 @@
-/*$Id: CrossEntropy.cc 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: CrossEntropy.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -32,7 +32,9 @@ using namespace DataTools;
 using namespace MatrixTools;
 using std::vector;
 
-CrossEntropy::CrossEntropy(Mlp& mlp, DataSet& dset):Error(mlp,dset){}
+CrossEntropy::CrossEntropy():Error(0, 0){}
+
+CrossEntropy::CrossEntropy(Mlp* mlp, DataSet* dset):Error(mlp,dset){}
 
 CrossEntropy::~CrossEntropy(){}
 
@@ -54,7 +56,7 @@ double CrossEntropy::gradient()
 	uint bs=theDset->size();
 	for(uint i=0; i<bs; ++i){
 		Pattern& p = theDset->pattern(i);
-		const vector<double>& out = theMlp->propagate(p.input());
+		vector<double>& out = theMlp->propagate(p.input());
 		Layer& last = (*theMlp)[theMlp->nLayers()-1];
 		localGradient(last, out, p.output());
 		backpropagate();
@@ -92,7 +94,7 @@ double CrossEntropy::outputError() const
 
 	for(uint i=0; i<bs; ++i){
 		Pattern& p=theDset->pattern(i);
-		const vector<double>& output=theMlp->propagate(p.input());
+		vector<double>& output=theMlp->propagate(p.input());
 		err+=outputError(output, p.output());
 	}
 	//cout<<"Error: "<<-err/bs<<endl;
@@ -101,7 +103,7 @@ double CrossEntropy::outputError() const
 
 //PRIVATE--------------------------------------------------------------------//
 
-CrossEntropy::CrossEntropy(const CrossEntropy& sse):Error(*(sse.theMlp), *(sse.theDset))
+CrossEntropy::CrossEntropy(const CrossEntropy& sse):Error(sse.theMlp, sse.theDset)
 {*this = sse;}
 
 CrossEntropy& CrossEntropy::operator=(const CrossEntropy& sse)
@@ -111,13 +113,13 @@ CrossEntropy& CrossEntropy::operator=(const CrossEntropy& sse)
 	return *this;
 }
 
-void CrossEntropy::localGradient(Layer& ol, const vector<double>& out, 
-		const vector<double>& dout)
+void CrossEntropy::localGradient(Layer& ol, vector<double>& out, 
+		vector<double>& dout)
 {
 	assert(out.size() == ol.size() && dout.size() == out.size());
 
-	vector<double>::const_iterator ito = out.begin();
-	vector<double>::const_iterator itdo = dout.begin();
+	vector<double>::iterator ito = out.begin();
+	vector<double>::iterator itdo = dout.begin();
 
 	for(uint i=0; i<ol.nNeurons(); ++i, ++ito, ++itdo)
 		ol.localGradients(i) = (*itdo - *ito);

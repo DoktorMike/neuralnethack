@@ -1,4 +1,4 @@
-/*$Id: MatrixTools.hh 3344 2009-03-13 00:04:02Z michael $*/
+/*$Id: MatrixTools.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -25,7 +25,6 @@
 #define __MatrixTools_hh__
 
 #include <vector>
-#include <cstdlib>
 
 /**This namespace encloses functions for vector and matrix manipulation. */
 namespace MatrixTools

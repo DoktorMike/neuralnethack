@@ -1,4 +1,4 @@
-/*$Id: GradientDescent.cc 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: GradientDescent.cc 1626 2007-05-08 12:08:19Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -58,21 +58,20 @@ void GradientDescent::train(ostream& os)
 		theBatchSize = theData->size();
 	}
 
-	double origLearnRate = theLearningRate; //Save the learning rate
 	double err = theError->outputError(*theMlp, *theData);
 	double prevErr = err+1;
 	uint cntr = theNumEpochs;
 	const uint w = 14; //formatting
 	const uint maxRounds = 2; //max number of full batch before var learn rate.
 	uint nrounds = 0; //current number of full batch runs.
-	DataSet blockData(*theData);
+	DataSet* blockData = new DataSet(*theData);
 	uint index = 0;
 
 	os.setf(ios::left);
 	os<<setw(w)<<"# Epoch"<<setw(w)<<"TrnErr"<<setw(w)<<"LrnRate"<<endl;
 	do{
 		if(buildBlock(blockData, index) == true) ++nrounds;
-		train(blockData);
+		train(*blockData);
 		if(nrounds >= maxRounds){
 			cntr--;
 			nrounds = 0;
@@ -84,7 +83,7 @@ void GradientDescent::train(ostream& os)
 		}
 	}while(cntr && !hasConverged(err, prevErr));
 	os<<setw(w)<<theNumEpochs-cntr<<setw(w)<<err<<setw(w)<<theLearningRate<<endl;
-	theLearningRate = origLearnRate; //Restore the learning rate
+	delete blockData;
 }
 
 Trainer* GradientDescent::clone() const
@@ -110,8 +109,8 @@ GradientDescent& GradientDescent::operator=(const GradientDescent& gd)
 
 double GradientDescent::train(DataSet& dset)
 {
-	theError->mlp(*theMlp);
-	theError->dset(dset);
+	theError->mlp(theMlp);
+	theError->dset(&dset);
 	double err = theError->gradient();
 
 	for(uint i=0; i<theMlp->nLayers(); ++i){
@@ -129,14 +128,15 @@ double GradientDescent::train(DataSet& dset)
 
 void GradientDescent::updateLearningRate(double err, double prevErr)
 {
-	if(err>prevErr) theLearningRate *= theDecLearningRate;
+	if(err>prevErr)
+		theLearningRate *= theDecLearningRate;
 	else{
 		double scale = 1.0+(1.0-theDecLearningRate)/10.0;
 		theLearningRate *= scale;
 	}
 }
 
-bool GradientDescent::buildBlock(DataSet& blockData, uint& cntr) const
+bool GradientDescent::buildBlock(DataSet* blockData, uint& cntr) const
 {
 	bool roundabout = false;
 	vector<uint> indices(theBatchSize, 0);
@@ -147,7 +147,7 @@ bool GradientDescent::buildBlock(DataSet& blockData, uint& cntr) const
 		}
 		indices.at(i) = theData->indices().at(cntr);
 	}
-	blockData.indices(indices);
-	//cout<<"first: "<<indices.front()<<" last: "<<indices.back()<<" cntr: "<<cntr<<" size: "<<blockData.size()<<endl;
+	blockData->indices(indices);
+	//cout<<"first: "<<indices.front()<<" last: "<<indices.back()<<" cntr: "<<cntr<<" size: "<<blockData->size()<<endl;
 	return roundabout;
 }

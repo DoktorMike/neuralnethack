@@ -1,4 +1,4 @@
-/*$Id: QuasiNewton.cc 1672 2007-09-03 23:04:38Z michael $*/
+/*$Id: QuasiNewton.cc 1626 2007-05-08 12:08:19Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -28,8 +28,6 @@
 #include <cmath>
 #include <ostream>
 #include <iomanip>
-#include <algorithm>
-#include <functional>
 
 #define ITMAX				10
 #define CGOLD				0.3819660
@@ -57,8 +55,8 @@ QuasiNewton::~QuasiNewton(){}
 
 void QuasiNewton::train(ostream& os)
 {
-	theError->mlp(*theMlp);
-	theError->dset(*theData);
+	theError->mlp(theMlp);
+	theError->dset(theData);
 	resetVectors();
 	
 	double err = 10;
@@ -73,11 +71,10 @@ void QuasiNewton::train(ostream& os)
 		mul(G, g, vectorTemp1); //Gg used in findAlpha!
 		prevErr = err;
 		err=findAlpha(alpha); //Determine steplength
-		transform(vectorTemp1.begin(), vectorTemp1.end(), vectorTemp1.begin(), 
-				bind2nd(multiplies<double>(), alpha));
+		mul(vectorTemp1,alpha);
 
 		wPrev = w;
-		transform(w.begin(), w.end(), vectorTemp1.begin(), w.begin(), plus<double>());
+		add(w,vectorTemp1,w);
 		theMlp->weights(w); //Update the weights.
 		gPrev = g;
 		theError->gradient(*theMlp, *theData);
@@ -141,8 +138,8 @@ void QuasiNewton::resetVectors()
 
 void QuasiNewton::updateBfgs()
 {
-	transform(w.begin(), w.end(), wPrev.begin(), dw.begin(), minus<double>());
-	transform(g.begin(), g.end(), gPrev.begin(), dg.begin(), minus<double>());
+	sub(w,wPrev,dw);
+	sub(g,gPrev,dg);
 
 	double dwdg = innerProduct(dw, dg);		//dwdg
 	vector<double> Gdg=dg;					//Gdg
@@ -160,9 +157,9 @@ void QuasiNewton::updateBfgs()
 	sub(matrixTemp1, matrixTemp2, matrixTemp1); //matrixTemp1 holds the result.
 
 	//Building u
-	transform(dw.begin(), dw.end(), vectorTemp1.begin(), bind2nd(divides<double>(), dwdg) );
-	transform(Gdg.begin(), Gdg.end(), vectorTemp2.begin(), bind2nd(divides<double>(), dgGdg) );
-	transform(vectorTemp1.begin(), vectorTemp1.end(), vectorTemp2.begin(), vectorTemp1.begin(), minus<double>());
+	div(dw,dwdg,vectorTemp1); 
+	div(Gdg,dgGdg,vectorTemp2);
+	sub(vectorTemp1, vectorTemp2, vectorTemp1);
 
 	//Term 3
 	outerProduct(vectorTemp1, vectorTemp1, matrixTemp2);
@@ -175,8 +172,8 @@ void QuasiNewton::updateBfgs()
 
 void QuasiNewton::updateDfp()
 {
-	transform(w.begin(), w.end(), wPrev.begin(), dw.begin(), minus<double>());
-	transform(g.begin(), g.end(), gPrev.begin(), dg.begin(), minus<double>());
+	sub(w,wPrev,dw);
+	sub(g,gPrev,dg);
 
 	double dwdg = innerProduct(dw, dg);		//dwdg
 	vector<double> Gdg=dg;					//Gdg
@@ -329,16 +326,31 @@ float QuasiNewton::err(float alfa)
 	return err;
 }
 
-struct less_mag : public binary_function<double, double, bool> {
-	bool operator()(double x, double y){ return fabs(x) < fabs(y); }
-};
-
 bool QuasiNewton::converged()
 {
-	vector<double>::iterator maxdw = max_element(dw.begin(), dw.end(), less_mag());
-	if(*maxdw < EPS) return true;
-	vector<double>::iterator maxdg = max_element(dg.begin(), dg.end(), less_mag());
-	if(*maxdg < EPS) return true;
+	vector<double>::iterator it;
+
+	double test=0.0;
+	for(it=dw.begin(); it!=dw.end(); ++it){
+		double tmp=fabs(*it);
+		if(tmp>test)
+			test=tmp;
+	}
+	if(test<EPS){
+		//cout<<"Weight difference less than tolerance."<<endl;
+		return true;
+	}
+
+	test=0.0;
+	for(it=dg.begin(); it!=dg.end(); ++it){
+		double tmp=fabs(*it);
+		if(tmp>test)
+			test=tmp;
+	}
+	if(test<EPS){
+		//cout<<"Gradient difference less than tolerance."<<endl;
+		return true;
+	}
 	return false;
 }
 

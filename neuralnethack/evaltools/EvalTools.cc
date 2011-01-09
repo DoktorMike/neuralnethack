@@ -1,4 +1,4 @@
-/*$Id: EvalTools.cc 1667 2007-08-23 11:58:24Z michael $*/
+/*$Id: EvalTools.cc 1623 2007-05-08 08:30:14Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -27,7 +27,6 @@
 
 #include <cassert>
 #include <cmath>
-#include <iterator>
 
 using namespace EvalTools;
 using namespace NeuralNetHack;
@@ -106,10 +105,8 @@ double ErrorMeasures::auc(Ensemble& committee, DataSet& data)
 	vector<uint> target;
 	buildOutputTargetVectors(committee, data, output, target);
 	Roc roc;
-	//cout<<roc.calcAucWmw(output, target)<<endl;
-	//cout<<roc.calcAucWmwFast(output, target)<<endl;
-	return roc.calcAucWmwFast(output, target);
-	//return roc.calcAucTrapezoidal(output, target);
+	//return roc.calcAucWmw(output, target);
+	return roc.calcAucTrapezoidal(output, target);
 }
 
 double ErrorMeasures::gof(Ensemble& committee, DataSet& data)

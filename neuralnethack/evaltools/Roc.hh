@@ -1,4 +1,4 @@
-/*$Id: Roc.hh 1649 2007-06-04 09:18:11Z michael $*/
+/*$Id: Roc.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -138,8 +138,9 @@ namespace EvalTools{
 			 */
 			std::vector< std::pair<double,double> > theRoc;
 
-			template<class T>
-			void printVector(std::vector<T>& vec);
+			void printVector(std::vector<uint>& vec);
+
+			void printVector(std::vector<double>& vec);
 
 			/**The area under the ROC curve. */
 			double theAuc;

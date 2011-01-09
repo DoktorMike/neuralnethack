@@ -1,4 +1,4 @@
-# $Id: Makefile.am 3344 2009-03-13 00:04:02Z michael $
+# $Id: Makefile.am 1492 2005-12-21 18:13:00Z michael $
 MAINTAINERCLEANFILES = Makefile.in
 INCLUDES= -I. -I.. -I$(top_srcdir)/src
 

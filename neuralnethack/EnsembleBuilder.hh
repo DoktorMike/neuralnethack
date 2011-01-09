@@ -1,4 +1,4 @@
-/*$Id: EnsembleBuilder.hh 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: EnsembleBuilder.hh 1627 2007-05-08 16:40:20Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -37,16 +37,16 @@ namespace NeuralNetHack
 	class Session
 	{
 		public:
-			Session():ensemble(0), trnData(0), valData(0){}
+			Session():committee(0), trnData(0), valData(0){}
 
 			Session(Ensemble* c, DataTools::DataSet* trn, DataTools::DataSet* val)
-				:ensemble(c), trnData(trn), valData(val){}
+				:committee(c), trnData(trn), valData(val){}
 
 			Session(const Session& s) {*this = s;}
 
 			~Session()
 			{
-				if(ensemble != 0) delete ensemble; 
+				if(committee != 0) delete committee; 
 				if(trnData != 0) delete trnData; 
 				if(valData != 0) delete valData;
 			}
@@ -54,7 +54,7 @@ namespace NeuralNetHack
 			Session& operator=(const Session& s)
 			{
 				if(this != &s){
-					ensemble = new Ensemble(*s.ensemble);
+					committee = new Ensemble(*s.committee);
 					trnData = new DataTools::DataSet(*s.trnData);
 					valData = new DataTools::DataSet(*s.valData);
 				}
@@ -62,7 +62,7 @@ namespace NeuralNetHack
 			}
 
 			/**The pointer to the ensemble that holds all the models. */
-			Ensemble* ensemble;
+			Ensemble* committee;
 
 			/**The pointer to the DataSet used for training. */
 			DataTools::DataSet* trnData;

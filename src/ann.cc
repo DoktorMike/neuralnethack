@@ -1,4 +1,4 @@
-/*$Id: ann.cc 1678 2007-10-01 14:42:23Z michael $*/
+/*$Id: ann.cc 1595 2007-01-12 16:24:32Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -57,22 +57,27 @@ string parseCmdLine(int argc, char* argv[])
 vector<double> getInput(uint numInput, Normaliser* normalisation)
 {
 	vector<double> input(0);
+	//copy(istream_iterator<double>(cin), istream_iterator<double>(), back_inserter(input));
 	string s;
 	getline(cin, s);
 	istringstream ss(s);
 	copy(istream_iterator<double>(ss), istream_iterator<double>(), back_inserter(input));
 	if(input.size() > 0 && input.size() > numInput) input.resize(numInput);
-	normalisation->normaliseInput(input);
-	//cout<<"After Normalisation: ";
-	//copy(input.begin(), input.end(), ostream_iterator<double>(cout, " "));
-	//cout<<endl;
+	vector<double>& stdDev = normalisation->stdDev();
+	vector<double>& mean = normalisation->mean();
+	//copy(input.begin(), input.end(), ostream_iterator<double>(cout, "\t")); cout<<endl;
+	//copy(stdDev.begin(), stdDev.end(), ostream_iterator<double>(cout, "\t")); cout<<endl;
+	//copy(mean.begin(), mean.end(), ostream_iterator<double>(cout, "\t")); cout<<endl;
+	transform(input.begin(), input.end(), mean.begin(), input.begin(), minus<double>());
+	transform(input.begin(), input.end(), stdDev.begin(), input.begin(), divides<double>());
+	//copy(input.begin(), input.end(), ostream_iterator<double>(cout, "\t")); cout<<endl;
 	return input;
 }
 
-void killAll(vector<Ensemble*>& ensembles, Ensemble* ensemble, Normaliser* normalisation)
+void killAll(vector<Ensemble*>& committees, Ensemble* committee, Normaliser* normalisation)
 {
-	for(vector<Ensemble*>::iterator it=ensembles.begin(); it!=ensembles.end(); ++it) delete *it;
-	delete ensemble;
+	for(vector<Ensemble*>::iterator it=committees.begin(); it!=committees.end(); ++it) delete *it;
+	delete committee;
 	delete normalisation;
 }
 
@@ -83,18 +88,19 @@ int main(int argc, char* argv[])
 	ifstream is(xmlFileName.c_str(), ios::in);
 	pair<vector<Ensemble*>, Normaliser*> ensAndNorm = networkParser.parseXML(is);
 	is.close();
-	Ensemble* ensemble = networkParser.buildEnsemble(ensAndNorm.first);
-	uint n = ensemble->mlp(0).arch().at(0);
+	Ensemble* committee = networkParser.buildEnsemble(ensAndNorm.first);
+	uint n = committee->mlp(0).arch().at(0);
 	vector<double> input(n,0);
 	do{
 		input = getInput(n, ensAndNorm.second);
 		if(input.size() == n){
-			vector<double> output = ensemble->propagate(input);
+			vector<double> output = committee->propagate(input);
 			cout.precision(20);
+			//cout<<output.front()<<endl;
 			copy(output.begin(), output.end(), ostream_iterator<double>(cout, "\t")); cout<<endl;
 		}
 	}while(input.size() == n);
-	killAll(ensAndNorm.first, ensemble, ensAndNorm.second);
+	killAll(ensAndNorm.first, committee, ensAndNorm.second);
 
 	return EXIT_SUCCESS;
 }

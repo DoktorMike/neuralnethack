@@ -1,4 +1,4 @@
-/*$Id: CrossEntropy.hh 1684 2007-10-12 15:55:07Z michael $*/
+/*$Id: CrossEntropy.hh 1622 2007-05-08 08:29:10Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -41,13 +41,17 @@ namespace MultiLayerPerceptron
 	class CrossEntropy:public Error
 	{
 		public:
+			/**Basic constructor. This constructor sets the mlp and the
+			 * dataset pointers to 0.
+			 */
+			CrossEntropy();
 
 			/**Basic constructor.
 			 * \param mlp the mlp to use.
 			 * \param dset the dataset to use.
 			 */
-			CrossEntropy(MultiLayerPerceptron::Mlp& mlp, 
-					DataTools::DataSet& dset);
+			CrossEntropy(MultiLayerPerceptron::Mlp* mlp, 
+					DataTools::DataSet* dset);
 
 			/**Basic destructor. */
 			~CrossEntropy();
@@ -80,7 +84,7 @@ namespace MultiLayerPerceptron
 			 * \param dout the desired output.
 			 */
 			void localGradient(MultiLayerPerceptron::Layer& ol, 
-					const std::vector<double>& out, const std::vector<double>& dout);
+					std::vector<double>& out, std::vector<double>& dout);
 
 			/**Calculate the local gradient.
 			 * \param curr the current layer.

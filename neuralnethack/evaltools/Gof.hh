@@ -1,4 +1,4 @@
-/*$Id: Gof.hh 3344 2009-03-13 00:04:02Z michael $*/
+/*$Id: Gof.hh 1546 2006-04-18 08:38:01Z michael $*/
 
 /*
   Copyright (C) 2004 Michael Green
@@ -25,7 +25,6 @@
 
 #include <vector>
 #include <utility>
-#include <cstdlib>
 
 namespace EvalTools
 {
