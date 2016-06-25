@@ -21,3 +21,6 @@
 Comments are welcome.
 
 	- Michael Green <micke.green@gmail.com>
+
+
+[![Build Status](https://travis-ci.org/DoktorMike/neuralnethack.svg?branch=master)](https://travis-ci.org/DoktorMike/neuralnethack)
