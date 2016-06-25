@@ -2,17 +2,18 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(neuralnethack, 0.9.5, michael@thep.lu.se, neuralnethack)
+AC_INIT([NeuralNetHack], [0.9.5])
 AC_CONFIG_SRCDIR([neuralnethack/NeuralNetHack.cc])
-#This is replaced with AM version since I am using automake. Should I have
-#used only autoconf I should use AC version again.
-#AC_CONFIG_HEADER(config.h)
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(autotools)
-AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION,$PACKAGE_BUGREPORT)
+AM_INIT_AUTOMAKE
+#AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION,$PACKAGE_BUGREPORT)
 
 # Added this init since automake complains
 #LT_INIT
+
+# Added by suggestion of libtool
+AC_CONFIG_MACRO_DIRS([m4])
 
 # Set the language
 AC_LANG(C++)
