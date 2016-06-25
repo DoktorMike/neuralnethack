@@ -12,7 +12,7 @@ AC_CONFIG_AUX_DIR(autotools)
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION,$PACKAGE_BUGREPORT)
 
 # Added this init since automake complains
-LT_INIT
+#LT_INIT
 
 # Set the language
 AC_LANG(C++)
