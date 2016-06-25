@@ -1,26 +1,17 @@
-	neuralnethack - A small ANN package for ensembles of MLPs.
+# NeuralNetHack - A small ANN package for ensembles of MLPs.
 
+Copyright (C) 2016 Michael Green
 
+neuralnethack is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
-  Copyright (C) 2004 Michael Green
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-  neuralnethack is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 Comments are welcome.
 
-	- Michael Green <micke.green@gmail.com>
+- Michael Green <micke.green@gmail.com>
 
 
 [![Build Status](https://travis-ci.org/DoktorMike/neuralnethack.svg?branch=master)](https://travis-ci.org/DoktorMike/neuralnethack)
