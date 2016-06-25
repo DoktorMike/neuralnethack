@@ -1,5 +1,5 @@
 Neuralnethack - A program for training and validating ensembles of MLPs
-Copyright © 2007  Michael Green
+Copyright © 2016  Michael Green
 
 This file is part of Neuralnethack.
 
@@ -17,4 +17,4 @@ You should have received a copy of the GNU General Public License
 along with Neuralnethack; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-Michael Green <michael@thep.lu.se>
+Michael Green <micke.green@gmail.com>
