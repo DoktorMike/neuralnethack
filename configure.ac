@@ -10,7 +10,7 @@ AM_INIT_AUTOMAKE
 #AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION,$PACKAGE_BUGREPORT)
 
 # Added this init since automake complains
-#LT_INIT
+LT_INIT
 
 # Added by suggestion of libtool
 AC_CONFIG_MACRO_DIRS([m4])
