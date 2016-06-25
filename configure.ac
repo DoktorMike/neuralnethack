@@ -6,10 +6,13 @@ AC_INIT(neuralnethack, 0.9.5, michael@thep.lu.se, neuralnethack)
 AC_CONFIG_SRCDIR([neuralnethack/NeuralNetHack.cc])
 #This is replaced with AM version since I am using automake. Should I have
 #used only autoconf I should use AC version again.
-#AC_CONFIG_HEADER(config.h) 
+#AC_CONFIG_HEADER(config.h)
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(autotools)
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION,$PACKAGE_BUGREPORT)
+
+# Added this init since automake complains
+LT_INIT
 
 # Set the language
 AC_LANG(C++)
