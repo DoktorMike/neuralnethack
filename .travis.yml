@@ -2,3 +2,5 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y automake libtool
 language: cpp
+after_success:
+      - bash <(curl -s https://codecov.io/bash)
