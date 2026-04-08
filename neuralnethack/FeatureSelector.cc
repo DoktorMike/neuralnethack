@@ -107,7 +107,7 @@ Config FeatureSelector::run(Config& config, double (*f)(Ensemble&, DataSet&) )
 		//cerr<<"Remove redundant variables"<<endl;
 		//cerr.flush();
 		// Remove redundant variables
-		transform(effects.begin(), effects.end(), effects.begin(), bind2nd(divides<double>(), (double)effects.size()));
+		{ double d = effects.size(); for(auto& e : effects) e /= d; }
 		cerr<<"Effects: ";
 		copy(effects.begin(), effects.end(), ostream_iterator<double>(cerr, " "));
 		cerr<<endl;

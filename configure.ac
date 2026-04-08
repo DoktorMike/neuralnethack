@@ -29,7 +29,7 @@ AC_PROG_LIBTOOL
 #LIBTOOL="$LIBTOOL --silent"
 
 # Macro flags for DEBUG mode
-CXXFLAGS="-std=c++17 -Wall -pedantic -O3 -march=native -ffast-math -funroll-loops -ftree-vectorize -fno-math-errno"
+CXXFLAGS="-std=c++23 -Wall -pedantic -O3 -march=native -ffast-math -funroll-loops -ftree-vectorize -fno-math-errno"
 #CXXFLAGS="$CXXFLAGS -Wall -pedantic -g3 -gdwarf-2 -O0" # GDB mode
 #CXXFLAGS="$CXXFLAGS -pg" # Benchmark mode
 #CPPFLAGS="-D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_DEBUG_PEDANTIC"

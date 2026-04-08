@@ -41,7 +41,7 @@ using std::ostream_iterator;
 using std::ostringstream;
 using std::string;
 using std::vector;
-using std::bind2nd;
+
 using std::plus;
 using std::divides;
 

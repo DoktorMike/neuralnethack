@@ -53,11 +53,10 @@ using std::ifstream;
 using std::ostringstream;
 using std::ostream_iterator;
 using std::make_pair;
-using std::unary_function;
 using std::abs;
 using std::advance;
 
-template<class T> struct mapValueIndex : public unary_function<T, void>
+template<class T> struct mapValueIndex
 {
 	mapValueIndex():index(0){}
 	void operator() (T& x){	sals.insert(make_pair(abs(x), ++index)); }
