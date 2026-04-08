@@ -60,7 +60,8 @@ using std::unique_ptr;
 
 static float maxarg1,maxarg2;
 
-QuasiNewton::QuasiNewton(Mlp& mlp, DataSet& data, Error& error, double te, uint bs):Trainer(mlp, data, error, te, bs), flatN(0)
+QuasiNewton::QuasiNewton(Mlp& mlp, DataSet& data, Error& error, double te, uint bs)
+	:Trainer(mlp, data, error, te, bs), nWeights(0), historyCount(0), historyStart(0)
 {}
 
 QuasiNewton::~QuasiNewton(){}
@@ -80,11 +81,11 @@ void QuasiNewton::train(ostream& os)
 	os.setf(ios::left);
 	os<<setw(width)<<"# Epoch"<<setw(width)<<"TrnErr"<<setw(width)<<"StepLen"<<endl;
 	while(cntr-- && !hasConverged(err, prevErr)){
-		flatMulVec(G, g, vectorTemp1); //Gg used in findAlpha!
+		lbfgsDirection(g, vectorTemp1); //H*g via two-loop recursion
 		prevErr = err;
 		err=findAlpha(alpha); //Determine steplength
 		{
-			const uint n = vectorTemp1.size();
+			const uint n = nWeights;
 			double* __restrict__ vt1 = vectorTemp1.data();
 			double* __restrict__ wp  = w.data();
 			for(uint j = 0; j < n; ++j)
@@ -98,9 +99,24 @@ void QuasiNewton::train(ostream& os)
 		theError->gradient(*theMlp, *theData);
 		g=theMlp->gradients(); //Update the gradients.
 
+		// Compute dw = w - wPrev, dg = g - gPrev and store in history
+		{
+			const uint n = nWeights;
+			const double* __restrict__ wp   = w.data();
+			const double* __restrict__ wpp  = wPrev.data();
+			double* __restrict__ dwp  = dw.data();
+			const double* __restrict__ gp   = g.data();
+			const double* __restrict__ gpp  = gPrev.data();
+			double* __restrict__ dgp  = dg.data();
+			for(uint j = 0; j < n; ++j){
+				dwp[j] = wp[j] - wpp[j];
+				dgp[j] = gp[j] - gpp[j];
+			}
+		}
+		storeHistory();
+
 		if(cntr % 20 == 0)
 			os<<setw(width)<<theNumEpochs-cntr<<setw(width)<<err<<setw(width)<<alpha<<endl;
-		updateBfgs(); //Build G(t+1)
 	}
 	os<<setw(width)<<theNumEpochs-cntr<<setw(width)<<err<<setw(width)<<alpha<<endl;
 }
@@ -118,19 +134,20 @@ QuasiNewton& QuasiNewton::operator=(const QuasiNewton& qn)
 {
 	if(this!=&qn){
 		Trainer::operator=(qn);
-		flatN = qn.flatN;
-		G = qn.G;
+		nWeights = qn.nWeights;
 		w = qn.w;
 		wPrev = qn.wPrev;
 		g = qn.g;
 		gPrev = qn.gPrev;
 		dw = qn.dw;
 		dg = qn.dg;
-		u = qn.u;
-		matrixTemp1 = qn.matrixTemp1;
-		matrixTemp2 = qn.matrixTemp2;
 		vectorTemp1 = qn.vectorTemp1;
 		vectorTemp2 = qn.vectorTemp2;
+		sHistory = qn.sHistory;
+		yHistory = qn.yHistory;
+		rhoHistory = qn.rhoHistory;
+		historyCount = qn.historyCount;
+		historyStart = qn.historyStart;
 	}
 	return *this;
 }
@@ -138,112 +155,132 @@ QuasiNewton& QuasiNewton::operator=(const QuasiNewton& qn)
 void QuasiNewton::resetVectors()
 {
 	uint n	= theMlp->nWeights();
-	flatN	= n;
-	G.assign(n * n, 0.0);
-	flatIdentity(G);
+	nWeights = n;
 	w		= theMlp->weights();
-	wPrev	= vector<double>(n,0);
-	dw		= vector<double>(n,0);
+	wPrev	= vector<double>(n, 0);
+	dw		= vector<double>(n, 0);
 	theError->gradient(*theMlp, *theData);
 	g		= theMlp->gradients();
-	gPrev	= vector<double>(n,0);
-	dg		= vector<double>(n,0);
-	u		= vector<double>(n,0);
+	gPrev	= vector<double>(n, 0);
+	dg		= vector<double>(n, 0);
 
-	matrixTemp1.assign(n * n, 0.0);
-	matrixTemp2.assign(n * n, 0.0);
-	vectorTemp1 = vector<double>(n,0);
-	vectorTemp2 = vector<double>(n,0);
+	vectorTemp1 = vector<double>(n, 0);
+	vectorTemp2 = vector<double>(n, 0);
+
+	// Initialize L-BFGS history
+	sHistory.assign(LBFGS_M, vector<double>(n, 0));
+	yHistory.assign(LBFGS_M, vector<double>(n, 0));
+	rhoHistory.assign(LBFGS_M, 0.0);
+	historyCount = 0;
+	historyStart = 0;
 }
 
-void QuasiNewton::updateBfgs()
+//L-BFGS TWO-LOOP RECURSION-------------------------------------------------//
+
+void QuasiNewton::lbfgsDirection(const vector<double>& grad, vector<double>& dir)
 {
-	const uint n = flatN;
-	{
-		const double* __restrict__ wp   = w.data();
-		const double* __restrict__ wpp  = wPrev.data();
-		double* __restrict__ dwp  = dw.data();
-		const double* __restrict__ gp   = g.data();
-		const double* __restrict__ gpp  = gPrev.data();
-		double* __restrict__ dgp  = dg.data();
+	const uint n = nWeights;
+	const uint m = historyCount;
 
-		for(uint j = 0; j < n; ++j){
-			dwp[j] = wp[j] - wpp[j];
-			dgp[j] = gp[j] - gpp[j];
+	// dir = grad (will be modified in place)
+	dir = grad;
+
+	// First iteration with no history: use steepest descent (dir = grad, scaled by small step)
+	if(m == 0) return;
+
+	vector<double> alphas(m);
+
+	// First loop: go backward through history (most recent first)
+	for(int i = (int)m - 1; i >= 0; --i){
+		uint idx = (historyStart + i) % LBFGS_M;
+		double dot = 0;
+		{
+			const double* __restrict__ sp = sHistory[idx].data();
+			const double* __restrict__ dp = dir.data();
+			for(uint j = 0; j < n; ++j)
+				dot += sp[j] * dp[j];
+		}
+		alphas[i] = rhoHistory[idx] * dot;
+
+		// dir -= alphas[i] * yHistory[idx]
+		{
+			const double a = alphas[i];
+			const double* __restrict__ yp = yHistory[idx].data();
+			double* __restrict__ dp = dir.data();
+			for(uint j = 0; j < n; ++j)
+				dp[j] -= a * yp[j];
 		}
 	}
 
-	double dwdg = innerProduct(dw, dg);
-	vector<double> Gdg = dg;
-	flatMulVec(G, dg, Gdg);
-	double dgGdg = innerProduct(dg, Gdg);
-
-	//Term 1
-	flatOuterProduct(dw, dw, matrixTemp1);
-	flatScale(matrixTemp1, 1.0 / dwdg);
-
-	//Term 2
-	flatOuterProduct(Gdg, Gdg, matrixTemp2);
-	flatScale(matrixTemp2, 1.0 / dgGdg);
-
-	flatSub(matrixTemp1, matrixTemp2, matrixTemp1);
-
-	//Building u
+	// Scale by initial Hessian approximation: gamma * I
+	// gamma = (s_{k-1}^T * y_{k-1}) / (y_{k-1}^T * y_{k-1})
 	{
-		const double* __restrict__ dwp  = dw.data();
-		const double* __restrict__ gdgp = Gdg.data();
-		double* __restrict__ vt1  = vectorTemp1.data();
-		double* __restrict__ vt2  = vectorTemp2.data();
-
+		uint last = (historyStart + m - 1) % LBFGS_M;
+		double sy = 0, yy = 0;
+		const double* __restrict__ sp = sHistory[last].data();
+		const double* __restrict__ yp = yHistory[last].data();
 		for(uint j = 0; j < n; ++j){
-			vt1[j] = dwp[j] / dwdg;
-			vt2[j] = gdgp[j] / dgGdg;
+			sy += sp[j] * yp[j];
+			yy += yp[j] * yp[j];
 		}
-		for(uint j = 0; j < n; ++j){
-			vt1[j] -= vt2[j];
-		}
+		double gamma = sy / yy;
+		double* __restrict__ dp = dir.data();
+		for(uint j = 0; j < n; ++j)
+			dp[j] *= gamma;
 	}
 
-	//Term 3
-	flatOuterProduct(vectorTemp1, vectorTemp1, matrixTemp2);
-	flatScale(matrixTemp2, dgGdg);
+	// Second loop: go forward through history (oldest first)
+	for(uint i = 0; i < m; ++i){
+		uint idx = (historyStart + i) % LBFGS_M;
+		double dot = 0;
+		{
+			const double* __restrict__ yp = yHistory[idx].data();
+			const double* __restrict__ dp = dir.data();
+			for(uint j = 0; j < n; ++j)
+				dot += yp[j] * dp[j];
+		}
+		double beta = rhoHistory[idx] * dot;
 
-	flatSub(matrixTemp1, matrixTemp2, matrixTemp1);
-
-	flatAdd(G, matrixTemp1, G);
+		// dir += (alphas[i] - beta) * sHistory[idx]
+		{
+			const double a = alphas[i] - beta;
+			const double* __restrict__ sp = sHistory[idx].data();
+			double* __restrict__ dp = dir.data();
+			for(uint j = 0; j < n; ++j)
+				dp[j] += a * sp[j];
+		}
+	}
 }
 
-void QuasiNewton::updateDfp()
+void QuasiNewton::storeHistory()
 {
-	const uint n = flatN;
+	double sy = 0;
 	{
-		const double* __restrict__ wp   = w.data();
-		const double* __restrict__ wpp  = wPrev.data();
-		double* __restrict__ dwp  = dw.data();
-		const double* __restrict__ gp   = g.data();
-		const double* __restrict__ gpp  = gPrev.data();
-		double* __restrict__ dgp  = dg.data();
-
-		for(uint j = 0; j < n; ++j){
-			dwp[j] = wp[j] - wpp[j];
-			dgp[j] = gp[j] - gpp[j];
-		}
+		const double* __restrict__ sp = dw.data();
+		const double* __restrict__ yp = dg.data();
+		for(uint j = 0; j < nWeights; ++j)
+			sy += sp[j] * yp[j];
 	}
 
-	double dwdg = innerProduct(dw, dg);
-	vector<double> Gdg = dg;
-	flatMulVec(G, dg, Gdg);
-	double dgGdg = innerProduct(dg, Gdg);
+	// Skip if curvature condition not met (s^T * y must be positive)
+	if(sy < 1e-20) return;
 
-	flatOuterProduct(dw, dw, matrixTemp1);
-	flatScale(matrixTemp1, 1.0 / dwdg);
+	uint idx;
+	if(historyCount < LBFGS_M){
+		idx = historyCount;
+		historyCount++;
+	}else{
+		// Overwrite oldest entry
+		idx = historyStart;
+		historyStart = (historyStart + 1) % LBFGS_M;
+	}
 
-	flatOuterProduct(Gdg, Gdg, matrixTemp2);
-	flatScale(matrixTemp2, 1.0 / dgGdg);
-
-	flatAdd(G, matrixTemp1, G);
-	flatSub(G, matrixTemp2, G);
+	sHistory[idx] = dw;
+	yHistory[idx] = dg;
+	rhoHistory[idx] = 1.0 / sy;
 }
+
+//LINE SEARCH----------------------------------------------------------------//
 
 float QuasiNewton::findAlpha(float& alpha)
 {
@@ -370,117 +407,12 @@ float QuasiNewton::brent(float ax, float bx, float cx, float tol,
 float QuasiNewton::err(float alfa)
 {
 	mul(vectorTemp1, alfa, vectorTemp2);
-	add(vectorTemp2,w,vectorTemp2);
+	add(vectorTemp2, w, vectorTemp2);
 
 	theMlp->weights(vectorTemp2);
 	float err=theError->outputError(*theMlp, *theData);
 	theMlp->weights(w);
 
 	return err;
-}
-
-struct less_mag {
-	bool operator()(double x, double y) const { return fabs(x) < fabs(y); }
-};
-
-bool QuasiNewton::converged()
-{
-	vector<double>::iterator maxdw = max_element(dw.begin(), dw.end(), less_mag());
-	if(*maxdw < EPS) return true;
-	vector<double>::iterator maxdg = max_element(dg.begin(), dg.end(), less_mag());
-	if(*maxdg < EPS) return true;
-	return false;
-}
-
-//FLAT MATRIX HELPERS--------------------------------------------------------//
-
-void QuasiNewton::flatIdentity(vector<double>& m)
-{
-	fill(m.begin(), m.end(), 0.0);
-	for(uint i = 0; i < flatN; ++i)
-		m[i * flatN + i] = 1.0;
-}
-
-void QuasiNewton::flatMulVec(const vector<double>& m, const vector<double>& v, vector<double>& res)
-{
-#ifdef USE_BLAS
-	cblas_dgemv(CblasRowMajor, CblasNoTrans, flatN, flatN, 1.0,
-				m.data(), flatN, v.data(), 1, 0.0, res.data(), 1);
-#else
-	fill(res.begin(), res.end(), 0.0);
-	const double* __restrict__ mp = m.data();
-	const double* __restrict__ vp = v.data();
-	double* __restrict__ rp = res.data();
-	for(uint i = 0; i < flatN; ++i){
-		double sum = 0.0;
-		const double* __restrict__ row = mp + i * flatN;
-		for(uint j = 0; j < flatN; ++j)
-			sum += row[j] * vp[j];
-		rp[i] = sum;
-	}
-#endif
-}
-
-void QuasiNewton::flatOuterProduct(const vector<double>& v1, const vector<double>& v2, vector<double>& res)
-{
-#ifdef USE_BLAS
-	fill(res.begin(), res.end(), 0.0);
-	cblas_dger(CblasRowMajor, flatN, flatN, 1.0,
-			   v1.data(), 1, v2.data(), 1, res.data(), flatN);
-#else
-	const double* __restrict__ v1p = v1.data();
-	const double* __restrict__ v2p = v2.data();
-	double* __restrict__ rp = res.data();
-	for(uint i = 0; i < flatN; ++i){
-		double* __restrict__ row = rp + i * flatN;
-		const double vi = v1p[i];
-		for(uint j = 0; j < flatN; ++j)
-			row[j] = vi * v2p[j];
-	}
-#endif
-}
-
-void QuasiNewton::flatScale(vector<double>& m, double s)
-{
-	const uint nn = flatN * flatN;
-#ifdef USE_BLAS
-	cblas_dscal(nn, s, m.data(), 1);
-#else
-	double* __restrict__ mp = m.data();
-	for(uint i = 0; i < nn; ++i)
-		mp[i] *= s;
-#endif
-}
-
-void QuasiNewton::flatAdd(const vector<double>& m1, const vector<double>& m2, vector<double>& res)
-{
-	const uint nn = flatN * flatN;
-#ifdef USE_BLAS
-	if(res.data() != m1.data())
-		cblas_dcopy(nn, m1.data(), 1, res.data(), 1);
-	cblas_daxpy(nn, 1.0, m2.data(), 1, res.data(), 1);
-#else
-	const double* __restrict__ a = m1.data();
-	const double* __restrict__ b = m2.data();
-	double* __restrict__ r = res.data();
-	for(uint i = 0; i < nn; ++i)
-		r[i] = a[i] + b[i];
-#endif
-}
-
-void QuasiNewton::flatSub(const vector<double>& m1, const vector<double>& m2, vector<double>& res)
-{
-	const uint nn = flatN * flatN;
-#ifdef USE_BLAS
-	if(res.data() != m1.data())
-		cblas_dcopy(nn, m1.data(), 1, res.data(), 1);
-	cblas_daxpy(nn, -1.0, m2.data(), 1, res.data(), 1);
-#else
-	const double* __restrict__ a = m1.data();
-	const double* __restrict__ b = m2.data();
-	double* __restrict__ r = res.data();
-	for(uint i = 0; i < nn; ++i)
-		r[i] = a[i] - b[i];
-#endif
 }
 

@@ -30,13 +30,15 @@
 
 namespace MultiLayerPerceptron
 {
-	/**A class representing the implementation of the Trainer interface.
-	 * This learning algorithm is called Quasi Newton and
-	 * uses second order gradients of the error function.
+	/**A class implementing the L-BFGS quasi-Newton optimization algorithm.
+	 * Uses limited-memory BFGS which stores only the last M (s,y) pairs
+	 * instead of the full n*n inverse Hessian approximation.
+	 * Memory: O(M*n) instead of O(n^2). Compute: O(M*n) instead of O(n^2).
+	 *
 	 * The weight update rule:
-	 * \f[\omega_{t+1}=\omega_t + \alpha_t G_t g_t\f]
-	 * Where \f$ G \f$ is an approximation of the inverse Hessian 
-	 * and \f$ g \f$ is the gradient.
+	 * \f[\omega_{t+1}=\omega_t + \alpha_t H_t g_t\f]
+	 * Where \f$ H_t \f$ is the L-BFGS approximation of the inverse Hessian
+	 * computed via the two-loop recursion, and \f$ g \f$ is the gradient.
 	 */
 	class QuasiNewton: public Trainer
 	{
@@ -72,22 +74,20 @@ namespace MultiLayerPerceptron
 			 */
 			QuasiNewton& operator=(const QuasiNewton& qn);
 
-			/**Reset all the vectors in the QuasiNewton algorithm. */
+			/**Reset all the vectors in the L-BFGS algorithm. */
 			void resetVectors();
 
-			/**Updates the estimation of the inverse hessian using the DFP
-			 * rule.
-			 * \f[G_{t+1}=G_t+\frac{\Delta\omega\Delta\omega^T}{\Delta\omega^T\Delta
-			 * g} - \frac{G_t\Delta g\Delta g^TG_t}{\Delta g^TG_t\Delta g}\f]
+			/**Compute the L-BFGS search direction via the two-loop recursion.
+			 * Result is placed in dir (= H_k * grad).
+			 * \param grad the current gradient vector.
+			 * \param dir the resulting search direction.
 			 */
-			void updateDfp();
-			
-			/**Updated the estimation of the inverse hessian using the BFGS
-			 * rule. This rule is essentially DFP but adds another term in the
-			 * end which gives better performance and is not much more
-			 * expensive.
+			void lbfgsDirection(const std::vector<double>& grad, std::vector<double>& dir);
+
+			/**Store a new (s,y) pair in the circular history buffer.
+			 * s = w - wPrev, y = g - gPrev. Skips if curvature condition not met.
 			 */
-			void updateBfgs();
+			void storeHistory();
 
 			/**Finds out the step length we want to use with our quasi newton
 			 * direction. This calls mnbrak and brent.
@@ -96,8 +96,7 @@ namespace MultiLayerPerceptron
 			 */
 			float findAlpha(float& alpha);
 
-			/**Brackets the minima. When algorithm finishes the wanted value
-			 * lies between ax and cx i.e. around bx.
+			/**Brackets the minima.
 			 * \param ax the leftmost value for the x values.
 			 * \param bx the middle value for the x values.
 			 * \param cx the rightmost value for the x values.
@@ -105,51 +104,31 @@ namespace MultiLayerPerceptron
 			 * \param fb the value of the function at bx.
 			 * \param fc the value of the function at cx.
 			 */
-			void mnbrak(float *ax, float *bx, float *cx, 
+			void mnbrak(float *ax, float *bx, float *cx,
 					float *fa, float *fb, float *fc);
 
-			/**An implementation of brents line search. When algorithms
-			 * finishes the xmin will hold our desired step length.
+			/**An implementation of brents line search.
 			 * \param ax the leftmost value for the x values.
 			 * \param bx the middle value for the x values.
 			 * \param cx the rightmost value for the x values.
 			 * \param tol the tolerance.
-			 * \param xmin the x value corresponding to the minimum value of
-			 * the error function.
+			 * \param xmin the x value corresponding to the minimum.
 			 * \return the error function evaluated at xmin.
 			 */
 			float brent(float ax, float bx, float cx, float tol,
 					float *xmin);
 
 			/**Calculate the error associated with a certain alfa.
-			 * This updated the weights in the Mlp and then calculates the
-			 * batch error for the DataSet using the Error function.
 			 * \param alfa the quasi newton step length.
 			 * \return the error.
 			 */
 			float err(float alfa);
 
-			/**Checks if the algorithm has converged by inspecting the
-			 * gradient. 
-			 * \deprecated The Trainer interface implements a hasConverged
-			 * which has a better measure.
-			 * \return true if converged, false otherwise.
-			 */
-			bool converged();
+			/**L-BFGS history size (number of (s,y) pairs to store). */
+			static constexpr uint LBFGS_M = 20;
 
-			// Flat matrix helpers (row-major, flatN x flatN)
-			void flatIdentity(std::vector<double>& m);
-			void flatMulVec(const std::vector<double>& m, const std::vector<double>& v, std::vector<double>& res);
-			void flatOuterProduct(const std::vector<double>& v1, const std::vector<double>& v2, std::vector<double>& res);
-			void flatScale(std::vector<double>& m, double s);
-			void flatAdd(const std::vector<double>& m1, const std::vector<double>& m2, std::vector<double>& res);
-			void flatSub(const std::vector<double>& m1, const std::vector<double>& m2, std::vector<double>& res);
-
-			/**Dimension of the flat matrices. */
-			uint flatN;
-
-			/**The estimation of the inverse Hessian matrix (flatN*flatN row-major). */
-			std::vector<double> G;
+			/**Number of weights. */
+			uint nWeights;
 
 			/**The weight vector at t+1. */
 			std::vector<double> w;
@@ -163,26 +142,35 @@ namespace MultiLayerPerceptron
 			/**The gradient vector at t. */
 			std::vector<double> gPrev;
 
-			/**The change in the weight vector. */
+			/**The change in the weight vector (s_k). */
 			std::vector<double> dw;
 
-			/**The change in the gradient vector. */
+			/**The change in the gradient vector (y_k). */
 			std::vector<double> dg;
 
-			/**I will figure out something good to say here. :-)*/
-			std::vector<double> u;
-
-			/**Temporary matrix (flatN*flatN row-major). */
-			std::vector<double> matrixTemp1;
-
-			/**Temporary matrix (flatN*flatN row-major). */
-			std::vector<double> matrixTemp2;
-
-			/**Temporary vector variable. */
+			/**Temporary vector for search direction (H*g). */
 			std::vector<double> vectorTemp1;
 
-			/**Temporary vector variable. */
+			/**Temporary vector for line search evaluation. */
 			std::vector<double> vectorTemp2;
+
+			// L-BFGS history (circular buffer)
+
+			/**History of weight changes s_k = w_{k+1} - w_k. */
+			std::vector<std::vector<double>> sHistory;
+
+			/**History of gradient changes y_k = g_{k+1} - g_k. */
+			std::vector<std::vector<double>> yHistory;
+
+			/**History of rho_k = 1 / (y_k^T * s_k). */
+			std::vector<double> rhoHistory;
+
+			/**Number of (s,y) pairs currently stored. */
+			uint historyCount;
+
+			/**Start index in the circular buffer. */
+			uint historyStart;
 	};
 }
 #endif
+
