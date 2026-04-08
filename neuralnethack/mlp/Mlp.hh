@@ -141,6 +141,16 @@ namespace MultiLayerPerceptron
 			 */
 			const std::vector<double>& propagate(const std::vector<double>& pattern);
 
+			/**Set training/inference mode for all layers.
+			 * \param t true for training, false for inference.
+			 */
+			void training(bool t);
+
+			/**Set dropout rate for hidden layers (not output layer).
+			 * \param rate dropout probability (0 to 1).
+			 */
+			void dropoutRate(double rate);
+
 			/**Propagate a batch of inputs through the entire MLP using GEMM.
 			 * \param input pointer to row-major input batch [B x arch[0]].
 			 * \param B the batch size.

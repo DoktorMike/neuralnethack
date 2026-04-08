@@ -284,6 +284,22 @@ namespace MultiLayerPerceptron
 			/**Return batch local gradients storage. */
 			std::vector<double>& batchLocalGradients();
 
+			/**Set the dropout rate for this layer.
+			 * \param rate dropout probability (0 to 1, 0 = disabled).
+			 */
+			void dropoutRate(double rate);
+
+			/**Get the dropout rate. */
+			double dropoutRate() const;
+
+			/**Set training mode (enables/disables dropout).
+			 * \param t true for training, false for inference.
+			 */
+			void training(bool t);
+
+			/**Get training mode. */
+			bool isTraining() const;
+
 			/**Calculates the Local Induced Field for each node in this layer. 
 			 * Note that the bias should not be included in the parameter 
 			 * since it is explicitly included later.
@@ -323,6 +339,18 @@ namespace MultiLayerPerceptron
 
 			/**The update used for this layers weights. */
 			std::vector<double> theWeightUpdates;
+
+			/**Dropout probability (0.0 = disabled). */
+			double theDropoutRate;
+
+			/**Training mode flag. */
+			bool theTraining;
+
+			/**Dropout mask (inverted: 1/(1-p) or 0), sized [ncurr]. */
+			std::vector<double> theDropoutMask;
+
+			/**Batch dropout mask [B * ncurr]. */
+			std::vector<double> theBatchDropoutMask;
 
 			/**Batch outputs: row-major [B x ncurr]. */
 			std::vector<double> theBatchOutputs;
@@ -415,6 +443,10 @@ namespace MultiLayerPerceptron
 
 	inline std::vector<double>& Layer::batchOutputs() {return theBatchOutputs;}
 	inline std::vector<double>& Layer::batchLocalGradients() {return theBatchLocalGradients;}
+	inline void Layer::dropoutRate(double rate) {theDropoutRate = rate;}
+	inline double Layer::dropoutRate() const {return theDropoutRate;}
+	inline void Layer::training(bool t) {theTraining = t;}
+	inline bool Layer::isTraining() const {return theTraining;}
 
 	//PRIVATE--------------------------------------------------------------------//
 

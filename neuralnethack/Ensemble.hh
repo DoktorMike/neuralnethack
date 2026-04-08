@@ -78,6 +78,12 @@ namespace NeuralNetHack{
 			 */
 			MultiLayerPerceptron::Mlp& mlp(const uint i);
 
+			/**Fetch one of the MLPs in the committee (const).
+			 * \param i the index of the MLP that is to be returned.
+			 * \return the MLP located at index i.
+			 */
+			const MultiLayerPerceptron::Mlp& mlp(const uint i) const;
+
 			/**Delete and fetch one of the MLPs in the committee.
 			 * \param i the index of the MLP that is to be deleted.
 			 */

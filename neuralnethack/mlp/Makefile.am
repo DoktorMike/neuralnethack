@@ -8,6 +8,7 @@ libmlp_la_SOURCES = MultiLayerPerceptron.cc \
 					Trainer.cc \
 					GradientDescent.cc \
 					QuasiNewton.cc \
+					Adam.cc \
 					Error.cc \
 					SummedSquare.cc \
 					CrossEntropy.cc \
@@ -16,7 +17,11 @@ libmlp_la_SOURCES = MultiLayerPerceptron.cc \
 					SigmoidLayer.cc \
 					TanHypLayer.cc \
 					LinearLayer.cc \
-					Weights.cc 
+					ReLULayer.cc \
+					LeakyReLULayer.cc \
+					ELULayer.cc \
+					Weights.cc \
+					Serialization.cc
 
 include_mlpdir = $(includedir)/neuralnethack/mlp
 
@@ -24,6 +29,7 @@ include_mlp_HEADERS = MultiLayerPerceptron.hh \
 					  Trainer.hh \
 					  GradientDescent.hh \
 					  QuasiNewton.hh \
+					  Adam.hh \
 					  Error.hh \
 					  SummedSquare.hh \
 					  CrossEntropy.hh \
@@ -32,4 +38,8 @@ include_mlp_HEADERS = MultiLayerPerceptron.hh \
 					  SigmoidLayer.hh \
 					  TanHypLayer.hh \
 					  LinearLayer.hh \
-					  Weights.hh
+					  ReLULayer.hh \
+					  LeakyReLULayer.hh \
+					  ELULayer.hh \
+					  Weights.hh \
+					  Serialization.hh

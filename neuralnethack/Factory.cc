@@ -57,6 +57,10 @@ Trainer* Factory::createTrainer(const Config& config, DataSet& data)
 				error->mlp(), data, *error,
 				MAX_ERROR, config.batchSize(),
 				config.learningRate(), config.decLearningRate(), config.momentum());
+	}else if(config.minMethod() == ADAM){
+		trainer = new Adam(
+				error->mlp(), data, *error,
+				MAX_ERROR, config.batchSize());
 	}else{
 		trainer = new QuasiNewton(error->mlp(), data, *error, MAX_ERROR, config.batchSize());
 	}

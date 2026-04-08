@@ -80,6 +80,41 @@ static void linearDerivScale(const double* __restrict__,
 	// f'(x) = 1, so deltas unchanged
 }
 
+// ReLU
+static void reluActivation(double* __restrict__ out, uint n) {
+	for(uint i = 0; i < n; ++i)
+		out[i] = out[i] > 0.0 ? out[i] : 0.0;
+}
+static void reluDerivScale(const double* __restrict__ out,
+                            double* __restrict__ deltas, uint n) {
+	for(uint i = 0; i < n; ++i)
+		deltas[i] *= (out[i] > 0.0 ? 1.0 : 0.0);
+}
+
+// Leaky ReLU (alpha = 0.01)
+static constexpr double LEAKY_ALPHA = 0.01;
+static void leakyReluActivation(double* __restrict__ out, uint n) {
+	for(uint i = 0; i < n; ++i)
+		out[i] = out[i] > 0.0 ? out[i] : LEAKY_ALPHA * out[i];
+}
+static void leakyReluDerivScale(const double* __restrict__ out,
+                                 double* __restrict__ deltas, uint n) {
+	for(uint i = 0; i < n; ++i)
+		deltas[i] *= (out[i] > 0.0 ? 1.0 : LEAKY_ALPHA);
+}
+
+// ELU (alpha = 1.0)
+static constexpr double ELU_ALPHA_VAL = 1.0;
+static void eluActivation(double* __restrict__ out, uint n) {
+	for(uint i = 0; i < n; ++i)
+		out[i] = out[i] > 0.0 ? out[i] : ELU_ALPHA_VAL * (exp(out[i]) - 1.0);
+}
+static void eluDerivScale(const double* __restrict__ out,
+                           double* __restrict__ deltas, uint n) {
+	for(uint i = 0; i < n; ++i)
+		deltas[i] *= (out[i] >= 0.0 ? 1.0 : out[i] + ELU_ALPHA_VAL);
+}
+
 // Layer implementation -------------------------------------------------------
 
 Layer::Layer(const uint nc, const uint np, const string t):
@@ -91,12 +126,18 @@ Layer::Layer(const uint nc, const uint np, const string t):
 	theLocalGradients(ncurr,0),
 	theGradients(ncurr*(nprev+1), 0),
 	theWeightUpdates(ncurr*(nprev+1), 0),
+	theDropoutRate(0.0),
+	theTraining(false),
+	theDropoutMask(ncurr, 1.0),
 	theActivation(nullptr),
 	theDerivScale(nullptr)
 {
-	if(t == SIGMOID)     { theActivation = sigmoidActivation; theDerivScale = sigmoidDerivScale; }
-	else if(t == TANHYP) { theActivation = tanhypActivation;  theDerivScale = tanhypDerivScale; }
-	else if(t == LINEAR) { theActivation = linearActivation;  theDerivScale = linearDerivScale; }
+	if(t == SIGMOID)        { theActivation = sigmoidActivation;   theDerivScale = sigmoidDerivScale; }
+	else if(t == TANHYP)    { theActivation = tanhypActivation;   theDerivScale = tanhypDerivScale; }
+	else if(t == LINEAR)    { theActivation = linearActivation;   theDerivScale = linearDerivScale; }
+	else if(t == RELU)      { theActivation = reluActivation;     theDerivScale = reluDerivScale; }
+	else if(t == LEAKYRELU) { theActivation = leakyReluActivation; theDerivScale = leakyReluDerivScale; }
+	else if(t == ELU_ACT)   { theActivation = eluActivation;      theDerivScale = eluDerivScale; }
 	regenerateWeights();
 }
 
@@ -118,6 +159,9 @@ Layer& Layer::operator=(const Layer& layer)
 		theLocalGradients=layer.theLocalGradients;
 		theGradients=layer.theGradients;
 		theWeightUpdates=layer.theWeightUpdates;
+		theDropoutRate=layer.theDropoutRate;
+		theTraining=layer.theTraining;
+		theDropoutMask=layer.theDropoutMask;
 		theActivation=layer.theActivation;
 		theDerivScale=layer.theDerivScale;
 	}
@@ -180,12 +224,24 @@ vector<double>& Layer::propagate(const vector<double>& input)
 	// Phase 2: apply activation in a single vectorizable loop
 	theActivation(out, ncurr);
 
+	// Phase 3: inverted dropout
+	if(theTraining && theDropoutRate > 0.0){
+		const double scale = 1.0 / (1.0 - theDropoutRate);
+		for(uint i = 0; i < ncurr; ++i){
+			theDropoutMask[i] = (drand48() >= theDropoutRate) ? scale : 0.0;
+			out[i] *= theDropoutMask[i];
+		}
+	}
+
 	return theOutputs;
 }
 
 void Layer::applyDerivative(vector<double>& deltas)
 {
 	theDerivScale(theOutputs.data(), deltas.data(), ncurr);
+	if(theTraining && theDropoutRate > 0.0)
+		for(uint i = 0; i < ncurr; ++i)
+			deltas[i] *= theDropoutMask[i];
 }
 
 const double* Layer::propagateBatch(const double* input, uint B, uint n_in)
@@ -226,12 +282,30 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in)
 	// Apply activation to all B*ncurr elements
 	theActivation(out, B * ncurr);
 
+	// Inverted dropout for batch
+	if(theTraining && theDropoutRate > 0.0){
+		const double scale = 1.0 / (1.0 - theDropoutRate);
+		const uint total = B * ncurr;
+		theBatchDropoutMask.resize(total);
+		for(uint i = 0; i < total; ++i){
+			theBatchDropoutMask[i] = (drand48() >= theDropoutRate) ? scale : 0.0;
+			out[i] *= theBatchDropoutMask[i];
+		}
+	}
+
 	return out;
 }
 
 void Layer::applyDerivativeBatch(uint B)
 {
 	theDerivScale(theBatchOutputs.data(), theBatchLocalGradients.data(), B * ncurr);
+	if(theTraining && theDropoutRate > 0.0 && !theBatchDropoutMask.empty()){
+		double* delta = theBatchLocalGradients.data();
+		const double* mask = theBatchDropoutMask.data();
+		const uint total = B * ncurr;
+		for(uint i = 0; i < total; ++i)
+			delta[i] *= mask[i];
+	}
 }
 
 void Layer::accumulateGradientsBatch(const double* input, uint B)

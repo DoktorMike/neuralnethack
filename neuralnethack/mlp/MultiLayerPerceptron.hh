@@ -44,6 +44,14 @@ namespace MultiLayerPerceptron
 #define SIGMOID "logsig"
 ///A define for the TanHyp activation function identification string.
 #define TANHYP "tansig"
+///A define for the ReLU activation function identification string.
+#define RELU "relu"
+///A define for the Leaky ReLU activation function identification string.
+#define LEAKYRELU "leakyrelu"
+///A define for the ELU activation function identification string.
+#define ELU_ACT "elu"
+///A define for the Adam optimisation identification string.
+#define ADAM "adam"
 ///A define for the maximum training error.
 #define MAX_ERROR 0.00001
 
