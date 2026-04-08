@@ -124,6 +124,17 @@ namespace NeuralNetHack
 			const double& momentum() const {return gdParam.theMomentum;}
 			void momentum(const double& theMomentum) {this->gdParam.theMomentum = theMomentum;}
 
+			const double& adamLearningRate() const {return adamParam.theLearningRate;}
+			void adamLearningRate(const double& v) {adamParam.theLearningRate = v;}
+			const double& adamBeta1() const {return adamParam.theBeta1;}
+			void adamBeta1(const double& v) {adamParam.theBeta1 = v;}
+			const double& adamBeta2() const {return adamParam.theBeta2;}
+			void adamBeta2(const double& v) {adamParam.theBeta2 = v;}
+			const double& adamEpsilon() const {return adamParam.theEpsilon;}
+			void adamEpsilon(const double& v) {adamParam.theEpsilon = v;}
+			const double& adamWeightDecay() const {return adamParam.theWeightDecay;}
+			void adamWeightDecay(const double& v) {adamParam.theWeightDecay = v;}
+
 			bool weightElimOn() const {return theWeightElimOn;}
 			void weightElimOn(const bool& theWeightElimOn) {this->theWeightElimOn = theWeightElimOn;}
 
@@ -241,6 +252,13 @@ namespace NeuralNetHack
 				/**The momentum term used in "poor mans conjugate gradient". */
 				double theMomentum;
 			}gdParam;
+			struct adamParam_t {
+				double theLearningRate = 0.001;
+				double theBeta1 = 0.9;
+				double theBeta2 = 0.999;
+				double theEpsilon = 1e-8;
+				double theWeightDecay = 0.0;
+			}adamParam;
 			/**Controls whether to use weight elimination or not. */
 			bool theWeightElimOn;
 			/**The importance of the weight elimination term. */
