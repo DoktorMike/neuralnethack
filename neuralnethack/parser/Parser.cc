@@ -109,7 +109,8 @@ void Parser::readConfigurationFile(istream& in, Config& config)
 				else if(token == "errfcn") parseErrFcn(in, config); 
 				else if(token == "minmethod") parseMinMethod(in, config); 
 				else if(token == "maxepochs") parseMaxEpochs(in, config); 
-				else if(token == "gdparam") parseGDParam(in, config); 
+				else if(token == "gdparam") parseGDParam(in, config);
+				else if(token == "adamparam") parseAdamParam(in, config);
 				else if(token == "weightelim") parseWeightElim(in, config); 
 				else if(token == "ensparam") parseEnsParam(in, config); 
 				else if(token == "msparam") parseMSParam(in, config); 
@@ -266,6 +267,16 @@ void Parser::parseGDParam(istream& in, Config& config)
 	config.decLearningRate(buf);
 	in>>buf;
 	config.momentum(buf);
+}
+
+void Parser::parseAdamParam(istream& in, Config& config)
+{
+	double buf;
+	in>>buf; config.adamLearningRate(buf);
+	in>>buf; config.adamBeta1(buf);
+	in>>buf; config.adamBeta2(buf);
+	in>>buf; config.adamEpsilon(buf);
+	in>>buf; config.adamWeightDecay(buf);
 }
 
 void Parser::parseMSParam(istream& in, Config& config)

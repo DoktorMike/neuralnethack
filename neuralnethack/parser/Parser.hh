@@ -168,6 +168,12 @@ namespace NeuralNetHack
 			 */
 			static void parseMSGParam(std::istream& in, Config& config);
 
+			/**Parses the Adam optimizer part of the configuration file.
+			 * \param in the input stream to read from.
+			 * \param config the place to store configuration.
+			 */
+			static void parseAdamParam(std::istream& in, Config& config);
+
 			/**Parse the Vary part of the configuration file. 
 			 * \param in the input stream to read from.
 			 * \param config the place to store configuration.

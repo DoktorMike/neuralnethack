@@ -88,6 +88,8 @@ void Config::print(std::ostream& os)
 	os<<"MaxEpochs\t"<<theMaxEpochs<<endl;
 	os<<"GDParam\t\t"<<gdParam.theBatchSize<<" "<<gdParam.theLearningRate<<" "
 		<<gdParam.theDecLearningRate<<" "<<gdParam.theMomentum<<endl;
+	os<<"AdamParam\t"<<adamParam.theLearningRate<<" "<<adamParam.theBeta1<<" "
+		<<adamParam.theBeta2<<" "<<adamParam.theEpsilon<<" "<<adamParam.theWeightDecay<<endl;
 	os<<"WeightElim\t"<<theWeightElimOn<<" "<<theWeightElimAlpha<<" "
 		<<theWeightElimW0<<endl;
 	os<<"EnsParam\t"<<theEnsParamDataSelection<<" "<<theEnsParamN<<" "
