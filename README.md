@@ -66,7 +66,7 @@ int main()
     SummedSquare error(mlp, data);
     Adam trainer(mlp, data, error, 0.001, 4 /*batch*/, 0.01 /*lr*/);
     trainer.numEpochs(2000);
-    trainer.train(mlp, data, std::cout);
+    trainer.train(std::cout);
 
     // -- Evaluate --
     for (int i = 0; i < 4; ++i) {
