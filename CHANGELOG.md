@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.1](https://github.com/DoktorMike/neuralnethack/compare/v2.0.0...v2.0.1) (2026-04-08)
+
+
+### Bug Fixes
+
+* add missing sstream include for Clang compatibility ([47ac96f](https://github.com/DoktorMike/neuralnethack/commit/47ac96fef1cfa8226bedf6348ec436becf273533))
+* unhide base Sampler::operator= in all Sampler subclasses ([f893152](https://github.com/DoktorMike/neuralnethack/commit/f8931528e90eecd1e408219c46be2a4a6db36b7b))
+
+
+### Other
+
+* add GitHub Actions workflow for GCC and Clang ([5310a4f](https://github.com/DoktorMike/neuralnethack/commit/5310a4fafa552f90af64a0a3d90577e151118212))
+
+
+### Documentation
+
+* versioning. ([b3201c6](https://github.com/DoktorMike/neuralnethack/commit/b3201c629e02619e5267f55e112ea87849349ef1))
+
 ## 2.0.0 (2026-04-08)
 
 
