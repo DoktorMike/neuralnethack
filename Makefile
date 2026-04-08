@@ -14,9 +14,13 @@ test: all
 coverage:
 	@cmake -B $(COV_DIR) -DNNH_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
 	@cmake --build $(COV_DIR) -j$(JOBS)
+	@lcov -c -i -d $(COV_DIR) -o coverage-base.info --ignore-errors mismatch
 	@ctest --test-dir $(COV_DIR) --output-on-failure
-	@echo "Coverage data written to $(COV_DIR)/"
-	@echo "Run 'lcov -c -d $(COV_DIR) -o coverage.info' to collect, or upload .gcda files to Codecov"
+	@lcov -c -d $(COV_DIR) -o coverage-test.info --ignore-errors mismatch
+	@lcov -a coverage-base.info -a coverage-test.info -o coverage.info --ignore-errors mismatch
+	@lcov -r coverage.info '/usr/*' '*/test/*' -o coverage.info --ignore-errors mismatch
+	@genhtml coverage.info -o coverage-report --ignore-errors mismatch
+	@echo "Coverage report: coverage-report/index.html"
 
 clean:
 	@rm -rf $(BUILD_DIR) $(COV_DIR)

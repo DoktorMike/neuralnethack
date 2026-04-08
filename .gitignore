@@ -100,3 +100,7 @@ build/
 build-coverage/
 cmake-build-*/
 coverage.xml
+coverage.info
+coverage-base.info
+coverage-test.info
+coverage-report/
