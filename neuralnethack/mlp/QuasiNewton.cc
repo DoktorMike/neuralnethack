@@ -47,6 +47,7 @@ using namespace MultiLayerPerceptron;
 using namespace DataTools;
 using namespace MatrixTools;
 using namespace std;
+using std::unique_ptr;
 
 static float maxarg1,maxarg2;
 
@@ -73,11 +74,16 @@ void QuasiNewton::train(ostream& os)
 		mul(G, g, vectorTemp1); //Gg used in findAlpha!
 		prevErr = err;
 		err=findAlpha(alpha); //Determine steplength
-		transform(vectorTemp1.begin(), vectorTemp1.end(), vectorTemp1.begin(), 
-				bind2nd(multiplies<double>(), alpha));
-
-		wPrev = w;
-		transform(w.begin(), w.end(), vectorTemp1.begin(), w.begin(), plus<double>());
+		{
+			const uint n = vectorTemp1.size();
+			double* __restrict__ vt1 = vectorTemp1.data();
+			double* __restrict__ wp  = w.data();
+			for(uint j = 0; j < n; ++j)
+				vt1[j] *= alpha;
+			wPrev = w;
+			for(uint j = 0; j < n; ++j)
+				wp[j] += vt1[j];
+		}
 		theMlp->weights(w); //Update the weights.
 		gPrev = g;
 		theError->gradient(*theMlp, *theData);
@@ -90,9 +96,9 @@ void QuasiNewton::train(ostream& os)
 	os<<setw(width)<<theNumEpochs-cntr<<setw(width)<<err<<setw(width)<<alpha<<endl;
 }
 
-Trainer* QuasiNewton::clone() const
+unique_ptr<Trainer> QuasiNewton::clone() const
 {
-	return new QuasiNewton(*this);
+	return unique_ptr<Trainer>(new QuasiNewton(*this));
 }
 
 //PRIVATE--------------------------------------------------------------------//
@@ -141,12 +147,24 @@ void QuasiNewton::resetVectors()
 
 void QuasiNewton::updateBfgs()
 {
-	transform(w.begin(), w.end(), wPrev.begin(), dw.begin(), minus<double>());
-	transform(g.begin(), g.end(), gPrev.begin(), dg.begin(), minus<double>());
+	const uint n = w.size();
+	{
+		const double* __restrict__ wp   = w.data();
+		const double* __restrict__ wpp  = wPrev.data();
+		double* __restrict__ dwp  = dw.data();
+		const double* __restrict__ gp   = g.data();
+		const double* __restrict__ gpp  = gPrev.data();
+		double* __restrict__ dgp  = dg.data();
+
+		for(uint j = 0; j < n; ++j){
+			dwp[j] = wp[j] - wpp[j];
+			dgp[j] = gp[j] - gpp[j];
+		}
+	}
 
 	double dwdg = innerProduct(dw, dg);		//dwdg
 	vector<double> Gdg=dg;					//Gdg
-	mul(G,dg,Gdg);       
+	mul(G,dg,Gdg);
 	double dgGdg = innerProduct(dg, Gdg);	//dgGdg
 
 	//Term 1
@@ -160,9 +178,20 @@ void QuasiNewton::updateBfgs()
 	sub(matrixTemp1, matrixTemp2, matrixTemp1); //matrixTemp1 holds the result.
 
 	//Building u
-	transform(dw.begin(), dw.end(), vectorTemp1.begin(), bind2nd(divides<double>(), dwdg) );
-	transform(Gdg.begin(), Gdg.end(), vectorTemp2.begin(), bind2nd(divides<double>(), dgGdg) );
-	transform(vectorTemp1.begin(), vectorTemp1.end(), vectorTemp2.begin(), vectorTemp1.begin(), minus<double>());
+	{
+		const double* __restrict__ dwp  = dw.data();
+		const double* __restrict__ gdgp = Gdg.data();
+		double* __restrict__ vt1  = vectorTemp1.data();
+		double* __restrict__ vt2  = vectorTemp2.data();
+
+		for(uint j = 0; j < n; ++j){
+			vt1[j] = dwp[j] / dwdg;
+			vt2[j] = gdgp[j] / dgGdg;
+		}
+		for(uint j = 0; j < n; ++j){
+			vt1[j] -= vt2[j];
+		}
+	}
 
 	//Term 3
 	outerProduct(vectorTemp1, vectorTemp1, matrixTemp2);
@@ -175,8 +204,20 @@ void QuasiNewton::updateBfgs()
 
 void QuasiNewton::updateDfp()
 {
-	transform(w.begin(), w.end(), wPrev.begin(), dw.begin(), minus<double>());
-	transform(g.begin(), g.end(), gPrev.begin(), dg.begin(), minus<double>());
+	const uint n = w.size();
+	{
+		const double* __restrict__ wp   = w.data();
+		const double* __restrict__ wpp  = wPrev.data();
+		double* __restrict__ dwp  = dw.data();
+		const double* __restrict__ gp   = g.data();
+		const double* __restrict__ gpp  = gPrev.data();
+		double* __restrict__ dgp  = dg.data();
+
+		for(uint j = 0; j < n; ++j){
+			dwp[j] = wp[j] - wpp[j];
+			dgp[j] = gp[j] - gpp[j];
+		}
+	}
 
 	double dwdg = innerProduct(dw, dg);		//dwdg
 	vector<double> Gdg=dg;					//Gdg
@@ -329,8 +370,8 @@ float QuasiNewton::err(float alfa)
 	return err;
 }
 
-struct less_mag : public binary_function<double, double, bool> {
-	bool operator()(double x, double y){ return fabs(x) < fabs(y); }
+struct less_mag {
+	bool operator()(double x, double y) const { return fabs(x) < fabs(y); }
 };
 
 bool QuasiNewton::converged()

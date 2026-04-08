@@ -165,11 +165,11 @@ void Normaliser::calcMean(DataSet& d)
 		Pattern& p=d.pattern(i);
 		vector<double>& in=p.input();
 		vector<double>& out=p.output();
-		uint i=0;
-		for(uint j=0; j<in.size(); ++j, ++i)
-			theMean[i] += in[j];
-		for(uint j=0; j<out.size(); ++j, ++i)
-			theMean[i] += out[j];
+		uint k=0;
+		for(uint j=0; j<in.size(); ++j, ++k)
+			theMean[k] += in[j];
+		for(uint j=0; j<out.size(); ++j, ++k)
+			theMean[k] += out[j];
 	}
 	double n = d.size();
 	for(uint i=0; i<theMean.size(); ++i)
@@ -182,11 +182,11 @@ void Normaliser::calcStdDev(DataSet& d)
 		Pattern& p=d.pattern(i);
 		vector<double>& in=p.input();
 		vector<double>& out=p.output();
-		uint i=0;
-		for(uint j=0; j<in.size(); ++j, ++i)
-			theStdDev[i] += pow(in[j]-theMean[i],2);
-		for(uint j=0; j<out.size(); ++j, ++i)
-			theStdDev[i] += pow(out[j]-theMean[i],2);
+		uint k=0;
+		for(uint j=0; j<in.size(); ++j, ++k)
+			theStdDev[k] += pow(in[j]-theMean[k],2);
+		for(uint j=0; j<out.size(); ++j, ++k)
+			theStdDev[k] += pow(out[j]-theMean[k],2);
 	}
 	double n = d.size();
 	for(uint i=0; i<theStdDev.size(); ++i)

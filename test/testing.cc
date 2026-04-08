@@ -276,7 +276,7 @@ void testOddsRatio(Config& config, DataTools::DataSet& trnData, DataTools::DataS
 		cout<<"Odds Ratio for input "<<it - oddsrat.begin()<<": "<<*it<<endl;
 
 	cout<<"Testing Saliency."<<endl;
-	oddsrat = Saliency::saliency(*(trainer->mlp()), trnData);
+	oddsrat = Saliency::saliency(*(trainer->mlp()), trnData, false);
 	for(vector<double>::iterator it=oddsrat.begin(); it!=oddsrat.end(); ++it)
 		cout<<"Saliency for input "<<it - oddsrat.begin()<<": "<<*it<<endl;
 	//trainer->mlp()->printWeights(cout);

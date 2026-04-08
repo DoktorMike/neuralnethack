@@ -85,7 +85,7 @@ pair<Config, double> ModelSelector::findBestModel(DataSet& trnData, Config& conf
     }
     of.close();
     
-    return make_pair<Config, double>(bestConfig, bestAuc);
+    return make_pair(bestConfig, bestAuc);
 }
 
 // PRIVATE

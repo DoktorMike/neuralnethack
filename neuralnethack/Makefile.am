@@ -35,5 +35,6 @@ libneuralnethack_la_LIBADD = datatools/libdatatools.la \
 							 evaltools/libevaltools.la \
 							 matrixtools/libmatrixtools.la \
 							 mlp/libmlp.la \
-							 parser/libparser.la
+							 parser/libparser.la \
+							 @BLAS_LIBS@
 

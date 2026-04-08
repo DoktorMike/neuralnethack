@@ -91,7 +91,7 @@ namespace MultiLayerPerceptron
 			/**Return the momentum term this trainer is using. */
 			double momentum() const;
 
-			Trainer* clone() const;
+			std::unique_ptr<Trainer> clone() const override;
 
 		private:
 			/**Copy constructor.

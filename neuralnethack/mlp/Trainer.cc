@@ -33,6 +33,7 @@ using namespace MultiLayerPerceptron;
 using namespace DataTools;
 
 using std::ostream;
+using std::unique_ptr;
 
 Trainer::Trainer(Mlp& mlp, DataSet& data, Error& error, double te, uint bs)
 	:theMlp(&mlp), 
@@ -82,20 +83,20 @@ void Trainer::train(Mlp& mlp, DataSet& data, ostream& os)
 	train(os);
 }
 
-Mlp* Trainer::trainNew(DataSet& data, ostream& os)
+unique_ptr<Mlp> Trainer::trainNew(DataSet& data, ostream& os)
 {
 	theData = &data;
 	return trainNew(os);
 }
 
-Mlp* Trainer::trainNew(ostream& os)
+unique_ptr<Mlp> Trainer::trainNew(ostream& os)
 {
 	Mlp* tmp = theMlp;
 	theMlp = new Mlp(*tmp);
 	theMlp->regenerateWeights();
 	train(os);
 	std::swap(tmp, theMlp);
-	return tmp;
+	return unique_ptr<Mlp>(tmp);
 }
 
 //PROTECTED--------------------------------------------------------------------//

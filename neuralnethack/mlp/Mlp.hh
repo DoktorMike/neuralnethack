@@ -26,6 +26,8 @@
 
 #include "Layer.hh"
 
+#include <memory>
+
 namespace MultiLayerPerceptron
 {
 	/**A struct representing the model for a multilayer perceptron. */
@@ -59,6 +61,9 @@ namespace MultiLayerPerceptron
 			 */
 			Mlp(const Mlp& mlp);
 
+			/**Move constructor. */
+			Mlp(Mlp&& mlp) noexcept = default;
+
 			/**The default destructor.
 			 */
 			~Mlp();
@@ -68,6 +73,9 @@ namespace MultiLayerPerceptron
 			 * \return the Mlp assigned to.
 			 */
 			Mlp& operator=(const Mlp& mlp);
+
+			/**Move assignment operator. */
+			Mlp& operator=(Mlp&& mlp) noexcept = default;
 
 			/**Index operator.
 			 * \param index the index to return.
@@ -91,10 +99,10 @@ namespace MultiLayerPerceptron
 			 */
 			bool softmax();
 
-			/**Return the layervector.
-			 * \return the vector of layers.
+			/**Return the number of layers in this MLP.
+			 * \return the number of layers.
 			 */
-			std::vector<Layer*>& layers();
+			uint numLayers() const;
 
 			/**Returns the indexed layer.
 			 * \param index the index to return.
@@ -175,7 +183,7 @@ namespace MultiLayerPerceptron
 			bool theSoftmax;
 
 			/**The layers in this MLP. */
-			std::vector<Layer*> theLayers;
+			std::vector<std::unique_ptr<Layer>> theLayers;
 	};
 
 //INLINES
@@ -189,7 +197,7 @@ namespace MultiLayerPerceptron
 	inline bool Mlp::softmax()
 	{return theSoftmax;}
 
-	inline std::vector<Layer*>& Mlp::layers()
-	{return theLayers;}
+	inline uint Mlp::numLayers() const
+	{return theLayers.size();}
 }
 #endif

@@ -26,6 +26,7 @@
 
 #include "MultiLayerPerceptron.hh"
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <cassert>
@@ -57,6 +58,11 @@ namespace MultiLayerPerceptron
 			/**Destructor.
 			 */
 			virtual ~Layer();
+
+			/**Clone this Layer.
+			 * \return a unique_ptr to the cloned Layer.
+			 */
+			virtual std::unique_ptr<Layer> clone() const = 0;
 
 			/**Assignment operator.
 			 * \param layer the Layer to assign from.

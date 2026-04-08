@@ -29,7 +29,7 @@ AC_PROG_LIBTOOL
 #LIBTOOL="$LIBTOOL --silent"
 
 # Macro flags for DEBUG mode
-CXXFLAGS="-Wall -pedantic -O3"
+CXXFLAGS="-std=c++17 -Wall -pedantic -O3 -march=native -ffast-math -funroll-loops -ftree-vectorize -fno-math-errno"
 #CXXFLAGS="$CXXFLAGS -Wall -pedantic -g3 -gdwarf-2 -O0" # GDB mode
 #CXXFLAGS="$CXXFLAGS -pg" # Benchmark mode
 #CPPFLAGS="-D_GLIBCXX_CONCEPT_CHECKS -D_GLIBCXX_DEBUG_PEDANTIC"
@@ -57,6 +57,29 @@ AC_CHECK_HEADERS([cctype cmath cassert cstdlib numeric utility vector string sst
 #AC_CHECK_FUNCS([pow sqrt])
 #AC_CHECK_LIB(m, round)
 
+# Check for BLAS/OpenBLAS
+AC_ARG_WITH([blas],
+  [AS_HELP_STRING([--with-blas], [use BLAS for matrix operations @<:@default=check@:>@])],
+  [], [with_blas=check])
+
+BLAS_LIBS=""
+have_blas=no
+AS_IF([test "x$with_blas" != xno],
+  [AC_CHECK_HEADERS([cblas.h], [
+    AC_CHECK_LIB([cblas], [cblas_ddot], [have_blas=yes; BLAS_LIBS="-lcblas"],
+      [AC_CHECK_LIB([openblas], [cblas_ddot], [have_blas=yes; BLAS_LIBS="-lopenblas"],
+        [AC_CHECK_LIB([blas], [cblas_ddot], [have_blas=yes; BLAS_LIBS="-lblas"],
+          [AS_IF([test "x$with_blas" = xyes],
+            [AC_MSG_ERROR([BLAS requested but not found])])])])])],
+    [AS_IF([test "x$with_blas" = xyes],
+      [AC_MSG_ERROR([BLAS requested but cblas.h not found])])])])
+
+AS_IF([test "x$have_blas" = xyes],
+  [AC_DEFINE([USE_BLAS], [1], [Define to 1 if BLAS is available])
+   AC_MSG_NOTICE([BLAS support enabled])],
+  [AC_MSG_NOTICE([BLAS support disabled])])
+
+AC_SUBST([BLAS_LIBS])
 AC_SUBST(CXXFLAGS)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)

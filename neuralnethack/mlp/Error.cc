@@ -100,13 +100,12 @@ void Error::weightElimGradMlp(vector<double>& gradients,
 void Error::weightElimGrad()
 {
 	assert(theMlp != 0);
-	
+
 	if(weightElimOn() == true){
-		vector<Layer*>& layers = theMlp->layers();
-		for(uint i=0; i<layers.size(); ++i){
-			Layer* l = layers[i];
-			weightElimGradLayer(l->gradients(), l->weights(), 
-					l->nNeurons(), l->nPrevious());
+		for(uint i=0; i<theMlp->nLayers(); ++i){
+			Layer& l = theMlp->layer(i);
+			weightElimGradLayer(l.gradients(), l.weights(),
+					l.nNeurons(), l.nPrevious());
 		}
 	}
 }

@@ -59,7 +59,7 @@ namespace MultiLayerPerceptron
 			 */
 			void train(std::ostream& os);
 
-			Trainer* clone() const;
+			std::unique_ptr<Trainer> clone() const override;
 
 		private:
 			/**Copy constructor.

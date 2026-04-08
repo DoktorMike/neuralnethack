@@ -86,14 +86,13 @@ pair<double, double>* ModelEstimator::runAndEstimateModel(
 		pair<DataSet, DataSet>* dataSets = theSampler->next();
 		DataSet& trnData = dataSets->first;
 		DataSet& valData = dataSets->second;
-		//cout<<"TrnData Size: "<<trnData.size()<<endl;
-		//cout<<"ValData Size: "<<valData.size()<<endl;
 		theEnsembleBuilder->sampler()->data(&trnData);
 		theEnsembleBuilder->sampler()->reset();
 		Ensemble* ensemble = theEnsembleBuilder->buildEnsemble();
-		//cout<<" Ens Size: "<<ensemble->size()<<endl;
-		Session e(ensemble, new DataSet(trnData), new DataSet(valData));
-		theSessions.push_back(e);
+		theSessions.push_back(Session(
+					std::unique_ptr<Ensemble>(ensemble),
+					std::make_unique<DataSet>(trnData),
+					std::make_unique<DataSet>(valData)));
 		delete dataSets;
 	}
 	return estimateModel(errorFunc);
