@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.1](https://github.com/DoktorMike/neuralnethack/compare/v2.1.0...v2.1.1) (2026-04-08)
+
+
+### Other
+
+* formatting ([5e9115f](https://github.com/DoktorMike/neuralnethack/commit/5e9115fa9492c2a228fe96aed31b758cbb0e1abc))
+* merge badge jobs into single job to prevent push race ([67c9d60](https://github.com/DoktorMike/neuralnethack/commit/67c9d60094827d0119b2e800d04dd8f332f11843))
+* update badges [skip ci] ([ed0e614](https://github.com/DoktorMike/neuralnethack/commit/ed0e614cb7b28cda38a6742407be33241d8d988e))
+* update format badge [skip ci] ([2d9d31f](https://github.com/DoktorMike/neuralnethack/commit/2d9d31f0b45f9a5f5682eea2208a6e879531b3e1))
+* update format badge [skip ci] ([83bfa2d](https://github.com/DoktorMike/neuralnethack/commit/83bfa2ddc28ec05281576ce481239816f54609bf))
+
+
+### Documentation
+
+* update README with normalization, make targets, config format, and dropout example ([6bef3c2](https://github.com/DoktorMike/neuralnethack/commit/6bef3c2e0d9bbcb4d358bce7b2562cb679d329eb))
+
 ## [2.1.0](https://github.com/DoktorMike/neuralnethack/compare/v2.0.1...v2.1.0) (2026-04-08)
 
 
