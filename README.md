@@ -13,6 +13,7 @@ A fast, lightweight C++23 library for training and evaluating ensembles of multi
 - **Activations**: Sigmoid, TanH, Linear, ReLU, Leaky ReLU, ELU
 - **Optimizers**: SGD with momentum, Adam/AdamW, L-BFGS
 - **Loss functions**: Cross-entropy, Summed square error
+- **Normalization**: Batch normalization, Layer normalization
 - **Regularization**: Dropout (inverted), weight elimination
 - **Ensembles**: Weighted ensemble of MLPs with bootstrap/cross-split/hold-out sampling
 - **Model selection**: Grid search over regularization with cross-validation
@@ -24,9 +25,11 @@ A fast, lightweight C++23 library for training and evaluating ensembles of multi
 ## Build
 
 ```sh
-cmake -B build
-cmake --build build -j$(nproc)
-ctest --test-dir build
+make          # configure + build
+make test     # run all tests
+make coverage # build with gcov, run tests, generate HTML report
+make format   # apply clang-format to all source files
+make clean    # remove build directories
 ```
 
 Requires GCC 13+ or Clang 17+ (C++23). BLAS is auto-detected (install `libopenblas-dev` or similar for best performance). To disable: `cmake -B build -DNNH_USE_BLAS=OFF`.
@@ -68,6 +71,10 @@ int main()
     std::vector<std::string> types = {"relu", "logsig"};
     Mlp mlp(arch, types, false);
 
+    // -- Optional: enable BatchNorm and dropout --
+    mlp.normType(NormType::BatchNorm);
+    mlp.dropoutRate(0.1);
+
     // -- Train with Adam for 2000 epochs --
     SummedSquare error(mlp, data);
     Adam trainer(mlp, data, error, 0.001, 4 /*batch*/, 0.01 /*lr*/);
@@ -86,6 +93,37 @@ int main()
     auto loaded = loadMlpBinary("xor.nnh");
     std::cout << "Loaded: " << loaded->propagate(data.pattern(1).input())[0] << std::endl;
 }
+```
+
+## Configuration file format
+
+For use with the CLI tools (`neuralnethack`, `ann`, `modelselector`, etc.):
+
+```
+Suffix      myrun
+Filename    data/train.tab
+IdCol       0
+InCol       1-8
+OutCol      9
+RowRange    0
+FilenameT   data/test.tab
+IdColT      0
+InColT      1-8
+OutColT     9
+RowRangeT   0
+PType       class
+NLay        3
+Size        8 4 1
+ActFcn      relu logsig
+ErrFcn      kullback
+MinMethod   adam
+MaxEpochs   2000
+AdamParam   0.001 0.9 0.999 1e-8 0.01
+WeightElim  0 0.01 1
+EnsParam    bagg 5 2 rnd 0
+MSParam     cv 3 5 rnd 0.2
+Seed        42
+Normalization Z
 ```
 
 ## License
