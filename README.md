@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/DoktorMike/neuralnethack/actions/workflows/ci.yml/badge.svg)](https://github.com/DoktorMike/neuralnethack/actions/workflows/ci.yml)
 ![Coverage](./coverage-badge.svg)
+![Code Style](./format-badge.svg)
+![C++23](https://img.shields.io/badge/C%2B%2B-23-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 A fast, lightweight C++23 library for training and evaluating ensembles of multi-layer perceptrons. Zero external dependencies beyond an optional BLAS library. Designed for research, teaching, and embedding in larger systems.
 

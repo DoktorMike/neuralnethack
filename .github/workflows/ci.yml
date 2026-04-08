@@ -34,6 +34,45 @@ jobs:
       - name: Test
         run: make test
 
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        run: |
+          find neuralnethack src test -name '*.cc' -o -name '*.hh' | xargs clang-format --dry-run --Werror 2>&1 && FORMATTED=true || FORMATTED=false
+          echo "FORMATTED=$FORMATTED" >> $GITHUB_ENV
+
+      - name: Generate format badge
+        if: always()
+        run: |
+          if [ "$FORMATTED" = "true" ]; then
+            curl -s "https://img.shields.io/badge/code_style-clang--format-brightgreen" -o format-badge.svg
+          else
+            curl -s "https://img.shields.io/badge/code_style-needs_formatting-red" -o format-badge.svg
+          fi
+
+      - name: Commit badge
+        if: always() && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f format-badge.svg
+          git diff --cached --quiet && exit 0
+          git commit -m "ci: update format badge [skip ci]"
+          git push
+
+      - name: Fail if not formatted
+        run: |
+          if [ "$FORMATTED" != "true" ]; then
+            echo "Code is not formatted. Run 'make format' and commit."
+            exit 1
+          fi
+
   coverage:
     runs-on: ubuntu-latest
     steps:
@@ -48,7 +87,6 @@ jobs:
       - name: Generate coverage badge
         run: |
           PCT=$(lcov --summary coverage.info 2>&1 | grep 'lines' | sed 's/.*: //' | sed 's/%.*//')
-          # Pick color based on percentage
           if (( $(echo "$PCT >= 80" | bc -l) )); then COLOR="brightgreen"
           elif (( $(echo "$PCT >= 60" | bc -l) )); then COLOR="yellow"
           elif (( $(echo "$PCT >= 40" | bc -l) )); then COLOR="orange"
