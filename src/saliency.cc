@@ -23,38 +23,35 @@ using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
 
-string parseCmdLine(int argc, char* argv[])
-{
-	if(argc>1)
+string parseCmdLine(int argc, char* argv[]) {
+	if (argc > 1)
 		return string(argv[1]);
-	else{
-		cerr<<"Usage: "<<argv[0]<<" configfile"<<endl;
+	else {
+		cerr << "Usage: " << argv[0] << " configfile" << endl;
 		exit(EXIT_FAILURE);
 	}
 }
 
-vector<double> getInput(uint numInput, Normaliser* normalisation)
-{
+vector<double> getInput(uint numInput, Normaliser* normalisation) {
 	vector<double> input(0);
 	string s;
 	getline(cin, s);
 	istringstream ss(s);
 	copy(istream_iterator<double>(ss), istream_iterator<double>(), back_inserter(input));
-	if(input.size() > 0 && input.size() > numInput) input.resize(numInput);
+	if (input.size() > 0 && input.size() > numInput) input.resize(numInput);
 	normalisation->normaliseInput(input);
-	//copy(input.begin(), input.end(), ostream_iterator<double>(cout, " "));
+	// copy(input.begin(), input.end(), ostream_iterator<double>(cout, " "));
 	return input;
 }
 
-void killAll(vector<Ensemble*>& committees, Ensemble* committee, Normaliser* normalisation)
-{
-	for(vector<Ensemble*>::iterator it=committees.begin(); it!=committees.end(); ++it) delete *it;
+void killAll(vector<Ensemble*>& committees, Ensemble* committee, Normaliser* normalisation) {
+	for (vector<Ensemble*>::iterator it = committees.begin(); it != committees.end(); ++it)
+		delete *it;
 	delete committee;
 	delete normalisation;
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	NetworkParser networkParser;
 	string xmlFileName = parseCmdLine(argc, argv);
 	ifstream is(xmlFileName.c_str(), ios::in);
@@ -62,17 +59,18 @@ int main(int argc, char* argv[])
 	is.close();
 	Ensemble* committee = networkParser.buildEnsemble(ensAndNorm.first);
 	uint n = committee->mlp(0).arch().at(0);
-	vector<double> input(n,0);
-	do{
+	vector<double> input(n, 0);
+	do {
 		input = getInput(n, ensAndNorm.second);
-		if(input.size() == n){
+		if (input.size() == n) {
 			Pattern p;
 			p.input(input);
 			vector<double> saliencies = Saliency::saliency(*committee, p, false);
-			//cout.precision(20);
-			copy(saliencies.begin(), saliencies.end(), ostream_iterator<double>(cout, "\t")); cout<<endl;
+			// cout.precision(20);
+			copy(saliencies.begin(), saliencies.end(), ostream_iterator<double>(cout, "\t"));
+			cout << endl;
 		}
-	}while(input.size() == n);
+	} while (input.size() == n);
 	killAll(ensAndNorm.first, committee, ensAndNorm.second);
 
 	return EXIT_SUCCESS;

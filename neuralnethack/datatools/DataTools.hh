@@ -5,8 +5,6 @@
  * time being this only supports abstraction of a data set into a list of
  * Pattern(s).
  */
-namespace DataTools{
-
-}
+namespace DataTools {}
 
 #endif

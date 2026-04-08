@@ -9,430 +9,457 @@
 #include <cassert>
 #include <cstdlib>
 
-namespace MultiLayerPerceptron
-{
-	/**A class representing a layer in an Mlp.
-	 * A Layer has a number of neurons which have an activation function that
-	 * is implementation dependant. The Layer knows the number of neurons 
-	 * contained in itself and its predecessor.
-	 * \sa Mlp, SigmoidLayer, TanHypLayer, LinearLayer.
+namespace MultiLayerPerceptron {
+/**A class representing a layer in an Mlp.
+ * A Layer has a number of neurons which have an activation function that
+ * is implementation dependant. The Layer knows the number of neurons
+ * contained in itself and its predecessor.
+ * \sa Mlp, SigmoidLayer, TanHypLayer, LinearLayer.
+ */
+class Layer {
+  public:
+	/**Constructor.
+	 * \param nc the number of neurons in this layer.
+	 * \param np the number of neurons in the previous layer.
+	 * \param t the type of layer this is.
 	 */
-	class Layer
-	{
-		public:
-			/**Constructor.
-			 * \param nc the number of neurons in this layer.
-			 * \param np the number of neurons in the previous layer.
-			 * \param t the type of layer this is.
-			 */
-			Layer(const uint nc, const uint np, std::string t);
+	Layer(const uint nc, const uint np, std::string t);
 
-			/**Copy constructur.
-			 * \param layer the Layer to copy from.
-			 */
-			Layer(const Layer& layer);
+	/**Copy constructur.
+	 * \param layer the Layer to copy from.
+	 */
+	Layer(const Layer& layer);
 
-			/**Destructor.
-			 */
-			virtual ~Layer();
+	/**Destructor.
+	 */
+	virtual ~Layer();
 
-			/**Clone this Layer.
-			 * \return a unique_ptr to the cloned Layer.
-			 */
-			virtual std::unique_ptr<Layer> clone() const = 0;
+	/**Clone this Layer.
+	 * \return a unique_ptr to the cloned Layer.
+	 */
+	virtual std::unique_ptr<Layer> clone() const = 0;
 
-			/**Assignment operator.
-			 * \param layer the Layer to assign from.
-			 * \return the Layer assigned to.
-			 */
-			Layer& operator=(const Layer& layer);
+	/**Assignment operator.
+	 * \param layer the Layer to assign from.
+	 * \return the Layer assigned to.
+	 */
+	Layer& operator=(const Layer& layer);
 
-			/**Index operator.
-			 * Fetch the weight located at the specified index.
-			 * \param i the index to return.
-			 * \return the weight at index i.
-			 */
-			double& operator[](const uint i);
+	/**Index operator.
+	 * Fetch the weight located at the specified index.
+	 * \param i the index to return.
+	 * \return the weight at index i.
+	 */
+	double& operator[](const uint i);
 
-			//ACCESSOR AND MUTATOR FUNCTIONS
-			/**Get the weights leading into this layer.
-			 * \return the weight vector.
-			 */
-			std::vector<double>& weights();
+	// ACCESSOR AND MUTATOR FUNCTIONS
+	/**Get the weights leading into this layer.
+	 * \return the weight vector.
+	 */
+	std::vector<double>& weights();
 
-			/**Set the weights to those in w.
-			 * \param w the weights to assign from.
-			 */
-			void weights(const std::vector<double>& w);
+	/**Set the weights to those in w.
+	 * \param w the weights to assign from.
+	 */
+	void weights(const std::vector<double>& w);
 
-			/**Returns the output from this layer. 
-			 * Not including the bias!
-			 * \return the outputs from this layer.
-			 */
-			std::vector<double>& outputs();
+	/**Returns the output from this layer.
+	 * Not including the bias!
+	 * \return the outputs from this layer.
+	 */
+	std::vector<double>& outputs();
 
-			/**Returns the local gradients in this layer. 
-			 * \return the local gradients in this layer.
-			 */
-			std::vector<double>& localGradients();
+	/**Returns the local gradients in this layer.
+	 * \return the local gradients in this layer.
+	 */
+	std::vector<double>& localGradients();
 
-			/**Return the gradients leading into this layer.
-			 * \return the gradients leading into this layer.
-			 */
-			std::vector<double>& gradients();
+	/**Return the gradients leading into this layer.
+	 * \return the gradients leading into this layer.
+	 */
+	std::vector<double>& gradients();
 
-			/**Return the weight updates leading into this layer.
-			 * \return the wight updates leading into this layer.
-			 */
-			std::vector<double>& weightUpdates();
+	/**Return the weight updates leading into this layer.
+	 * \return the wight updates leading into this layer.
+	 */
+	std::vector<double>& weightUpdates();
 
-			//ACCESSOR FUNCTIONS
+	// ACCESSOR FUNCTIONS
 
-			/**Get the specified weight.
-			 * \param i the node in this layer that the weight is connected to.
-			 * \param j the node in the previous layer that the weight is connected to.
-			 * \return the weight.
-			 */
-			double& weights(const uint i, const uint j);
-			
-			/**Get the specified weight.
-			 * \param i the index of the weight in the weight vector.
-			 * \return the weight.
-			 */
-			double& weights(const uint i);
-			
-			/**Get the specified output.
-			 * \param i the node which output to return.
-			 * \return the output.
-			 */
-			double& outputs(const uint i);
-			
-			/**Get the specified local gradient.
-			 * \param i the node which local gradient to return.
-			 * \return the local gradient.
-			 */
-			double& localGradients(const uint i);
-			
-			/**Get the specified gradient.
-			 * \param i the node in this layer that the gradient is connected to.
-			 * \param j the node in the previous layer that the gradient is connected to.
-			 * \return the gradient.
-			 */
-			double& gradients(const uint i, const uint j);
-			
-			/**Get the specified gradient.
-			 * \param i the index of the gradient in the gradient vector.
-			 * \return the gradient.
-			 */
-			double& gradients(const uint i);
-			
-			/**Get the specified weight update.
-			 * \param i the node in this layer that the weight update is connected to.
-			 * \param j the node in the previous layer that the weight update is connected to.
-			 * \return the weight update.
-			 */
-			double& weightUpdates(const uint i, const uint j);
-			
-			/**Get the specified weight update.
-			 * \param i the index of the weight update in the weight update vector.
-			 * \return the weight update.
-			 */
-			double& weightUpdates(const uint i);
+	/**Get the specified weight.
+	 * \param i the node in this layer that the weight is connected to.
+	 * \param j the node in the previous layer that the weight is connected to.
+	 * \return the weight.
+	 */
+	double& weights(const uint i, const uint j);
 
-			//COUNTS AND CRAP
+	/**Get the specified weight.
+	 * \param i the index of the weight in the weight vector.
+	 * \return the weight.
+	 */
+	double& weights(const uint i);
 
-			/**Get the number of weights contained in this layer.
-			 * \return the number of weights contained in this layer.
-			 */
-			uint nWeights() const;
+	/**Get the specified output.
+	 * \param i the node which output to return.
+	 * \return the output.
+	 */
+	double& outputs(const uint i);
 
-			/**Get the number of neurons contained in this layer.
-			 * Not including the bias.
-			 * \return the number of neurons contained in this layer.
-			 */
-			uint nNeurons() const;
+	/**Get the specified local gradient.
+	 * \param i the node which local gradient to return.
+	 * \return the local gradient.
+	 */
+	double& localGradients(const uint i);
 
-			/**Get the number of neurons contained in the previous layer.
-			 * Not including the bias.
-			 * \return the number of neurons contained in the previous layer.
-			 */
-			uint nPrevious() const;
+	/**Get the specified gradient.
+	 * \param i the node in this layer that the gradient is connected to.
+	 * \param j the node in the previous layer that the gradient is connected to.
+	 * \return the gradient.
+	 */
+	double& gradients(const uint i, const uint j);
 
-			/**Get the number of neurons contained in this layer.
-			 * Not including the bias.
-			 * \return the number of neurons contained in this layer.
-			 */
-			uint size() const;
+	/**Get the specified gradient.
+	 * \param i the index of the gradient in the gradient vector.
+	 * \return the gradient.
+	 */
+	double& gradients(const uint i);
 
-			//PRINTS
+	/**Get the specified weight update.
+	 * \param i the node in this layer that the weight update is connected to.
+	 * \param j the node in the previous layer that the weight update is connected to.
+	 * \return the weight update.
+	 */
+	double& weightUpdates(const uint i, const uint j);
 
-			/**Prints the weights leading into this layer.
-			 */
-			void printWeights(std::ostream& os) const;
+	/**Get the specified weight update.
+	 * \param i the index of the weight update in the weight update vector.
+	 * \return the weight update.
+	 */
+	double& weightUpdates(const uint i);
 
-			/**Prints the local gradients for the neurons in this layer.
-			 */
-			void printLocalGradients(std::ostream& os) const;
+	// COUNTS AND CRAP
 
-			/**Prints the gradients for the neurons in this layer.
-			 */
-			void printGradients(std::ostream& os) const;
+	/**Get the number of weights contained in this layer.
+	 * \return the number of weights contained in this layer.
+	 */
+	uint nWeights() const;
 
-			//UTILS
+	/**Get the number of neurons contained in this layer.
+	 * Not including the bias.
+	 * \return the number of neurons contained in this layer.
+	 */
+	uint nNeurons() const;
 
-			/**Assign new random weights to the weight vector. */
-			void regenerateWeights();
+	/**Get the number of neurons contained in the previous layer.
+	 * Not including the bias.
+	 * \return the number of neurons contained in the previous layer.
+	 */
+	uint nPrevious() const;
 
-			/**Activation function for every neuron in this layer.
-			 * \param lif the local induced field for a neuron.
-			 * \return the activation for the neuron.
-			 */
-			virtual double fire(double lif) const = 0;
+	/**Get the number of neurons contained in this layer.
+	 * Not including the bias.
+	 * \return the number of neurons contained in this layer.
+	 */
+	uint size() const;
 
-			/**Get the activation value for the specified neuron.
-			 * \param i the neuron in this layer which activation to return.
-			 * \return the activation for the neuron.
-			 */
-			virtual double fire(const uint i) const = 0;
+	// PRINTS
 
-			/**The derivative of the activation function.
-			 * \param lif the local induced field for a neuron.
-			 * \return the derivative of the activation for the neuron.
-			 */
-			virtual double firePrime(const double lif) const = 0;
+	/**Prints the weights leading into this layer.
+	 */
+	void printWeights(std::ostream& os) const;
 
-			/**Get the derivative of the activation value for the specified neuron.
-			 * \param i the neuron in this layer which activation to return.
-			 * \return the derivative of the activation for the neuron.
-			 */
-			virtual double firePrime(const uint i) const = 0;
+	/**Prints the local gradients for the neurons in this layer.
+	 */
+	void printLocalGradients(std::ostream& os) const;
 
-			/**The 2nd derivative of the activation function.
-			 * \param lif the local induced field for a neuron.
-			 * \return the derivative of the activation for the neuron.
-			 */
-			virtual double firePrimePrime(const double lif) const = 0;
+	/**Prints the gradients for the neurons in this layer.
+	 */
+	void printGradients(std::ostream& os) const;
 
-			/**Get the 2nd derivative of the activation value for the specified neuron.
-			 * \param i the neuron in this layer which activation to return.
-			 * \return the derivative of the activation for the neuron.
-			 */
-			virtual double firePrimePrime(const uint i) const = 0;
+	// UTILS
 
-			/**Propagates an input pattern through this layer.
-			 * Note that the bias should not be included in the parameter
-			 * since it is explicitly included later.
-			 * \param input the input to propagate.
-			 * \return the outputs from this Layer.
-			 */
-			std::vector<double>& propagate(const std::vector<double>& input);
+	/**Assign new random weights to the weight vector. */
+	void regenerateWeights();
 
-			/**Apply the activation derivative to a vector of deltas in batch.
-			 * Computes deltas[i] *= f'(outputs[i]) for all neurons,
-			 * using a function pointer instead of virtual dispatch.
-			 * \param deltas the vector to scale by the derivative.
-			 */
-			void applyDerivative(std::vector<double>& deltas);
+	/**Activation function for every neuron in this layer.
+	 * \param lif the local induced field for a neuron.
+	 * \return the activation for the neuron.
+	 */
+	virtual double fire(double lif) const = 0;
 
-			/**Propagate a batch of inputs through this layer using GEMM.
-			 * \param input pointer to row-major input matrix [B x nprev].
-			 * \param B the batch size.
-			 * \param n_in number of input columns (must equal nprev).
-			 * \return pointer to batch outputs [B x ncurr].
-			 */
-			const double* propagateBatch(const double* input, uint B, uint n_in);
+	/**Get the activation value for the specified neuron.
+	 * \param i the neuron in this layer which activation to return.
+	 * \return the activation for the neuron.
+	 */
+	virtual double fire(const uint i) const = 0;
 
-			/**Apply activation derivative to batch local gradients.
-			 * Both theBatchLocalGradients and theBatchOutputs are [B x ncurr].
-			 * \param B the batch size.
-			 */
-			void applyDerivativeBatch(uint B);
+	/**The derivative of the activation function.
+	 * \param lif the local induced field for a neuron.
+	 * \return the derivative of the activation for the neuron.
+	 */
+	virtual double firePrime(const double lif) const = 0;
 
-			/**Accumulate weight gradients from batch via GEMM.
-			 * dW += Delta^T * Input, bias_grad += column_sum(Delta).
-			 * \param input pointer to row-major input matrix [B x nprev].
-			 * \param B the batch size.
-			 */
-			void accumulateGradientsBatch(const double* input, uint B);
+	/**Get the derivative of the activation value for the specified neuron.
+	 * \param i the neuron in this layer which activation to return.
+	 * \return the derivative of the activation for the neuron.
+	 */
+	virtual double firePrime(const uint i) const = 0;
 
-			/**Return batch outputs storage. */
-			std::vector<double>& batchOutputs();
+	/**The 2nd derivative of the activation function.
+	 * \param lif the local induced field for a neuron.
+	 * \return the derivative of the activation for the neuron.
+	 */
+	virtual double firePrimePrime(const double lif) const = 0;
 
-			/**Return batch local gradients storage. */
-			std::vector<double>& batchLocalGradients();
+	/**Get the 2nd derivative of the activation value for the specified neuron.
+	 * \param i the neuron in this layer which activation to return.
+	 * \return the derivative of the activation for the neuron.
+	 */
+	virtual double firePrimePrime(const uint i) const = 0;
 
-			/**Set the dropout rate for this layer.
-			 * \param rate dropout probability (0 to 1, 0 = disabled).
-			 */
-			void dropoutRate(double rate);
+	/**Propagates an input pattern through this layer.
+	 * Note that the bias should not be included in the parameter
+	 * since it is explicitly included later.
+	 * \param input the input to propagate.
+	 * \return the outputs from this Layer.
+	 */
+	std::vector<double>& propagate(const std::vector<double>& input);
 
-			/**Get the dropout rate. */
-			double dropoutRate() const;
+	/**Apply the activation derivative to a vector of deltas in batch.
+	 * Computes deltas[i] *= f'(outputs[i]) for all neurons,
+	 * using a function pointer instead of virtual dispatch.
+	 * \param deltas the vector to scale by the derivative.
+	 */
+	void applyDerivative(std::vector<double>& deltas);
 
-			/**Set training mode (enables/disables dropout).
-			 * \param t true for training, false for inference.
-			 */
-			void training(bool t);
+	/**Propagate a batch of inputs through this layer using GEMM.
+	 * \param input pointer to row-major input matrix [B x nprev].
+	 * \param B the batch size.
+	 * \param n_in number of input columns (must equal nprev).
+	 * \return pointer to batch outputs [B x ncurr].
+	 */
+	const double* propagateBatch(const double* input, uint B, uint n_in);
 
-			/**Get training mode. */
-			bool isTraining() const;
+	/**Apply activation derivative to batch local gradients.
+	 * Both theBatchLocalGradients and theBatchOutputs are [B x ncurr].
+	 * \param B the batch size.
+	 */
+	void applyDerivativeBatch(uint B);
 
-			/**Calculates the Local Induced Field for each node in this layer. 
-			 * Note that the bias should not be included in the parameter 
-			 * since it is explicitly included later.
-			 * \param input the input to this Layer.
-			 * \return the local induced fields.
-			 */
-			std::vector<double> calcLifs(const std::vector<double>& input);
+	/**Accumulate weight gradients from batch via GEMM.
+	 * dW += Delta^T * Input, bias_grad += column_sum(Delta).
+	 * \param input pointer to row-major input matrix [B x nprev].
+	 * \param B the batch size.
+	 */
+	void accumulateGradientsBatch(const double* input, uint B);
 
-		protected:
-			/**Convert a two index value to a one index value.
-			 * \param i the row.
-			 * \param j the column.
-			 * \return the resulting index.
-			 */
-			uint index(const uint i, const uint j) const;
+	/**Return batch outputs storage. */
+	std::vector<double>& batchOutputs();
 
-			/**Number of neurons in this layer. */
-			uint ncurr;
+	/**Return batch local gradients storage. */
+	std::vector<double>& batchLocalGradients();
 
-			/**Number of neurons in previous layer. */
-			uint nprev;
+	/**Set the dropout rate for this layer.
+	 * \param rate dropout probability (0 to 1, 0 = disabled).
+	 */
+	void dropoutRate(double rate);
 
-			/**Type of neurons in this layer. */
-			std::string theType;
+	/**Get the dropout rate. */
+	double dropoutRate() const;
 
-			/**The weights leading into this layer. */
-			std::vector<double> theWeights;
-			
-			/**The output of this layer. */
-			std::vector<double> theOutputs;
+	/**Set training mode (enables/disables dropout).
+	 * \param t true for training, false for inference.
+	 */
+	void training(bool t);
 
-			/**The local gradients of this layers neurons. */
-			std::vector<double> theLocalGradients;
+	/**Get training mode. */
+	bool isTraining() const;
 
-			/**The weight gradients of this layers weights. */
-			std::vector<double> theGradients;
+	/**Calculates the Local Induced Field for each node in this layer.
+	 * Note that the bias should not be included in the parameter
+	 * since it is explicitly included later.
+	 * \param input the input to this Layer.
+	 * \return the local induced fields.
+	 */
+	std::vector<double> calcLifs(const std::vector<double>& input);
 
-			/**The update used for this layers weights. */
-			std::vector<double> theWeightUpdates;
+  protected:
+	/**Convert a two index value to a one index value.
+	 * \param i the row.
+	 * \param j the column.
+	 * \return the resulting index.
+	 */
+	uint index(const uint i, const uint j) const;
 
-			/**Dropout probability (0.0 = disabled). */
-			double theDropoutRate;
+	/**Number of neurons in this layer. */
+	uint ncurr;
 
-			/**Training mode flag. */
-			bool theTraining;
+	/**Number of neurons in previous layer. */
+	uint nprev;
 
-			/**Dropout mask (inverted: 1/(1-p) or 0), sized [ncurr]. */
-			std::vector<double> theDropoutMask;
+	/**Type of neurons in this layer. */
+	std::string theType;
 
-			/**Batch dropout mask [B * ncurr]. */
-			std::vector<double> theBatchDropoutMask;
+	/**The weights leading into this layer. */
+	std::vector<double> theWeights;
 
-			/**Batch outputs: row-major [B x ncurr]. */
-			std::vector<double> theBatchOutputs;
+	/**The output of this layer. */
+	std::vector<double> theOutputs;
 
-			/**Batch local gradients: row-major [B x ncurr]. */
-			std::vector<double> theBatchLocalGradients;
+	/**The local gradients of this layers neurons. */
+	std::vector<double> theLocalGradients;
 
-			/**Batch activation function pointer. */
-			using ActivationFn = void(*)(double* __restrict__ outputs, uint n);
+	/**The weight gradients of this layers weights. */
+	std::vector<double> theGradients;
 
-			/**Batch derivative-scale function pointer.
-			 * Computes deltas[i] *= f'(outputs[i]). */
-			using DerivScaleFn = void(*)(const double* __restrict__ outputs,
-			                              double* __restrict__ deltas, uint n);
+	/**The update used for this layers weights. */
+	std::vector<double> theWeightUpdates;
 
-			/**Batch activation function for this layer's type. */
-			ActivationFn theActivation;
+	/**Dropout probability (0.0 = disabled). */
+	double theDropoutRate;
 
-			/**Batch derivative-scale function for this layer's type. */
-			DerivScaleFn theDerivScale;
+	/**Training mode flag. */
+	bool theTraining;
 
-			/**The functor for initialising the weights. */
-			template <class T> struct newRand
-			{
-				void operator()(T& a){ a = 0.5-drand48(); }
-			};
+	/**Dropout mask (inverted: 1/(1-p) or 0), sized [ncurr]. */
+	std::vector<double> theDropoutMask;
+
+	/**Batch dropout mask [B * ncurr]. */
+	std::vector<double> theBatchDropoutMask;
+
+	/**Batch outputs: row-major [B x ncurr]. */
+	std::vector<double> theBatchOutputs;
+
+	/**Batch local gradients: row-major [B x ncurr]. */
+	std::vector<double> theBatchLocalGradients;
+
+	/**Batch activation function pointer. */
+	using ActivationFn = void (*)(double* __restrict__ outputs, uint n);
+
+	/**Batch derivative-scale function pointer.
+	 * Computes deltas[i] *= f'(outputs[i]). */
+	using DerivScaleFn = void (*)(const double* __restrict__ outputs, double* __restrict__ deltas,
+	                              uint n);
+
+	/**Batch activation function for this layer's type. */
+	ActivationFn theActivation;
+
+	/**Batch derivative-scale function for this layer's type. */
+	DerivScaleFn theDerivScale;
+
+	/**The functor for initialising the weights. */
+	template <class T> struct newRand {
+		void operator()(T& a) { a = 0.5 - drand48(); }
 	};
+};
 
-	//ACCESSOR AND MUTATOR FUNCTIONS
+// ACCESSOR AND MUTATOR FUNCTIONS
 
-	inline std::vector<double>& Layer::weights() {return theWeights;}
-
-	inline void Layer::weights(const std::vector<double>& w) {theWeights = w;}
-
-	inline std::vector<double>& Layer::outputs() {return theOutputs;}
-
-	inline std::vector<double>& Layer::localGradients() {return theLocalGradients;}
-
-	inline std::vector<double>& Layer::gradients() {return theGradients;}
-
-	inline std::vector<double>& Layer::weightUpdates() {return theWeightUpdates;}
-
-	inline double& Layer::weights(const uint i, const uint j) {return theWeights[index(i,j)];}
-
-	inline double& Layer::weights(const uint i)
-	{
-		assert(i < theWeights.size());
-		return theWeights[i];
-	}
-
-	inline double& Layer::outputs(const uint i)
-	{
-		assert(i < theOutputs.size());
-		return theOutputs[i];
-	}
-
-	inline double& Layer::localGradients(const uint i)
-	{
-		assert(i < theLocalGradients.size());
-		return theLocalGradients[i];
-	}
-
-	inline double& Layer::gradients(const uint i, const uint j) {return theGradients[index(i,j)];}
-
-	inline double& Layer::gradients(const uint i)
-	{
-		assert(i < theGradients.size());
-		return theGradients[i];
-	}
-
-	inline double& Layer::weightUpdates(const uint i, const uint j)
-	{return theWeightUpdates[index(i,j)];}
-
-	inline double& Layer::weightUpdates(const uint i)
-	{
-		assert(i < theWeightUpdates.size());
-		return theWeightUpdates[i];
-	}
-
-
-	//COUNTS AND CRAP
-
-	inline uint Layer::nWeights() const	{return theWeights.size();}
-
-	inline uint Layer::nNeurons() const {return ncurr;}
-
-	inline uint Layer::nPrevious() const {return nprev;}
-
-	inline uint Layer::size() const {return nNeurons();}
-
-	inline std::vector<double>& Layer::batchOutputs() {return theBatchOutputs;}
-	inline std::vector<double>& Layer::batchLocalGradients() {return theBatchLocalGradients;}
-	inline void Layer::dropoutRate(double rate) {theDropoutRate = rate;}
-	inline double Layer::dropoutRate() const {return theDropoutRate;}
-	inline void Layer::training(bool t) {theTraining = t;}
-	inline bool Layer::isTraining() const {return theTraining;}
-
-	//PRIVATE--------------------------------------------------------------------//
-
-	inline uint Layer::index(const uint i, const uint j) const
-	{
-		assert(i < ncurr && j < nprev+1);
-		return i*(nprev+1)+j;
-	}
-
+inline std::vector<double>& Layer::weights() {
+	return theWeights;
 }
+
+inline void Layer::weights(const std::vector<double>& w) {
+	theWeights = w;
+}
+
+inline std::vector<double>& Layer::outputs() {
+	return theOutputs;
+}
+
+inline std::vector<double>& Layer::localGradients() {
+	return theLocalGradients;
+}
+
+inline std::vector<double>& Layer::gradients() {
+	return theGradients;
+}
+
+inline std::vector<double>& Layer::weightUpdates() {
+	return theWeightUpdates;
+}
+
+inline double& Layer::weights(const uint i, const uint j) {
+	return theWeights[index(i, j)];
+}
+
+inline double& Layer::weights(const uint i) {
+	assert(i < theWeights.size());
+	return theWeights[i];
+}
+
+inline double& Layer::outputs(const uint i) {
+	assert(i < theOutputs.size());
+	return theOutputs[i];
+}
+
+inline double& Layer::localGradients(const uint i) {
+	assert(i < theLocalGradients.size());
+	return theLocalGradients[i];
+}
+
+inline double& Layer::gradients(const uint i, const uint j) {
+	return theGradients[index(i, j)];
+}
+
+inline double& Layer::gradients(const uint i) {
+	assert(i < theGradients.size());
+	return theGradients[i];
+}
+
+inline double& Layer::weightUpdates(const uint i, const uint j) {
+	return theWeightUpdates[index(i, j)];
+}
+
+inline double& Layer::weightUpdates(const uint i) {
+	assert(i < theWeightUpdates.size());
+	return theWeightUpdates[i];
+}
+
+// COUNTS AND CRAP
+
+inline uint Layer::nWeights() const {
+	return theWeights.size();
+}
+
+inline uint Layer::nNeurons() const {
+	return ncurr;
+}
+
+inline uint Layer::nPrevious() const {
+	return nprev;
+}
+
+inline uint Layer::size() const {
+	return nNeurons();
+}
+
+inline std::vector<double>& Layer::batchOutputs() {
+	return theBatchOutputs;
+}
+inline std::vector<double>& Layer::batchLocalGradients() {
+	return theBatchLocalGradients;
+}
+inline void Layer::dropoutRate(double rate) {
+	theDropoutRate = rate;
+}
+inline double Layer::dropoutRate() const {
+	return theDropoutRate;
+}
+inline void Layer::training(bool t) {
+	theTraining = t;
+}
+inline bool Layer::isTraining() const {
+	return theTraining;
+}
+
+// PRIVATE--------------------------------------------------------------------//
+
+inline uint Layer::index(const uint i, const uint j) const {
+	assert(i < ncurr && j < nprev + 1);
+	return i * (nprev + 1) + j;
+}
+
+} // namespace MultiLayerPerceptron
 
 #endif

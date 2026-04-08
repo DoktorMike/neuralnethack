@@ -2,21 +2,18 @@
 
 using namespace MultiLayerPerceptron;
 
-LinearLayer::LinearLayer(uint nc, uint np):Layer(nc, np, LINEAR)
-{}
+LinearLayer::LinearLayer(uint nc, uint np) : Layer(nc, np, LINEAR) {}
 
-LinearLayer::~LinearLayer()
-{}
+LinearLayer::~LinearLayer() {}
 
-//ACCESSOR AND MUTATOR FUNCTIONS
+// ACCESSOR AND MUTATOR FUNCTIONS
 
-//ACCESSOR FUNCTIONS
+// ACCESSOR FUNCTIONS
 
-//COUNTS AND CRAP
+// COUNTS AND CRAP
 
-//PRINTS
+// PRINTS
 
-//UTILS
+// UTILS
 
-//PRIVATE--------------------------------------------------------------------//
-
+// PRIVATE--------------------------------------------------------------------//

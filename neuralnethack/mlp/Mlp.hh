@@ -5,193 +5,194 @@
 
 #include <memory>
 
-namespace MultiLayerPerceptron
-{
-	/**A struct representing the model for a multilayer perceptron. */
-	struct MlpModel
-	{
-		std::vector<uint> architecture;
-		std::vector<std::string> types;
-		bool softmax;
-	};
-	
-	/**A Class representing a multilayer perceptron. 
-	 * \todo Implement softmax output.
+namespace MultiLayerPerceptron {
+/**A struct representing the model for a multilayer perceptron. */
+struct MlpModel {
+	std::vector<uint> architecture;
+	std::vector<std::string> types;
+	bool softmax;
+};
+
+/**A Class representing a multilayer perceptron.
+ * \todo Implement softmax output.
+ */
+class Mlp {
+  public:
+	/**Base constructor.
+	 * \param a the architecture of this MLP.
+	 * \param t the types of neurons that are to be used.
+	 * \param s the softmax output switch.
 	 */
-	class Mlp
-	{
-		public:
-			/**Base constructor.
-			 * \param a the architecture of this MLP.
-			 * \param t the types of neurons that are to be used.
-			 * \param s the softmax output switch.
-			 */
-			Mlp(const std::vector<uint>& a, const std::vector<std::string>& t, bool s);
+	Mlp(const std::vector<uint>& a, const std::vector<std::string>& t, bool s);
 
-			/**Base constructor.
-			 * \param mlpmodel the model to use for this Mlp.
-			 */
-			Mlp(const MlpModel& mlpmodel);
+	/**Base constructor.
+	 * \param mlpmodel the model to use for this Mlp.
+	 */
+	Mlp(const MlpModel& mlpmodel);
 
-			/** Copy constructor.
-			 * \param mlp the mlp to copy from.
-			 */
-			Mlp(const Mlp& mlp);
+	/** Copy constructor.
+	 * \param mlp the mlp to copy from.
+	 */
+	Mlp(const Mlp& mlp);
 
-			/**Move constructor. */
-			Mlp(Mlp&& mlp) noexcept = default;
+	/**Move constructor. */
+	Mlp(Mlp&& mlp) noexcept = default;
 
-			/**The default destructor.
-			 */
-			~Mlp();
+	/**The default destructor.
+	 */
+	~Mlp();
 
-			/**Assignment operator.
-			 * \param mlp the Mlp to assign from.
-			 * \return the Mlp assigned to.
-			 */
-			Mlp& operator=(const Mlp& mlp);
+	/**Assignment operator.
+	 * \param mlp the Mlp to assign from.
+	 * \return the Mlp assigned to.
+	 */
+	Mlp& operator=(const Mlp& mlp);
 
-			/**Move assignment operator. */
-			Mlp& operator=(Mlp&& mlp) noexcept = default;
+	/**Move assignment operator. */
+	Mlp& operator=(Mlp&& mlp) noexcept = default;
 
-			/**Index operator.
-			 * \param index the index to return.
-			 * \return the layer at position index.
-			 */
-			Layer& operator[](const uint index);
+	/**Index operator.
+	 * \param index the index to return.
+	 * \return the layer at position index.
+	 */
+	Layer& operator[](const uint index);
 
-//ACCESSORS AND MUTATORS
-			/**Return the architechture of this MLP.
-			 * \return the architecture.
-			 */
-			std::vector<uint>& arch();
+	// ACCESSORS AND MUTATORS
+	/**Return the architechture of this MLP.
+	 * \return the architecture.
+	 */
+	std::vector<uint>& arch();
 
-			/**Return the types of activation functions used in this Mlp.
-			 * \return the types.
-			 */
-			std::vector<std::string>& types();
+	/**Return the types of activation functions used in this Mlp.
+	 * \return the types.
+	 */
+	std::vector<std::string>& types();
 
-			/**Return the softmax switch for this Mlp.
-			 * \return true if softmax is on, false otherwise.
-			 */
-			bool softmax();
+	/**Return the softmax switch for this Mlp.
+	 * \return true if softmax is on, false otherwise.
+	 */
+	bool softmax();
 
-			/**Return the number of layers in this MLP.
-			 * \return the number of layers.
-			 */
-			uint numLayers() const;
+	/**Return the number of layers in this MLP.
+	 * \return the number of layers.
+	 */
+	uint numLayers() const;
 
-			/**Returns the indexed layer.
-			 * \param index the index to return.
-			 * \return the layer at position index.
-			 */
-			Layer& layer(uint index);
+	/**Returns the indexed layer.
+	 * \param index the index to return.
+	 * \return the layer at position index.
+	 */
+	Layer& layer(uint index);
 
-			/**Returns the entire weight vector.
-			 * \return the weight vector.
-			 */
-			std::vector<double> weights() const;
+	/**Returns the entire weight vector.
+	 * \return the weight vector.
+	 */
+	std::vector<double> weights() const;
 
-			/**Set the weightvector to the weights in w.
-			 * \param w the weights to set the weightvector to.
-			 */
-			void weights(std::vector<double>& w);
+	/**Set the weightvector to the weights in w.
+	 * \param w the weights to set the weightvector to.
+	 */
+	void weights(std::vector<double>& w);
 
-			/**Returns the entire gradient vector.
-			 * \return the gradient vector.
-			 */
-			std::vector<double> gradients() const;
+	/**Returns the entire gradient vector.
+	 * \return the gradient vector.
+	 */
+	std::vector<double> gradients() const;
 
-			/**Set the gradient vector to the gradients in g.
-			 * \param g the weights to set the gradient vector to.
-			 */
-			void gradients(std::vector<double>& g);
+	/**Set the gradient vector to the gradients in g.
+	 * \param g the weights to set the gradient vector to.
+	 */
+	void gradients(std::vector<double>& g);
 
-//UTILITY
-			/**Randomize the weights between -1/2 and 1/2.
-			 */
-			void regenerateWeights();
+	// UTILITY
+	/**Randomize the weights between -1/2 and 1/2.
+	 */
+	void regenerateWeights();
 
-			/**Pushes a pattern through this MLP.
-			 * \param pattern the pattern to propagate.
-			 * \return the output vector for this pattern.
-			 */
-			const std::vector<double>& propagate(const std::vector<double>& pattern);
+	/**Pushes a pattern through this MLP.
+	 * \param pattern the pattern to propagate.
+	 * \return the output vector for this pattern.
+	 */
+	const std::vector<double>& propagate(const std::vector<double>& pattern);
 
-			/**Set training/inference mode for all layers.
-			 * \param t true for training, false for inference.
-			 */
-			void training(bool t);
+	/**Set training/inference mode for all layers.
+	 * \param t true for training, false for inference.
+	 */
+	void training(bool t);
 
-			/**Set dropout rate for hidden layers (not output layer).
-			 * \param rate dropout probability (0 to 1).
-			 */
-			void dropoutRate(double rate);
+	/**Set dropout rate for hidden layers (not output layer).
+	 * \param rate dropout probability (0 to 1).
+	 */
+	void dropoutRate(double rate);
 
-			/**Propagate a batch of inputs through the entire MLP using GEMM.
-			 * \param input pointer to row-major input batch [B x arch[0]].
-			 * \param B the batch size.
-			 * \return pointer to output batch [B x arch[last]].
-			 */
-			const double* propagateBatch(const double* input, uint B);
+	/**Propagate a batch of inputs through the entire MLP using GEMM.
+	 * \param input pointer to row-major input batch [B x arch[0]].
+	 * \param B the batch size.
+	 * \return pointer to output batch [B x arch[last]].
+	 */
+	const double* propagateBatch(const double* input, uint B);
 
-//SIZE etc
-			/**Return the number of layers contained in this MLP.
-			 * \return the number of layers.
-			 */
-			uint nLayers() const;
+	// SIZE etc
+	/**Return the number of layers contained in this MLP.
+	 * \return the number of layers.
+	 */
+	uint nLayers() const;
 
-			/**Return the number of weights contained in this MLP.
-			 * \return the number of weights.
-			 */
-			uint nWeights() const;
+	/**Return the number of weights contained in this MLP.
+	 * \return the number of weights.
+	 */
+	uint nWeights() const;
 
-			/**Alias for nLayers.
-			 * \return the number of layers.
-			 */
-			uint size() const;
-			
-//PRINTS etc
-			/**Print all the weights in the network.
-			 * \param os the output stream to write to.
-			 */
-			void printWeights(std::ostream& os) const;
+	/**Alias for nLayers.
+	 * \return the number of layers.
+	 */
+	uint size() const;
 
-			/**Print all the gradients in the network.
-			 * \param os the output stream to write to.
-			 */
-			void printGradients(std::ostream& os) const;
+	// PRINTS etc
+	/**Print all the weights in the network.
+	 * \param os the output stream to write to.
+	 */
+	void printWeights(std::ostream& os) const;
 
-		private:
-			/**Create all the layers in this MLP.
-			 */
-			void createLayers();
+	/**Print all the gradients in the network.
+	 * \param os the output stream to write to.
+	 */
+	void printGradients(std::ostream& os) const;
 
-			/**The architecture for this MLP. */
-			std::vector<uint> theArch;
+  private:
+	/**Create all the layers in this MLP.
+	 */
+	void createLayers();
 
-			/**The type of neurons for each layer. */
-			std::vector<std::string> theTypes;
+	/**The architecture for this MLP. */
+	std::vector<uint> theArch;
 
-			/**Softmax switch. */
-			bool theSoftmax;
+	/**The type of neurons for each layer. */
+	std::vector<std::string> theTypes;
 
-			/**The layers in this MLP. */
-			std::vector<std::unique_ptr<Layer>> theLayers;
-	};
+	/**Softmax switch. */
+	bool theSoftmax;
 
-//INLINES
+	/**The layers in this MLP. */
+	std::vector<std::unique_ptr<Layer>> theLayers;
+};
 
-	inline std::vector<uint>& Mlp::arch()
-	{return theArch;}
+// INLINES
 
-	inline std::vector<std::string>& Mlp::types()
-	{return theTypes;}
-
-	inline bool Mlp::softmax()
-	{return theSoftmax;}
-
-	inline uint Mlp::numLayers() const
-	{return theLayers.size();}
+inline std::vector<uint>& Mlp::arch() {
+	return theArch;
 }
+
+inline std::vector<std::string>& Mlp::types() {
+	return theTypes;
+}
+
+inline bool Mlp::softmax() {
+	return theSoftmax;
+}
+
+inline uint Mlp::numLayers() const {
+	return theLayers.size();
+}
+} // namespace MultiLayerPerceptron
 #endif

@@ -19,124 +19,119 @@ using std::ostringstream;
 using std::string;
 using std::vector;
 
-using std::plus;
 using std::divides;
+using std::plus;
 
-void PrintUtils::printTargetList(ostream& os, string id, DataSet& data)
-{
-	os<<id<<endl;
-	for(uint i=0; i<data.size(); ++i){
-		os<<"\t"<<data.pattern(i).idstring()<<"\t";
+void PrintUtils::printTargetList(ostream& os, string id, DataSet& data) {
+	os << id << endl;
+	for (uint i = 0; i < data.size(); ++i) {
+		os << "\t" << data.pattern(i).idstring() << "\t";
 		vector<double>& target = data.pattern(i).output();
-		for(uint j=0; j<target.size(); ++j)
-			os<<std::scientific<<target[j]<<" ";
-		os<<endl;
+		for (uint j = 0; j < target.size(); ++j)
+			os << std::scientific << target[j] << " ";
+		os << endl;
 	}
 }
 
-void PrintUtils::printOutputList(ostream& os, string id, Mlp& mlp, DataSet& data)
-{
-	os<<id<<endl;
-	for(uint i=0; i<data.size(); ++i){
-		os<<"\t"<<data.pattern(i).idstring()<<"\t";
+void PrintUtils::printOutputList(ostream& os, string id, Mlp& mlp, DataSet& data) {
+	os << id << endl;
+	for (uint i = 0; i < data.size(); ++i) {
+		os << "\t" << data.pattern(i).idstring() << "\t";
 		vector<double> output = mlp.propagate(data.pattern(i).input());
-		for(uint j=0; j<output.size(); ++j)
-			os<<std::scientific<<output[j]<<" ";
-		os<<endl;
+		for (uint j = 0; j < output.size(); ++j)
+			os << std::scientific << output[j] << " ";
+		os << endl;
 	}
 }
 
-void PrintUtils::printOutputList(ostream& os, string id, Ensemble& c, DataSet& data)
-{
-	os<<id<<endl;
-	for(uint i=0; i<data.size(); ++i){
-		os<<"\t"<<data.pattern(i).idstring()<<"\t";
+void PrintUtils::printOutputList(ostream& os, string id, Ensemble& c, DataSet& data) {
+	os << id << endl;
+	for (uint i = 0; i < data.size(); ++i) {
+		os << "\t" << data.pattern(i).idstring() << "\t";
 		vector<double> output = c.propagate(data.pattern(i).input());
-		for(uint j=0; j<output.size(); ++j)
-			os<<std::scientific<<output[j]<<" ";
-		os<<endl;
+		for (uint j = 0; j < output.size(); ++j)
+			os << std::scientific << output[j] << " ";
+		os << endl;
 	}
 }
 
-void PrintUtils::printTstEnslist(ostream& os, vector<Session>& sessions, 
-		DataSet& trnData, DataSet& tstData, const Config& config)
-{
-	//Header
-	os<<"#! ptype\t"<<!config.problemType()<<endl;
-	os<<"#! targets\t"<<"1"<<endl;
-	os<<"#! nout \t"<<trnData.nOutput()<<endl;
+void PrintUtils::printTstEnslist(ostream& os, vector<Session>& sessions, DataSet& trnData,
+                                 DataSet& tstData, const Config& config) {
+	// Header
+	os << "#! ptype\t" << !config.problemType() << endl;
+	os << "#! targets\t" << "1" << endl;
+	os << "#! nout \t" << trnData.nOutput() << endl;
 
-	//Target for training and testing data.
+	// Target for training and testing data.
 	PrintUtils::printTargetList(os, ">>target trn", trnData);
 	PrintUtils::printTargetList(os, ">>target tst", tstData);
 
-	for(uint i = 0; i<sessions.size(); ++i){
+	for (uint i = 0; i < sessions.size(); ++i) {
 		Session& session = sessions.at(i);
 		Ensemble& ensemble = *(session.ensemble);
 		DataSet& trn = *(session.trnData);
 		DataSet& tst = tstData;
 
-		//Find the N and K
+		// Find the N and K
 		std::ostringstream s;
-		if(config.ensParamDataSelection() == "cs")
-			s<<i/config.ensParamK()+1<<" "<<i%config.ensParamK()+1;
-		else if(config.ensParamDataSelection() == "bagg")
-			s<<i+1;
+		if (config.ensParamDataSelection() == "cs")
+			s << i / config.ensParamK() + 1 << " " << i % config.ensParamK() + 1;
+		else if (config.ensParamDataSelection() == "bagg")
+			s << i + 1;
 
-		//Print the training part.
+		// Print the training part.
 		std::ostringstream s1;
-		s1<<">>trn\t"<<s.str();
+		s1 << ">>trn\t" << s.str();
 		PrintUtils::printOutputList(os, s1.str(), ensemble, trn);
 
-		//print the testing part.
+		// print the testing part.
 		std::ostringstream s2;
-		s2<<">>tst\t"<<s.str();
+		s2 << ">>tst\t" << s.str();
 		PrintUtils::printOutputList(os, s2.str(), ensemble, tst);
 	}
 }
 
-void PrintUtils::printValEnslist(ostream& os, vector<Session>& sessions, 
-		DataSet& trnData, DataSet& tstData, const Config& config)
-{
-	//Header
-	os<<"#! ptype\t"<<!config.problemType()<<endl;
-	os<<"#! targets\t"<<"1"<<endl;
-	os<<"#! nout \t"<<trnData.nOutput()<<endl;
+void PrintUtils::printValEnslist(ostream& os, vector<Session>& sessions, DataSet& trnData,
+                                 DataSet& tstData, const Config& config) {
+	// Header
+	os << "#! ptype\t" << !config.problemType() << endl;
+	os << "#! targets\t" << "1" << endl;
+	os << "#! nout \t" << trnData.nOutput() << endl;
 
-	//Target for training and testing data.
+	// Target for training and testing data.
 	PrintUtils::printTargetList(os, ">>target trn", trnData);
 	PrintUtils::printTargetList(os, ">>target tst", tstData);
 
-	//Outputlist for modelselection.
-	for(uint i=0; i<sessions.size(); ++i){
+	// Outputlist for modelselection.
+	for (uint i = 0; i < sessions.size(); ++i) {
 		Session& session = sessions.at(i);
 		Ensemble& ensemble = *(session.ensemble);
 		DataSet& trn = *(session.trnData);
 		DataSet& val = *(session.valData);
 
-		//Find the N and K
+		// Find the N and K
 		std::ostringstream s;
-		if(config.msParamDataSelection() == "cv")
-			s<<i/config.msParamK()+1<<" "<<i%config.msParamK()+1;
-		else if(config.msParamDataSelection() == "boot")
-			s<<i+1;
+		if (config.msParamDataSelection() == "cv")
+			s << i / config.msParamK() + 1 << " " << i % config.msParamK() + 1;
+		else if (config.msParamDataSelection() == "boot")
+			s << i + 1;
 
-		//Print the training part.
+		// Print the training part.
 		std::ostringstream s1;
-		s1<<">>trn\t"<<s.str();
+		s1 << ">>trn\t" << s.str();
 		PrintUtils::printOutputList(os, s1.str(), ensemble, trn);
 
-		//print the validation part.
+		// print the validation part.
 		std::ostringstream s2;
-		s2<<">>val\t"<<s.str();
+		s2 << ">>val\t" << s.str();
 		PrintUtils::printOutputList(os, s2.str(), ensemble, val);
 	}
 }
 
-void PrintUtils::printSaliencies(std::ostream& os, std::vector<Session>& sessions, const Config& config)
-{
+void PrintUtils::printSaliencies(std::ostream& os, std::vector<Session>& sessions,
+                                 const Config& config) {
 	vector<double> sals(config.architecture()[0], 0);
-	for(auto it = sessions.begin(); it != sessions.end(); ++it){
+	for (auto it = sessions.begin(); it != sessions.end(); ++it) {
 		Ensemble& ensemble = *(it->ensemble);
 		DataSet& trn = *(it->trnData);
 		vector<double> tmp = Saliency::saliency(ensemble, trn, false);
@@ -144,96 +139,93 @@ void PrintUtils::printSaliencies(std::ostream& os, std::vector<Session>& session
 	}
 	{
 		double divisor = sessions.size();
-		for(auto& s : sals) s /= divisor;
+		for (auto& s : sals)
+			s /= divisor;
 	}
 	Saliency::print(os, sals);
 }
 
-template<class T>
-string argValueGen(const string arg, const T value)
-{
+template <class T> string argValueGen(const string arg, const T value) {
 	ostringstream s;
-	s<<" "<<arg<<"=\""<<value<<"\"";
-	//return s.str();
+	s << " " << arg << "=\"" << value << "\"";
+	// return s.str();
 	return "";
 }
 
-template<class T>
-void printXMLvector(ostream& os, const string indent, const string name, 
-		const string args, const vector<T>& vec)
-{
-	os<<indent<<"<"<<name<<args<<">"<<endl<<indent<<"\t";
+template <class T>
+void printXMLvector(ostream& os, const string indent, const string name, const string args,
+                    const vector<T>& vec) {
+	os << indent << "<" << name << args << ">" << endl << indent << "\t";
 	copy(vec.begin(), vec.end(), ostream_iterator<T>(os, " "));
-	os<<endl<<indent<<"</"<<name<<">"<<endl;
+	os << endl << indent << "</" << name << ">" << endl;
 }
 
-void printXMLnormaliser(ostream& os, const string indent, Normaliser& norm)
-{
-	os<<indent<<"<normalisation>"<<endl;
-	printXMLvector(os, indent+"\t", "mean", "", norm.mean());
-	printXMLvector(os, indent+"\t", "stddev", "", norm.stdDev());
-	printXMLvector(os, indent+"\t", "skip", "", norm.skip());
-	os<<indent<<"</normalisation>"<<endl;
+void printXMLnormaliser(ostream& os, const string indent, Normaliser& norm) {
+	os << indent << "<normalisation>" << endl;
+	printXMLvector(os, indent + "\t", "mean", "", norm.mean());
+	printXMLvector(os, indent + "\t", "stddev", "", norm.stdDev());
+	printXMLvector(os, indent + "\t", "skip", "", norm.skip());
+	os << indent << "</normalisation>" << endl;
 }
 
-void printXMLptype(ostream& os, const string indent, const string problemType)
-{	os<<indent<<"<ptype>"<<endl<<indent<<"\t"<<problemType<<endl<<indent<<"</ptype>"<<endl; }
-
-void printXMLlayer(ostream& os, const string indent, const string args, Layer& layer)
-{
-	os<<indent<<"<layer"<<args<<">"<<endl;
-	printXMLvector(os, indent+"\t", "weights", "", layer.weights());
-	os<<indent<<"</layer>"<<endl;
+void printXMLptype(ostream& os, const string indent, const string problemType) {
+	os << indent << "<ptype>" << endl
+	   << indent << "\t" << problemType << endl
+	   << indent << "</ptype>" << endl;
 }
 
-void printXMLmlp(ostream& os, const string indent, const string args, Mlp& mlp)
-{
-	os<<indent<<"<mlp"<<args<<">"<<endl;
-	printXMLvector(os, indent+"\t", "arch", "", mlp.arch());
-	printXMLvector(os, indent+"\t", "activation", "", mlp.types());
+void printXMLlayer(ostream& os, const string indent, const string args, Layer& layer) {
+	os << indent << "<layer" << args << ">" << endl;
+	printXMLvector(os, indent + "\t", "weights", "", layer.weights());
+	os << indent << "</layer>" << endl;
+}
+
+void printXMLmlp(ostream& os, const string indent, const string args, Mlp& mlp) {
+	os << indent << "<mlp" << args << ">" << endl;
+	printXMLvector(os, indent + "\t", "arch", "", mlp.arch());
+	printXMLvector(os, indent + "\t", "activation", "", mlp.types());
 	vector<double> weights = mlp.weights();
-	printXMLvector(os, indent+"\t", "weights", "", weights);
-	os<<indent<<"</mlp>"<<endl;
+	printXMLvector(os, indent + "\t", "weights", "", weights);
+	os << indent << "</mlp>" << endl;
 }
 
-void printXMLensemble(ostream& os, const string indent, const string args, Ensemble& ensemble)
-{
-	os<<indent<<"<ensemble"<<args<<">"<<endl;
-	os<<indent<<"\t<weights> ";
-	for(uint i=0; i<ensemble.size(); ++i) os<<ensemble.scale(i)<<" ";
-	os<<indent<<"</weights>"<<endl;
-	for(uint i=0; i<ensemble.size(); ++i)
-		printXMLmlp(os, indent+"\t", argValueGen("nbr",i), ensemble.mlp(i));
-	os<<indent<<"</ensemble>"<<endl;
+void printXMLensemble(ostream& os, const string indent, const string args, Ensemble& ensemble) {
+	os << indent << "<ensemble" << args << ">" << endl;
+	os << indent << "\t<weights> ";
+	for (uint i = 0; i < ensemble.size(); ++i)
+		os << ensemble.scale(i) << " ";
+	os << indent << "</weights>" << endl;
+	for (uint i = 0; i < ensemble.size(); ++i)
+		printXMLmlp(os, indent + "\t", argValueGen("nbr", i), ensemble.mlp(i));
+	os << indent << "</ensemble>" << endl;
 }
 
-void PrintUtils::printXML(ostream& os, vector<Session>& sessions, Normaliser& norm, const Config& config)
-{
-	os<<"<?xml version=\"1.0\" standalone=\"yes\"?>"<<endl;
-	os<<"<networks>"<<endl;
+void PrintUtils::printXML(ostream& os, vector<Session>& sessions, Normaliser& norm,
+                          const Config& config) {
+	os << "<?xml version=\"1.0\" standalone=\"yes\"?>" << endl;
+	os << "<networks>" << endl;
 	printXMLptype(os, "", config.problemType() == false ? "classification" : "regression");
 	printXMLnormaliser(os, "", norm);
-/*	if(sessions.size() > 1){ //All ensembles in the sessions contain only 1 Mlp
-		Ensemble ensemble;
-		for(vector<Session>::iterator it = sessions.begin(); it != sessions.end(); ++it){
-			ensemble.addMlp(it->ensemble->mlp(0));
-		}
-		printXMLensemble(os, "", argValueGen("nbr",1), ensemble);
-	}else{*/
-	for(uint i=0; i<sessions.size(); ++i){
+	/*	if(sessions.size() > 1){ //All ensembles in the sessions contain only 1 Mlp
+	        Ensemble ensemble;
+	        for(vector<Session>::iterator it = sessions.begin(); it != sessions.end(); ++it){
+	            ensemble.addMlp(it->ensemble->mlp(0));
+	        }
+	        printXMLensemble(os, "", argValueGen("nbr",1), ensemble);
+	    }else{*/
+	for (uint i = 0; i < sessions.size(); ++i) {
 		Ensemble& ensemble = *(sessions.at(i).ensemble);
-		printXMLensemble(os, "", argValueGen("nbr",i), ensemble);
+		printXMLensemble(os, "", argValueGen("nbr", i), ensemble);
 	}
 	//}
-	os<<"</networks>"<<endl;
+	os << "</networks>" << endl;
 }
 
-void PrintUtils::printXML(ostream& os, Ensemble& ensemble, Normaliser& norm, const Config& config)
-{
-	os<<"<?xml version=\"1.0\" standalone=\"yes\"?>"<<endl;
-	os<<"<networks>"<<endl;
+void PrintUtils::printXML(ostream& os, Ensemble& ensemble, Normaliser& norm, const Config& config) {
+	os << "<?xml version=\"1.0\" standalone=\"yes\"?>" << endl;
+	os << "<networks>" << endl;
 	printXMLptype(os, "", config.problemType() == false ? "classification" : "regression");
 	printXMLnormaliser(os, "", norm);
-	printXMLensemble(os, "", argValueGen("nbr",1), ensemble);
-	os<<"</networks>"<<endl;
+	printXMLensemble(os, "", argValueGen("nbr", 1), ensemble);
+	os << "</networks>" << endl;
 }

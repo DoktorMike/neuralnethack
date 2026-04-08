@@ -8,45 +8,46 @@
 using namespace DataTools;
 
 using std::ostream;
-using std::vector;
 using std::ostringstream;
+using std::vector;
 
-//PUBLIC
+// PUBLIC
 
-DataSet* Sampler::data() const {return theData;}
-void Sampler::data(DataSet* d){theData = d;}
+DataSet* Sampler::data() const {
+	return theData;
+}
+void Sampler::data(DataSet* d) {
+	theData = d;
+}
 
-bool Sampler::randomSampling() const
-{
-	assert(theDataManager != 0); 
+bool Sampler::randomSampling() const {
+	assert(theDataManager != 0);
 	return theDataManager->random();
 }
 
-void Sampler::randomSampling(const bool rs)
-{
-	assert(theDataManager != 0); 
+void Sampler::randomSampling(const bool rs) {
+	assert(theDataManager != 0);
 	theDataManager->random(rs);
 }
 
-//PROTECTED
+// PROTECTED
 
-Sampler::Sampler(DataSet& data):theDataManager(new DataManager()), theData(&data), theSplits(0)
-{}
+Sampler::Sampler(DataSet& data) : theDataManager(new DataManager()), theData(&data), theSplits(0) {}
 
-Sampler::Sampler(const Sampler& s){*this = s;}
+Sampler::Sampler(const Sampler& s) {
+	*this = s;
+}
 
-Sampler::~Sampler()
-{
+Sampler::~Sampler() {
 	delete theDataManager;
-	if(theSplits != 0){
+	if (theSplits != 0) {
 		theSplits->clear();
 		delete theSplits;
 	}
 }
 
-Sampler& Sampler::operator=(const Sampler& s)
-{
-	if(this != &s){
+Sampler& Sampler::operator=(const Sampler& s) {
+	if (this != &s) {
 		theDataManager = new DataManager(*s.theDataManager);
 		theData = s.theData;
 		theSplits = new vector<DataSet>(s.theSplits->begin(), s.theSplits->end());
@@ -54,5 +55,4 @@ Sampler& Sampler::operator=(const Sampler& s)
 	return *this;
 }
 
-//PRIVATE
-
+// PRIVATE

@@ -23,10 +23,9 @@ using namespace EvalTools;
 using namespace std;
 
 /* Return the cross-validation for a specific model */
-ModelEstimator* trainAndValidateModel(DataSet& trnData, const Config& config)
-{
+ModelEstimator* trainAndValidateModel(DataSet& trnData, const Config& config) {
 	ModelEstimator* me = 0;
-	if(config.msParamN() > 0){
+	if (config.msParamN() > 0) {
 		me = Factory::createModelEstimator(config, trnData);
 		pair<double, double>* tmp = me->runAndEstimateModel(&ErrorMeasures::auc);
 		delete tmp;
@@ -35,10 +34,9 @@ ModelEstimator* trainAndValidateModel(DataSet& trnData, const Config& config)
 }
 
 /* Return the cross-validation for a specific model */
-EnsembleBuilder* trainAndTestModel(DataSet& trnData, DataSet& tstData, const Config& config)
-{
+EnsembleBuilder* trainAndTestModel(DataSet& trnData, DataSet& tstData, const Config& config) {
 	EnsembleBuilder* eb = 0;
-	if(config.ensParamN() > 0){
+	if (config.ensParamN() > 0) {
 		eb = Factory::createEnsembleBuilder(config, trnData);
 		Ensemble* ensemble = eb->buildEnsemble();
 		delete ensemble;
@@ -46,130 +44,127 @@ EnsembleBuilder* trainAndTestModel(DataSet& trnData, DataSet& tstData, const Con
 	return eb;
 }
 
-void trainAndTestSingle(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Config& config)
-{
+void trainAndTestSingle(DataSet& trnData, DataSet& tstData, Normaliser& norm,
+                        const Config& config) {
 	Trainer* trainer = Factory::createTrainer(config, trnData);
 	trainer->train(cout);
 	Error* error = trainer->error();
 	Mlp* mlp = trainer->mlp();
 	Ensemble c(*mlp, 1);
-	//double aucTrn = EvalTools::ErrorMeasures::auc(c, trnData);
-	//double aucTst = EvalTools::ErrorMeasures::auc(c, tstData);
+	// double aucTrn = EvalTools::ErrorMeasures::auc(c, trnData);
+	// double aucTst = EvalTools::ErrorMeasures::auc(c, tstData);
 
 	delete trainer;
 	delete error;
 	delete mlp;
 }
 
-void saveOutputList(vector<Session>& sessions, DataSet& trnData, DataSet& tstData, Config& config, bool tst)
-{
-	if(config.saveOutputList() == false) return;
+void saveOutputList(vector<Session>& sessions, DataSet& trnData, DataSet& tstData, Config& config,
+                    bool tst) {
+	if (config.saveOutputList() == false) return;
 	ofstream os;
-	string fname = "outputlist."+config.suffix()+".txt";
+	string fname = "outputlist." + config.suffix() + ".txt";
 	os.open(fname.c_str(), ios::out);
-	if(!os){
-		cerr<<"Could not open output file: "<<fname<<endl;
+	if (!os) {
+		cerr << "Could not open output file: " << fname << endl;
 		abort();
 	}
-	if(tst == true)
+	if (tst == true)
 		PrintUtils::printTstEnslist(os, sessions, trnData, tstData, config);
 	else
 		PrintUtils::printValEnslist(os, sessions, trnData, tstData, config);
 	os.close();
 }
 
-void saveSession(vector<Session>& sessions, Normaliser& norm, Config& config, bool tst)
-{
-	if(config.saveSession() == false) return;
+void saveSession(vector<Session>& sessions, Normaliser& norm, Config& config, bool tst) {
+	if (config.saveSession() == false) return;
 	ofstream os;
-	string fname = "networks."+config.suffix()+".xml";
+	string fname = "networks." + config.suffix() + ".xml";
 	os.open(fname.c_str(), ios::out);
-	if(!os){
-		cerr<<"Could not open output file: "<<fname<<endl;
+	if (!os) {
+		cerr << "Could not open output file: " << fname << endl;
 		abort();
 	}
-	if(tst == true){
+	if (tst == true) {
 		Ensemble ensemble;
-		for(vector<Session>::iterator it = sessions.begin(); it != sessions.end(); ++it){
-			if(it->ensemble->size() > 1){
-				cerr<<"Error: Expected ensemble to consist of only 1 Mlp."<<endl;
+		for (vector<Session>::iterator it = sessions.begin(); it != sessions.end(); ++it) {
+			if (it->ensemble->size() > 1) {
+				cerr << "Error: Expected ensemble to consist of only 1 Mlp." << endl;
 				abort();
 			}
 			ensemble.addMlp(it->ensemble->mlp(0));
 		}
 		PrintUtils::printXML(os, ensemble, norm, config);
-	}else{
+	} else {
 		PrintUtils::printXML(os, sessions, norm, config);
 	}
 	os.close();
 }
 
-void saveSaliencies(vector<Session>& sessions, Config& config)
-{
-	if(config.saveSession() == false) return;
+void saveSaliencies(vector<Session>& sessions, Config& config) {
+	if (config.saveSession() == false) return;
 	ofstream os;
-	string fname = "saliencies."+config.suffix()+".txt";
+	string fname = "saliencies." + config.suffix() + ".txt";
 	os.open(fname.c_str(), ios::out);
-	if(!os){
-		cerr<<"Could not open output file: "<<fname<<endl;
+	if (!os) {
+		cerr << "Could not open output file: " << fname << endl;
 		abort();
 	}
 	PrintUtils::printSaliencies(os, sessions, config);
 	os.close();
 }
 
-void doStuffMultipleClass(DataSet& trn, DataSet &tst, Normaliser& norm, Config& config)
-{
+void doStuffMultipleClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& config) {
 	Config best = config;
 	// Open the file to print results to
 	ofstream os;
-	string fname = "result."+config.suffix()+".txt";
+	string fname = "result." + config.suffix() + ".txt";
 	os.open(fname.c_str(), ios::out);
-	if(!os){
-		cerr<<"Could not open output file: "<<fname<<endl;
+	if (!os) {
+		cerr << "Could not open output file: " << fname << endl;
 		abort();
 	}
 
 	vector<Session> sessions;
-	if(!config.vary().empty()){ //Model selection, training and testing
+	if (!config.vary().empty()) { // Model selection, training and testing
 		ModelSelector ms;
-		cout<<"Finding the best model"<<endl;
+		cout << "Finding the best model" << endl;
 		pair<Config, double> result = ms.findBestModel(trn, config);
 		best = result.first;
-		cout<<"Building the ensemble from best model"<<endl;
+		cout << "Building the ensemble from best model" << endl;
 		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best, trn);
 		Ensemble* ensemble = eb->buildEnsemble();
 		double trnAuc = ErrorMeasures::crossEntropy(*ensemble, trn);
 		double tstAuc = ErrorMeasures::crossEntropy(*ensemble, tst);
-		os<<setw(3)<<" "<<setw(14)<<"Trn"<<setw(14)<<"Tst"<<endl;
-		os<<setw(3)<<"CEE"<<setw(14)<<trnAuc<<setw(14)<<tstAuc<<endl;
+		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
+		os << setw(3) << "CEE" << setw(14) << trnAuc << setw(14) << tstAuc << endl;
 		sessions = eb->sessions();
-		if(config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
-		if(config.saveSession() == true) saveSession(sessions, norm, best, true);
+		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
+		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
 		delete eb;
 		delete ensemble;
-	}else if(config.msParamN() > 0){ //Validation
+	} else if (config.msParamN() > 0) { // Validation
 		ModelEstimator* me = Factory::createModelEstimator(config, trn);
 		pair<double, double>* auc = me->runAndEstimateModel(&ErrorMeasures::auc);
 		double trnAuc = auc->first;
 		double valAuc = auc->second;
-		os<<setw(3)<<" "<<setw(14)<<"Trn"<<setw(14)<<"Val"<<endl;
-		os<<setw(3)<<"AUC"<<setw(14)<<trnAuc<<setw(14)<<valAuc<<endl;
+		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Val" << endl;
+		os << setw(3) << "AUC" << setw(14) << trnAuc << setw(14) << valAuc << endl;
 		sessions = me->sessions();
-		if(config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, false);
-		if(config.saveSession() == true) saveSession(sessions, norm, best, false);
+		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, false);
+		if (config.saveSession() == true) saveSession(sessions, norm, best, false);
 		delete auc;
 		delete me;
-	}else{ //Training and testing
+	} else { // Training and testing
 		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best, trn);
 		Ensemble* ensemble = eb->buildEnsemble();
 		double trnAuc = ErrorMeasures::auc(*ensemble, trn);
 		double tstAuc = ErrorMeasures::auc(*ensemble, tst);
-		os<<setw(3)<<" "<<setw(14)<<"Trn"<<setw(14)<<"Tst"<<endl;
-		os<<setw(3)<<"AUC"<<setw(14)<<trnAuc<<setw(14)<<tstAuc<<endl;
+		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
+		os << setw(3) << "AUC" << setw(14) << trnAuc << setw(14) << tstAuc << endl;
 		sessions = eb->sessions();
-		if(config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
-		if(config.saveSession() == true) saveSession(sessions, norm, best, true);
+		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
+		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
 		delete eb;
 		delete ensemble;
 	}
@@ -177,58 +172,57 @@ void doStuffMultipleClass(DataSet& trn, DataSet &tst, Normaliser& norm, Config& 
 	saveSaliencies(sessions, best);
 }
 
-void doStuffBinaryClass(DataSet& trn, DataSet &tst, Normaliser& norm, Config& config)
-{
+void doStuffBinaryClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& config) {
 	Config best = config;
 	// Open the file to print results to
 	ofstream os;
-	string fname = "result."+config.suffix()+".txt";
+	string fname = "result." + config.suffix() + ".txt";
 	os.open(fname.c_str(), ios::out);
-	if(!os){
-		cerr<<"Could not open output file: "<<fname<<endl;
+	if (!os) {
+		cerr << "Could not open output file: " << fname << endl;
 		abort();
 	}
 
 	vector<Session> sessions;
-	if(!config.vary().empty()){ //Model selection, training and testing
+	if (!config.vary().empty()) { // Model selection, training and testing
 		ModelSelector ms;
-		cout<<"Finding the best model"<<endl;
+		cout << "Finding the best model" << endl;
 		pair<Config, double> result = ms.findBestModel(trn, config);
 		best = result.first;
-		cout<<"Building the ensemble from best model"<<endl;
+		cout << "Building the ensemble from best model" << endl;
 		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best, trn);
 		Ensemble* ensemble = eb->buildEnsemble();
 		double trnAuc = ErrorMeasures::auc(*ensemble, trn);
 		double tstAuc = ErrorMeasures::auc(*ensemble, tst);
-		os<<setw(3)<<" "<<setw(14)<<"Trn"<<setw(14)<<"Tst"<<endl;
-		os<<setw(3)<<"AUC"<<setw(14)<<trnAuc<<setw(14)<<tstAuc<<endl;
+		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
+		os << setw(3) << "AUC" << setw(14) << trnAuc << setw(14) << tstAuc << endl;
 		sessions = eb->sessions();
-		if(config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
-		if(config.saveSession() == true) saveSession(sessions, norm, best, true);
+		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
+		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
 		delete eb;
 		delete ensemble;
-	}else if(config.msParamN() > 0){ //Validation
+	} else if (config.msParamN() > 0) { // Validation
 		ModelEstimator* me = Factory::createModelEstimator(config, trn);
 		pair<double, double>* auc = me->runAndEstimateModel(&ErrorMeasures::auc);
 		double trnAuc = auc->first;
 		double valAuc = auc->second;
-		os<<setw(3)<<" "<<setw(14)<<"Trn"<<setw(14)<<"Val"<<endl;
-		os<<setw(3)<<"AUC"<<setw(14)<<trnAuc<<setw(14)<<valAuc<<endl;
+		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Val" << endl;
+		os << setw(3) << "AUC" << setw(14) << trnAuc << setw(14) << valAuc << endl;
 		sessions = me->sessions();
-		if(config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, false);
-		if(config.saveSession() == true) saveSession(sessions, norm, best, false);
+		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, false);
+		if (config.saveSession() == true) saveSession(sessions, norm, best, false);
 		delete auc;
 		delete me;
-	}else{ //Training and testing
+	} else { // Training and testing
 		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best, trn);
 		Ensemble* ensemble = eb->buildEnsemble();
 		double trnAuc = ErrorMeasures::auc(*ensemble, trn);
 		double tstAuc = ErrorMeasures::auc(*ensemble, tst);
-		os<<setw(3)<<" "<<setw(14)<<"Trn"<<setw(14)<<"Tst"<<endl;
-		os<<setw(3)<<"AUC"<<setw(14)<<trnAuc<<setw(14)<<tstAuc<<endl;
+		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
+		os << setw(3) << "AUC" << setw(14) << trnAuc << setw(14) << tstAuc << endl;
 		sessions = eb->sessions();
-		if(config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
-		if(config.saveSession() == true) saveSession(sessions, norm, best, true);
+		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
+		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
 		delete eb;
 		delete ensemble;
 	}
@@ -236,68 +230,62 @@ void doStuffBinaryClass(DataSet& trn, DataSet &tst, Normaliser& norm, Config& co
 	saveSaliencies(sessions, best);
 }
 
-void parseConf(string fname, Config& config)
-{
+void parseConf(string fname, Config& config) {
 	ifstream confStream;
 
-	cout<<"Parsing and storing Configuration."<<endl<<endl;
+	cout << "Parsing and storing Configuration." << endl << endl;
 	confStream.open(fname.c_str(), ios::in);
-	if(!confStream){ 
-		cerr<<"Could not open configuration file: "<<fname<<endl;
+	if (!confStream) {
+		cerr << "Could not open configuration file: " << fname << endl;
 		abort();
 	}
 	Parser::readConfigurationFile(confStream, config);
 	confStream.close();
 }
 
-
-void parseData(Config& config, DataSet& trnData, DataSet& tstData)
-{
+void parseData(Config& config, DataSet& trnData, DataSet& tstData) {
 	ifstream trnStream;
 	ifstream tstStream;
 	CoreDataSet* trnCoreData = new CoreDataSet();
 	CoreDataSet* tstCoreData = new CoreDataSet();
 
-	cout<<"Parsing and adding data to the training DataSet."<<endl<<endl;
+	cout << "Parsing and adding data to the training DataSet." << endl << endl;
 	trnStream.open(config.fileName().c_str(), ios::in);
-	if(!trnStream){
-		cerr<<"Could not open data file: "<<config.fileName()<<endl;
+	if (!trnStream) {
+		cerr << "Could not open data file: " << config.fileName() << endl;
 		abort();
 	}
-	Parser::readDataFile(trnStream, config.idColumn(), config.inputColumns(), 
-			config.outputColumns(), config.rowRange(), *trnCoreData);
+	Parser::readDataFile(trnStream, config.idColumn(), config.inputColumns(),
+	                     config.outputColumns(), config.rowRange(), *trnCoreData);
 	trnStream.close();
 	trnData.coreDataSet(*trnCoreData);
 
-	cout<<"Parsing and adding data to the testing DataSet."<<endl<<endl;
+	cout << "Parsing and adding data to the testing DataSet." << endl << endl;
 	tstStream.open(config.fileNameT().c_str(), ios::in);
-	if(!tstStream){
-		cerr<<"Could not open data file: "<<config.fileNameT()<<endl;
+	if (!tstStream) {
+		cerr << "Could not open data file: " << config.fileNameT() << endl;
 		abort();
 	}
-	Parser::readDataFile(tstStream, config.idColumnT(), config.inputColumnsT(), 
-			config.outputColumnsT(), config.rowRangeT(), *tstCoreData);
+	Parser::readDataFile(tstStream, config.idColumnT(), config.inputColumnsT(),
+	                     config.outputColumnsT(), config.rowRangeT(), *tstCoreData);
 	tstStream.close();
 	tstData.coreDataSet(*tstCoreData);
 }
 
-
-void parseCmdLine(Config& config, int argc, char* argv[])
-{
+void parseCmdLine(Config& config, int argc, char* argv[]) {
 	string filename(argv[1]);
 	parseConf(filename, config);
-	//config.print(cout);
+	// config.print(cout);
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	Config config;
-	if(argc == 2){
+	if (argc == 2) {
 		parseConf(argv[1], config);
-	}else if(argc == 1){
-		cout<<"Usage: "<<endl<<"neuralnethack configfile"<<endl;
+	} else if (argc == 1) {
+		cout << "Usage: " << endl << "neuralnethack configfile" << endl;
 		exit(0);
-	}else{
+	} else {
 		parseCmdLine(config, argc, argv);
 	}
 
@@ -305,25 +293,26 @@ int main(int argc, char* argv[])
 	Normaliser norm;
 
 	parseData(config, trnData, tstData);
-	cout<<"Printing configuration file."<<endl<<endl; 
+	cout << "Printing configuration file." << endl << endl;
 	ofstream os("myconfig.debug");
 	config.print(os);
 	os.close();
-	srand48(config.seed() == 0 ? time(0) : config.seed()); //This is the ONLY place one may set the seed!
+	srand48(config.seed() == 0 ? time(0)
+	                           : config.seed()); // This is the ONLY place one may set the seed!
 
-	//Normalise training data last since those are the coeff we want printed
-	cout<<"Normalizing data"<<endl; 
-	if(config.normalization() == "Z"){
-		norm.calcAndNormalise(trnData, true); 
+	// Normalise training data last since those are the coeff we want printed
+	cout << "Normalizing data" << endl;
+	if (config.normalization() == "Z") {
+		norm.calcAndNormalise(trnData, true);
 		norm.normalise(tstData);
 	}
 
-	if(config.architecture().back() > 1)
+	if (config.architecture().back() > 1)
 		doStuffMultipleClass(trnData, tstData, norm, config);
 	else
 		doStuffBinaryClass(trnData, tstData, norm, config);
-	//trainAndTest(trnData, tstData, norm, config);
-	//trainAndTestSingle(trnData, tstData, norm, config);
+	// trainAndTest(trnData, tstData, norm, config);
+	// trainAndTestSingle(trnData, tstData, norm, config);
 
 	delete &(trnData.coreDataSet());
 	delete &(tstData.coreDataSet());

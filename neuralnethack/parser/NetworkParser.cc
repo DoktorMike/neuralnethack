@@ -17,21 +17,21 @@ using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
 
-
 // PUBLIC
 
-NetworkParser::NetworkParser(){}
+NetworkParser::NetworkParser() {}
 
-pair<vector<Ensemble*>, Normaliser*> NetworkParser::parseXML(istream& is)
-{
+pair<vector<Ensemble*>, Normaliser*> NetworkParser::parseXML(istream& is) {
 	string token;
 	vector<Ensemble*> ensembles;
 	Normaliser* normalisation = 0;
 
-	while(is>>token && token != "</networks>")
-		if(token == "<ensemble>") ensembles.push_back(parseXMLensemble(is));
-		else if(token == "<normalisation>") normalisation = parseXMLnormalisation(is);
-	if(normalisation->mean().size() == 0){
+	while (is >> token && token != "</networks>")
+		if (token == "<ensemble>")
+			ensembles.push_back(parseXMLensemble(is));
+		else if (token == "<normalisation>")
+			normalisation = parseXMLnormalisation(is);
+	if (normalisation->mean().size() == 0) {
 		uint size = ensembles.front()->mlp(0).arch().front();
 		size += ensembles.front()->mlp(0).arch().back();
 		vector<double> mean(size, 0);
@@ -45,51 +45,61 @@ pair<vector<Ensemble*>, Normaliser*> NetworkParser::parseXML(istream& is)
 	return pair<vector<Ensemble*>, Normaliser*>(ensembles, normalisation);
 }
 
-Ensemble* NetworkParser::buildEnsemble(vector<Ensemble*>& ensembles)
-{
-	//cout<<"Found "<<ensembles.size()<<" ensembles"<<endl;
+Ensemble* NetworkParser::buildEnsemble(vector<Ensemble*>& ensembles) {
+	// cout<<"Found "<<ensembles.size()<<" ensembles"<<endl;
 	Ensemble* ensemble = new Ensemble();
-	for(vector<Ensemble*>::iterator it=ensembles.begin(); it!=ensembles.end(); ++it)
-		for(uint i=0; i<(*it)->size(); ++i)
+	for (vector<Ensemble*>::iterator it = ensembles.begin(); it != ensembles.end(); ++it)
+		for (uint i = 0; i < (*it)->size(); ++i)
 			ensemble->addMlp((*it)->mlp(i));
-	//cout<<"Created a new Ensemble with "<<ensemble->size()<<" mlps"<<endl;
+	// cout<<"Created a new Ensemble with "<<ensemble->size()<<" mlps"<<endl;
 	return ensemble;
 }
 
-void NetworkParser::killAll(vector<Ensemble*>& ensembles, Ensemble* ensemble, Normaliser* normalisation)
-{
-	for(vector<Ensemble*>::iterator it=ensembles.begin(); it!=ensembles.end(); ++it) delete *it;
+void NetworkParser::killAll(vector<Ensemble*>& ensembles, Ensemble* ensemble,
+                            Normaliser* normalisation) {
+	for (vector<Ensemble*>::iterator it = ensembles.begin(); it != ensembles.end(); ++it)
+		delete *it;
 	delete ensemble;
 	delete normalisation;
 }
 
+// PRIVATE
+void NetworkParser::parseXMLvector(istream& is, vector<uint>& vec, string stop) {
+	string token;
+	while (is >> token && token != stop)
+		vec.push_back(atoi(token.c_str()));
+}
 
-// PRIVATE 
-void NetworkParser::parseXMLvector(istream& is, vector<uint>& vec, string stop)
-{string token; while(is>>token && token != stop) vec.push_back(atoi(token.c_str()));}
+void NetworkParser::parseXMLvector(istream& is, vector<double>& vec, string stop) {
+	string token;
+	while (is >> token && token != stop)
+		vec.push_back(atof(token.c_str()));
+}
 
-void NetworkParser::parseXMLvector(istream& is, vector<double>& vec, string stop)
-{string token; while(is>>token && token != stop) vec.push_back(atof(token.c_str()));}
+void NetworkParser::parseXMLvector(istream& is, vector<bool>& vec, string stop) {
+	string token;
+	while (is >> token && token != stop)
+		vec.push_back(atoi(token.c_str()));
+}
 
-void NetworkParser::parseXMLvector(istream& is, vector<bool>& vec, string stop)
-{string token; while(is>>token && token != stop) vec.push_back(atoi(token.c_str()));}
+void NetworkParser::parseXMLvector(istream& is, vector<string>& vec, string stop) {
+	string token;
+	while (is >> token && token != stop)
+		vec.push_back(token);
+}
 
-void NetworkParser::parseXMLvector(istream& is, vector<string>& vec, string stop)
-{string token; while(is>>token && token != stop) vec.push_back(token);}
-
-Mlp* NetworkParser::parseXMLmlp(istream& is)
-{
+Mlp* NetworkParser::parseXMLmlp(istream& is) {
 	string token = "";
 	vector<uint> arch;
 	vector<double> weights;
 	vector<string> activations;
 
-	while(is>>token && token != "</mlp>"){
-		if(token == "<weights>"){
+	while (is >> token && token != "</mlp>") {
+		if (token == "<weights>") {
 			parseXMLvector(is, weights, "</weights>");
-		}else if(token == "<activation>"){
+		} else if (token == "<activation>") {
 			parseXMLvector(is, activations, "</activation>");
-		}else if(token == "<arch>"){
+		} else if (token == "<arch>") {
 			parseXMLvector(is, arch, "</arch>");
 		}
 	}
@@ -98,12 +108,11 @@ Mlp* NetworkParser::parseXMLmlp(istream& is)
 	return mlp;
 }
 
-Ensemble* NetworkParser::parseXMLensemble(istream& is)
-{
+Ensemble* NetworkParser::parseXMLensemble(istream& is) {
 	Ensemble* ensemble = new Ensemble();
 	string token = "";
-	while(is>>token && token != "</ensemble>"){
-		if(token == "<mlp>"){
+	while (is >> token && token != "</ensemble>") {
+		if (token == "<mlp>") {
 			Mlp* mlp = parseXMLmlp(is);
 			ensemble->addMlp(*mlp);
 			delete mlp;
@@ -112,17 +121,17 @@ Ensemble* NetworkParser::parseXMLensemble(istream& is)
 	return ensemble;
 }
 
-Normaliser* NetworkParser::parseXMLnormalisation(istream& is)
-{
+Normaliser* NetworkParser::parseXMLnormalisation(istream& is) {
 	string token = "";
 	vector<double> mean, stddev;
 	vector<bool> skip;
-	while(is>>token && token != "</normalisation>")
-		if(token == "<mean>") parseXMLvector(is, mean, "</mean>");
-		else if(token == "<stddev>") parseXMLvector(is, stddev, "</stddev>");
-		else if(token == "<skip>") parseXMLvector(is, skip, "</skip>");
+	while (is >> token && token != "</normalisation>")
+		if (token == "<mean>")
+			parseXMLvector(is, mean, "</mean>");
+		else if (token == "<stddev>")
+			parseXMLvector(is, stddev, "</stddev>");
+		else if (token == "<skip>")
+			parseXMLvector(is, skip, "</skip>");
 	Normaliser* normalisation = new Normaliser(stddev, mean, skip);
 	return normalisation;
 }
-
-

@@ -1,23 +1,19 @@
 #include "SigmoidLayer.hh"
 
-
 using namespace MultiLayerPerceptron;
 
-SigmoidLayer::SigmoidLayer(const uint nc, const uint np):Layer(nc, np, SIGMOID)
-{}
+SigmoidLayer::SigmoidLayer(const uint nc, const uint np) : Layer(nc, np, SIGMOID) {}
 
-SigmoidLayer::~SigmoidLayer()
-{}
+SigmoidLayer::~SigmoidLayer() {}
 
-//ACCESSOR AND MUTATOR FUNCTIONS
+// ACCESSOR AND MUTATOR FUNCTIONS
 
-//ACCESSOR FUNCTIONS
+// ACCESSOR FUNCTIONS
 
-//COUNTS AND CRAP
+// COUNTS AND CRAP
 
-//PRINTS
+// PRINTS
 
-//UTILS
+// UTILS
 
-//PRIVATE--------------------------------------------------------------------//
-
+// PRIVATE--------------------------------------------------------------------//

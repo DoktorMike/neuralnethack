@@ -8,91 +8,93 @@
 #include <iostream>
 #include <cstdlib>
 
-namespace DataTools
-{
-	/**A class representing a pattern. A pattern consists of two elements.
-	 * (i)The data point i.e. input to the classifier.
-	 * (ii)The classification i.e. the target output of the classifier.
+namespace DataTools {
+/**A class representing a pattern. A pattern consists of two elements.
+ * (i)The data point i.e. input to the classifier.
+ * (ii)The classification i.e. the target output of the classifier.
+ */
+class Pattern {
+  public:
+	/**Basic constructor.
+	 * \param id the identification string for this pattern.
+	 * \param in the input portion of the pattern.
+	 * \param out the output portion of the pattern.
 	 */
-	class Pattern
-	{
-		public:
-			/**Basic constructor.
-			 * \param id the identification string for this pattern.
-			 * \param in the input portion of the pattern.
-			 * \param out the output portion of the pattern.
-			 */
-			Pattern(std::string id, std::vector<double>& in, std::vector<double>& out);
+	Pattern(std::string id, std::vector<double>& in, std::vector<double>& out);
 
-			/**Empty constructor. */
-			Pattern();
+	/**Empty constructor. */
+	Pattern();
 
-			/**Copy constructor.
-			 * \param pattern the pattern to copy from.
-			 */
-			Pattern(const Pattern& pattern);
+	/**Copy constructor.
+	 * \param pattern the pattern to copy from.
+	 */
+	Pattern(const Pattern& pattern);
 
-			/**The destructor. */
-			~Pattern();
+	/**The destructor. */
+	~Pattern();
 
-			/**Assignment operator.
-			 * \param pattern the Pattern to assign from.
-			 */
-			Pattern& operator=(const Pattern& pattern);
+	/**Assignment operator.
+	 * \param pattern the Pattern to assign from.
+	 */
+	Pattern& operator=(const Pattern& pattern);
 
-			/**Returns the identification string for this pattern.
-			 * \return the identification string.
-			 */
-			std::string& idstring();
+	/**Returns the identification string for this pattern.
+	 * \return the identification string.
+	 */
+	std::string& idstring();
 
-			/**Sets the identification string for this pattern.
-			 * \param id the identification string to use.
-			 */
-			void idstring(const std::string& id);
+	/**Sets the identification string for this pattern.
+	 * \param id the identification string to use.
+	 */
+	void idstring(const std::string& id);
 
-			/**Returns the input vector. */
-			std::vector<double>& input();
+	/**Returns the input vector. */
+	std::vector<double>& input();
 
-			/**Sets the input vector.
-			 * \param in the input vector to use.
-			 */
-			void input(std::vector<double>& in);
+	/**Sets the input vector.
+	 * \param in the input vector to use.
+	 */
+	void input(std::vector<double>& in);
 
-			/**Fetch the number of inputs this pattern uses.
-			 * \return the number of inputs.
-			 */
-			uint nInput() const;
+	/**Fetch the number of inputs this pattern uses.
+	 * \return the number of inputs.
+	 */
+	uint nInput() const;
 
-			/**Returns the output vector.
-			 * \return the output vector.
-			 */
-			std::vector<double>& output();
+	/**Returns the output vector.
+	 * \return the output vector.
+	 */
+	std::vector<double>& output();
 
-			/**Sets the output vector.
-			 * \param out the output vector to use.
-			 */
-			void output(std::vector<double>& out);
+	/**Sets the output vector.
+	 * \param out the output vector to use.
+	 */
+	void output(std::vector<double>& out);
 
-			/**Return the number of outputs this pattern uses.
-			 * \return the number of outputs.
-			 */
-			uint nOutput() const;
+	/**Return the number of outputs this pattern uses.
+	 * \return the number of outputs.
+	 */
+	uint nOutput() const;
 
-			/**Print this pattern. */
-			void print(std::ostream& os) const;
+	/**Print this pattern. */
+	void print(std::ostream& os) const;
 
-		private:
-			/**The identification string of this pattern. */
-			std::string id;
+  private:
+	/**The identification string of this pattern. */
+	std::string id;
 
-			/**The input portion of this pattern. */
-			std::vector<double> in;
+	/**The input portion of this pattern. */
+	std::vector<double> in;
 
-			/**The output portion of this pattern. */
-			std::vector<double> out;
-	};
+	/**The output portion of this pattern. */
+	std::vector<double> out;
+};
 
-	inline std::string& Pattern::idstring() { return id; }
-	inline void Pattern::idstring(const std::string& id) { this->id = id; }
+inline std::string& Pattern::idstring() {
+	return id;
 }
+inline void Pattern::idstring(const std::string& id) {
+	this->id = id;
+}
+} // namespace DataTools
 #endif

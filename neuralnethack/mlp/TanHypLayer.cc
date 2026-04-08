@@ -5,21 +5,18 @@
 
 using namespace MultiLayerPerceptron;
 
-TanHypLayer::TanHypLayer(uint nc, uint np):Layer(nc, np, TANHYP)
-{}
+TanHypLayer::TanHypLayer(uint nc, uint np) : Layer(nc, np, TANHYP) {}
 
-TanHypLayer::~TanHypLayer()
-{}
+TanHypLayer::~TanHypLayer() {}
 
-//ACCESSOR AND MUTATOR FUNCTIONS
+// ACCESSOR AND MUTATOR FUNCTIONS
 
-//ACCESSOR FUNCTIONS
+// ACCESSOR FUNCTIONS
 
-//COUNTS AND CRAP
+// COUNTS AND CRAP
 
-//PRINTS
+// PRINTS
 
-//UTILS
+// UTILS
 
-//PRIVATE--------------------------------------------------------------------//
-
+// PRIVATE--------------------------------------------------------------------//

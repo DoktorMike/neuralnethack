@@ -25,10 +25,9 @@ using namespace EvalTools;
 using namespace MultiLayerPerceptron;
 using namespace std;
 
-int testSimpleSaliency()
-{
+int testSimpleSaliency() {
 	// Create the Mlp
-	vector<uint> arch; 
+	vector<uint> arch;
 	arch.push_back(2);
 	arch.push_back(2);
 	arch.push_back(1);
@@ -39,8 +38,8 @@ int testSimpleSaliency()
 
 	Mlp mlp(arch, types, false);
 	vector<double> weights = mlp.weights();
-	//fill(weights.begin(), weights.end(), 0.5);
-	// Weights for input layer
+	// fill(weights.begin(), weights.end(), 0.5);
+	//  Weights for input layer
 	weights[0] = 0.9;
 	weights[1] = 0.8;
 	weights[2] = 0.7;
@@ -55,22 +54,22 @@ int testSimpleSaliency()
 
 	// Make the data point
 	vector<double> input;
-	input.push_back(0); input.push_back(1);
+	input.push_back(0);
+	input.push_back(1);
 	vector<double> output;
 	output.push_back(1);
 	Pattern p("someid", input, output);
 
 	vector<double> saliency = Saliency::saliency(mlp, p, false);
 	/**\todo Recalculate the saliency so this test will work again. */
-	//if( fabs(saliency[0] - 0.0818615505097) > 1e-13 ) return EXIT_FAILURE;
-	//if( fabs(saliency[1] - 0.0606381855627) > 1e-13 ) return EXIT_FAILURE;
-	//copy(saliency.begin(), saliency.end(), ostream_iterator<double>(cout, " "));
+	// if( fabs(saliency[0] - 0.0818615505097) > 1e-13 ) return EXIT_FAILURE;
+	// if( fabs(saliency[1] - 0.0606381855627) > 1e-13 ) return EXIT_FAILURE;
+	// copy(saliency.begin(), saliency.end(), ostream_iterator<double>(cout, " "));
 
 	return EXIT_SUCCESS;
 }
 
-int testSaliency(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Config& config)
-{
+int testSaliency(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Config& config) {
 
 	Trainer* trainer = 0;
 	Error* error = 0;
@@ -81,7 +80,7 @@ int testSaliency(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Con
 	error = trainer->error();
 	mlp = trainer->mlp();
 	Ensemble c(*mlp, 1);
-	
+
 	vector<double> saliencies = Saliency::saliency(c, trnData, false);
 	Saliency::print(cout, saliencies);
 
@@ -92,62 +91,56 @@ int testSaliency(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Con
 	return 0;
 }
 
-void parseConf(string fname, Config& config)
-{
+void parseConf(string fname, Config& config) {
 	ifstream confStream;
 
 	confStream.open(fname.c_str(), ios::in);
-	if(!confStream){ 
-		cerr<<"Could not open configuration file: "<<fname<<endl;
+	if (!confStream) {
+		cerr << "Could not open configuration file: " << fname << endl;
 		abort();
 	}
 	Parser::readConfigurationFile(confStream, config);
 	confStream.close();
 }
 
-
-void parseData(Config& config, DataSet& trnData, DataSet& tstData)
-{
+void parseData(Config& config, DataSet& trnData, DataSet& tstData) {
 	ifstream trnStream;
 	ifstream tstStream;
 	CoreDataSet* trnCoreData = new CoreDataSet();
 	CoreDataSet* tstCoreData = new CoreDataSet();
 
 	trnStream.open(config.fileName().c_str(), ios::in);
-	if(!trnStream){
-		cerr<<"Could not open data file: "<<config.fileName()<<endl;
+	if (!trnStream) {
+		cerr << "Could not open data file: " << config.fileName() << endl;
 		abort();
 	}
-	Parser::readDataFile(trnStream, config.idColumn(), config.inputColumns(), 
-			config.outputColumns(), config.rowRange(), *trnCoreData);
+	Parser::readDataFile(trnStream, config.idColumn(), config.inputColumns(),
+	                     config.outputColumns(), config.rowRange(), *trnCoreData);
 	trnStream.close();
 	trnData.coreDataSet(*trnCoreData);
 
 	tstStream.open(config.fileNameT().c_str(), ios::in);
-	if(!tstStream){
-		cerr<<"Could not open data file: "<<config.fileNameT()<<endl;
+	if (!tstStream) {
+		cerr << "Could not open data file: " << config.fileNameT() << endl;
 		abort();
 	}
-	Parser::readDataFile(tstStream, config.idColumnT(), config.inputColumnsT(), 
-			config.outputColumnsT(), config.rowRangeT(), *tstCoreData);
+	Parser::readDataFile(tstStream, config.idColumnT(), config.inputColumnsT(),
+	                     config.outputColumnsT(), config.rowRangeT(), *tstCoreData);
 	tstStream.close();
 	tstData.coreDataSet(*tstCoreData);
 }
 
-
-void parseCmdLine(Config& config, int argc, char* argv[])
-{
+void parseCmdLine(Config& config, int argc, char* argv[]) {
 	string filename(argv[1]);
 	parseConf(filename, config);
 	config.print(cout);
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	Config config;
-	if(argc == 2){
+	if (argc == 2) {
 		parseConf(argv[1], config);
-	}else{
+	} else {
 		parseConf("config.txt", config);
 	}
 
@@ -156,10 +149,11 @@ int main(int argc, char* argv[])
 	ofstream os;
 
 	parseData(config, trnData, tstData);
-	srand48(config.seed() == 0 ? time(0) : config.seed()); //This is the ONLY place one may set the seed!
+	srand48(config.seed() == 0 ? time(0)
+	                           : config.seed()); // This is the ONLY place one may set the seed!
 
-	if(config.normalization() == "Z"){
-		norm.calcAndNormalise(trnData, true); 
+	if (config.normalization() == "Z") {
+		norm.calcAndNormalise(trnData, true);
 		norm.normalise(tstData);
 	}
 
@@ -170,5 +164,3 @@ int main(int argc, char* argv[])
 
 	return retval;
 }
-
-

@@ -11,335 +11,399 @@ using namespace NeuralNetHack;
 using namespace DataTools;
 using namespace std;
 
-template <class T>
-string toString(T x){
+template <class T> string toString(T x) {
 	ostringstream oss;
-	oss<<x;
+	oss << x;
 	return oss.str();
 }
 
-void Parser::readDataFile(istream& in, const int idCol, vector<uint> inCols,
-		vector<uint> outCols, vector<uint> rowRange, CoreDataSet& dataSet)
-{
-	//cerr<<"Checking stream"<<endl;
-	//cerr.flush();
+void Parser::readDataFile(istream& in, const int idCol, vector<uint> inCols, vector<uint> outCols,
+                          vector<uint> rowRange, CoreDataSet& dataSet) {
+	// cerr<<"Checking stream"<<endl;
+	// cerr.flush();
 	checkStream(in);
 	vector<string> row;
 	string line;
 
 	vector<uint>::iterator validRow = rowRange.begin();
 	uint rowCount = 0;
-	//cerr<<"Getting lines"<<endl;
-	//cerr.flush();
-	while(!getline(in, line, '\n').eof()){
-		if(in.fail() || !in.good() || in.bad()){ cerr<<"Stream failed."<<endl;	break; }
-		if(++rowCount == *validRow || rowRange.front() == 0){
-			if(*validRow != 0) validRow++; //Only increment if there are specific lines to add
+	// cerr<<"Getting lines"<<endl;
+	// cerr.flush();
+	while (!getline(in, line, '\n').eof()) {
+		if (in.fail() || !in.good() || in.bad()) {
+			cerr << "Stream failed." << endl;
+			break;
+		}
+		if (++rowCount == *validRow || rowRange.front() == 0) {
+			if (*validRow != 0) validRow++; // Only increment if there are specific lines to add
 			row.clear();
-			//cerr<<"Building istringstream"<<endl;
-			//cerr.flush();
+			// cerr<<"Building istringstream"<<endl;
+			// cerr.flush();
 			istringstream iss(line);
 			copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(row));
-			if(!row.size()){ cerr<<"Found empty line."<<endl; continue; }
-			//cerr<<"Doing select insertions"<<endl;
-			//cerr.flush();
+			if (!row.size()) {
+				cerr << "Found empty line." << endl;
+				continue;
+			}
+			// cerr<<"Doing select insertions"<<endl;
+			// cerr.flush();
 			selectInserter inp = for_each(inCols.begin(), inCols.end(), selectInserter(row));
 			selectInserter outp = for_each(outCols.begin(), outCols.end(), selectInserter(row));
-			//cerr<<"Creating a Pattern"<<endl;
-			//cerr.flush();
-			Pattern p((idCol > 0) ? row[idCol-1] : toString(rowCount), inp.vec, outp.vec);
+			// cerr<<"Creating a Pattern"<<endl;
+			// cerr.flush();
+			Pattern p((idCol > 0) ? row[idCol - 1] : toString(rowCount), inp.vec, outp.vec);
 			dataSet.addPattern(p);
 		}
 	}
 }
 
-void Parser::readConfigurationFile(istream& in, Config& config)
-{
+void Parser::readConfigurationFile(istream& in, Config& config) {
 	string token, buf;
 	uint uintbuf;
 	checkStream(in);
 
-	while(!in.eof()){
+	while (!in.eof()) {
 		whitespace(in);
-		if(in.peek() == '%')
+		if (in.peek() == '%')
 			comment(in);
-		else{
-			in>>token;
-			transform(token.begin(), token.end(), token.begin(), (int(*)(int)) tolower);
-			if(in.good()){
-				//cout<<"Processing Token: "<<token<<endl;
-				if(token == "suffix"){ in>>buf; config.suffix(buf); }
-				else if(token == "filename"){ in>>buf; config.fileName(buf); }
-				else if(token == "idcol"){ in>>uintbuf; config.idColumn(uintbuf); }
-				else if(token == "incol") config.inputColumns(parseCol(in)); 
-				else if(token == "outcol") config.outputColumns(parseCol(in)); 
-				else if(token == "rowrange") config.rowRange(parseCol(in)); 
-				else if(token == "filenamet") config.fileNameT(parseString(in)); 
-				else if(token == "idcolt"){ in>>uintbuf; config.idColumnT(uintbuf); }
-				else if(token == "incolt") config.inputColumnsT(parseCol(in)); 
-				else if(token == "outcolt") config.outputColumnsT(parseCol(in)); 
-				else if(token == "rowranget") config.rowRangeT(parseCol(in)); 
-				else if(token == "ptype") config.problemType(parsePType(in)); 
-				else if(token == "nlay") config.numLayers(parseNLay(in)); 
-				else if(token == "size") config.architecture(parseSize(in, config.numLayers())); 
-				else if(token == "actfcn") parseActFcn(in, config); 
-				else if(token == "errfcn") parseErrFcn(in, config); 
-				else if(token == "minmethod") parseMinMethod(in, config); 
-				else if(token == "maxepochs") parseMaxEpochs(in, config); 
-				else if(token == "gdparam") parseGDParam(in, config);
-				else if(token == "adamparam") parseAdamParam(in, config);
-				else if(token == "weightelim") parseWeightElim(in, config); 
-				else if(token == "ensparam") parseEnsParam(in, config); 
-				else if(token == "msparam") parseMSParam(in, config); 
-				else if(token == "msgparam") parseMSGParam(in, config); 
-				else if(token == "savesession") { uint buf; in>>buf; config.saveSession(buf); }
-				else if(token == "info") { uint buf; in>>buf; config.info(buf); }
-				else if(token == "saveoutputlist") { uint buf; in>>buf; config.saveOutputList(buf); }
-				else if(token == "seed") { uint buf; in>>buf; config.seed(buf); }
-				else if(token == "normalization") { string buf; in>>buf; config.normalization(buf); }
-				else if(token == "vary") { parseVary(in, config); }
+		else {
+			in >> token;
+			transform(token.begin(), token.end(), token.begin(), (int (*)(int))tolower);
+			if (in.good()) {
+				// cout<<"Processing Token: "<<token<<endl;
+				if (token == "suffix") {
+					in >> buf;
+					config.suffix(buf);
+				} else if (token == "filename") {
+					in >> buf;
+					config.fileName(buf);
+				} else if (token == "idcol") {
+					in >> uintbuf;
+					config.idColumn(uintbuf);
+				} else if (token == "incol")
+					config.inputColumns(parseCol(in));
+				else if (token == "outcol")
+					config.outputColumns(parseCol(in));
+				else if (token == "rowrange")
+					config.rowRange(parseCol(in));
+				else if (token == "filenamet")
+					config.fileNameT(parseString(in));
+				else if (token == "idcolt") {
+					in >> uintbuf;
+					config.idColumnT(uintbuf);
+				} else if (token == "incolt")
+					config.inputColumnsT(parseCol(in));
+				else if (token == "outcolt")
+					config.outputColumnsT(parseCol(in));
+				else if (token == "rowranget")
+					config.rowRangeT(parseCol(in));
+				else if (token == "ptype")
+					config.problemType(parsePType(in));
+				else if (token == "nlay")
+					config.numLayers(parseNLay(in));
+				else if (token == "size")
+					config.architecture(parseSize(in, config.numLayers()));
+				else if (token == "actfcn")
+					parseActFcn(in, config);
+				else if (token == "errfcn")
+					parseErrFcn(in, config);
+				else if (token == "minmethod")
+					parseMinMethod(in, config);
+				else if (token == "maxepochs")
+					parseMaxEpochs(in, config);
+				else if (token == "gdparam")
+					parseGDParam(in, config);
+				else if (token == "adamparam")
+					parseAdamParam(in, config);
+				else if (token == "weightelim")
+					parseWeightElim(in, config);
+				else if (token == "ensparam")
+					parseEnsParam(in, config);
+				else if (token == "msparam")
+					parseMSParam(in, config);
+				else if (token == "msgparam")
+					parseMSGParam(in, config);
+				else if (token == "savesession") {
+					uint buf;
+					in >> buf;
+					config.saveSession(buf);
+				} else if (token == "info") {
+					uint buf;
+					in >> buf;
+					config.info(buf);
+				} else if (token == "saveoutputlist") {
+					uint buf;
+					in >> buf;
+					config.saveOutputList(buf);
+				} else if (token == "seed") {
+					uint buf;
+					in >> buf;
+					config.seed(buf);
+				} else if (token == "normalization") {
+					string buf;
+					in >> buf;
+					config.normalization(buf);
+				} else if (token == "vary") {
+					parseVary(in, config);
+				}
 				token = "";
 			}
 		}
 	}
 }
 
-vector<uint> Parser::parseColumns(istream& in){ return parseCol(in); }
+vector<uint> Parser::parseColumns(istream& in) {
+	return parseCol(in);
+}
 
-//PRIVATE--------------------------------------------------------------------//
+// PRIVATE--------------------------------------------------------------------//
 
-void Parser::checkStream(istream& in){
-	if(!in){
-		cout<<"Parser: Problems with the stream."<<endl;
+void Parser::checkStream(istream& in) {
+	if (!in) {
+		cout << "Parser: Problems with the stream." << endl;
 		cout.flush();
 		abort();
 	}
 }
 
-void Parser::whitespace(istream& in)
-{
+void Parser::whitespace(istream& in) {
 	int c = in.peek();
-	while(iscntrl(c) || isspace(c)){
+	while (iscntrl(c) || isspace(c)) {
 		in.get();
 		c = in.peek();
 	}
 }
 
-void Parser::comment(istream& in)
-{
-	//cout<<"Entering comment with char: "<<(char)in.peek()<<endl;
-	in.ignore(255,10);
-	//cout<<"Leaving comment with char: "<<(char)in.peek()<<endl;
+void Parser::comment(istream& in) {
+	// cout<<"Entering comment with char: "<<(char)in.peek()<<endl;
+	in.ignore(255, 10);
+	// cout<<"Leaving comment with char: "<<(char)in.peek()<<endl;
 }
 
-string Parser::parseString(istream& in)
-{
+string Parser::parseString(istream& in) {
 	string fname;
-	in>>fname;
-	//cout<<"Parser::parseString: fname = "<<fname<<endl;
+	in >> fname;
+	// cout<<"Parser::parseString: fname = "<<fname<<endl;
 	return fname;
 }
 
-vector<uint> Parser::parseCol(istream& in)
-{
-	//cout<<"Entering parseCol with char: "<<(char)in.peek()<<endl;
+vector<uint> Parser::parseCol(istream& in) {
+	// cout<<"Entering parseCol with char: "<<(char)in.peek()<<endl;
 	uint c, buf;
 	vector<uint> operands(0), operators(0), v(0);
 	vector<uint>::iterator opnd, op;
 
 	whitespace(in);
 
-	c=in.peek();
-	while(!iscntrl(c) && c!=37 && in.good()){
-		switch(c){
-			case 44: operators.push_back(in.get());
-					 break;
-			case 45: operators.push_back(in.get());
-					 break;
-			case 48:case 49:case 50:case 51:
-			case 52:case 53:case 54:case 55:
-			case 56:case 57: in>>buf;
-							 operands.push_back(buf);
-							 break;
-			default: in.get();
-					 break;
+	c = in.peek();
+	while (!iscntrl(c) && c != 37 && in.good()) {
+		switch (c) {
+		case 44:
+			operators.push_back(in.get());
+			break;
+		case 45:
+			operators.push_back(in.get());
+			break;
+		case 48:
+		case 49:
+		case 50:
+		case 51:
+		case 52:
+		case 53:
+		case 54:
+		case 55:
+		case 56:
+		case 57:
+			in >> buf;
+			operands.push_back(buf);
+			break;
+		default:
+			in.get();
+			break;
 		}
-		c=in.peek();
+		c = in.peek();
 	}
 
-	opnd=operands.begin()+1;
-	v.push_back(*(opnd-1));
-	for(op=operators.begin(); op!=operators.end(); ++op, ++opnd)
-		if(*op==44) v.push_back(*opnd);
-		else if(*op==45) for(uint i=*(opnd-1)+1; i<=*opnd; ++i) v.push_back(i);
+	opnd = operands.begin() + 1;
+	v.push_back(*(opnd - 1));
+	for (op = operators.begin(); op != operators.end(); ++op, ++opnd)
+		if (*op == 44)
+			v.push_back(*opnd);
+		else if (*op == 45)
+			for (uint i = *(opnd - 1) + 1; i <= *opnd; ++i)
+				v.push_back(i);
 
-	//cout<<"Leaving parseInCol with char: "<<(char)in.peek()<<endl;
+	// cout<<"Leaving parseInCol with char: "<<(char)in.peek()<<endl;
 
 	return v;
 }
 
-bool Parser::parsePType(istream& in)
-{
+bool Parser::parsePType(istream& in) {
 	string buf;
-	in>>buf;
+	in >> buf;
 	return buf == "class" ? false : true;
 }
 
-uint Parser::parseNLay(istream& in)
-{
+uint Parser::parseNLay(istream& in) {
 	uint nl;
-	in>>nl;
+	in >> nl;
 	return nl;
 }
 
-vector<uint> Parser::parseSize(istream& in, uint nLayers)
-{
+vector<uint> Parser::parseSize(istream& in, uint nLayers) {
 	vector<uint> v(nLayers);
-	uint i=0;
+	uint i = 0;
 
-	while(i<nLayers && in>>v[i]) ++i;
+	while (i < nLayers && in >> v[i])
+		++i;
 	in.clear();
 	return v;
 }
 
-void Parser::parseActFcn(istream& in, Config& config)
-{
-	vector<string> v(config.numLayers()-1);
-	uint i=1;
+void Parser::parseActFcn(istream& in, Config& config) {
+	vector<string> v(config.numLayers() - 1);
+	uint i = 1;
 
-	while(i<config.numLayers() && in>>v[i-1]) ++i;
+	while (i < config.numLayers() && in >> v[i - 1])
+		++i;
 	in.clear();
 	config.actFcn(v);
 }
 
-void Parser::parseErrFcn(istream& in, Config& config)
-{
+void Parser::parseErrFcn(istream& in, Config& config) {
 	string buf;
-	in>>buf;
+	in >> buf;
 	config.errFcn(buf);
 }
 
-void Parser::parseMinMethod(istream& in, Config& config)
-{
+void Parser::parseMinMethod(istream& in, Config& config) {
 	string buf;
-	in>>buf;
+	in >> buf;
 	config.minMethod(buf);
 }
 
-void Parser::parseMaxEpochs(istream& in, Config& config)
-{
+void Parser::parseMaxEpochs(istream& in, Config& config) {
 	uint e;
-	in>>e;
+	in >> e;
 	config.maxEpochs(e);
 }
 
-void Parser::parseGDParam(istream& in, Config& config)
-{
+void Parser::parseGDParam(istream& in, Config& config) {
 	double buf;
-	in>>buf;
+	in >> buf;
 	config.batchSize((uint)buf);
-	in>>buf;
+	in >> buf;
 	config.learningRate(buf);
-	in>>buf;
+	in >> buf;
 	config.decLearningRate(buf);
-	in>>buf;
+	in >> buf;
 	config.momentum(buf);
 }
 
-void Parser::parseAdamParam(istream& in, Config& config)
-{
+void Parser::parseAdamParam(istream& in, Config& config) {
 	double buf;
-	in>>buf; config.adamLearningRate(buf);
-	in>>buf; config.adamBeta1(buf);
-	in>>buf; config.adamBeta2(buf);
-	in>>buf; config.adamEpsilon(buf);
-	in>>buf; config.adamWeightDecay(buf);
+	in >> buf;
+	config.adamLearningRate(buf);
+	in >> buf;
+	config.adamBeta1(buf);
+	in >> buf;
+	config.adamBeta2(buf);
+	in >> buf;
+	config.adamEpsilon(buf);
+	in >> buf;
+	config.adamWeightDecay(buf);
 }
 
-void Parser::parseMSParam(istream& in, Config& config)
-{
+void Parser::parseMSParam(istream& in, Config& config) {
 	uint bufi;
 	double buff;
 	string bufs;
-	in>>bufs; config.msParamDataSelection(bufs);
-	in>>bufi; config.msParamN(bufi);
-	in>>bufi; config.msParamK(bufi);
+	in >> bufs;
+	config.msParamDataSelection(bufs);
+	in >> bufi;
+	config.msParamN(bufi);
+	in >> bufi;
+	config.msParamK(bufi);
 	string mode = "";
-	in>>mode;
+	in >> mode;
 	config.msParamSplitMode((mode == "rnd") ? true : false);
-	in>>buff; config.msParamNumTrainingData(buff);
+	in >> buff;
+	config.msParamNumTrainingData(buff);
 }
 
-void Parser::parseEnsParam(istream& in, Config& config)
-{
+void Parser::parseEnsParam(istream& in, Config& config) {
 	uint bufi;
 	string bufs;
-	in>>bufs; config.ensParamDataSelection(bufs);
-	in>>bufi; config.ensParamN(bufi);
-	in>>bufi; config.ensParamK(bufi);
+	in >> bufs;
+	config.ensParamDataSelection(bufs);
+	in >> bufi;
+	config.ensParamN(bufi);
+	in >> bufi;
+	config.ensParamK(bufi);
 	string mode = "";
-	in>>mode;
+	in >> mode;
 	config.ensParamSplitMode((mode == "rnd") ? true : false);
-	in>>bufi; config.ensParamNewWeights(bufi);
+	in >> bufi;
+	config.ensParamNewWeights(bufi);
 }
 
-void Parser::parseMSGParam(istream& in, Config& config)
-{
+void Parser::parseMSGParam(istream& in, Config& config) {
 	uint buf;
-	in>>buf;
+	in >> buf;
 	config.msgParamN(buf);
-	in>>buf;
+	in >> buf;
 	config.msgParamK(buf);
 	string mode = "";
-	in>>mode;
+	in >> mode;
 	config.msgParamSplitMode((mode == "rnd") ? true : false);
 	double buf2;
-	in>>buf2;
+	in >> buf2;
 	config.msgParamNumTrainingData(buf2);
 }
 
-void Parser::parseVary(istream& in, Config& config)
-{
+void Parser::parseVary(istream& in, Config& config) {
 	string strbuf;
 	uint uintbuf;
-	in>>strbuf;
-	in>>uintbuf;
-	if(strbuf == "WeightElim" && uintbuf == 2){
+	in >> strbuf;
+	in >> uintbuf;
+	if (strbuf == "WeightElim" && uintbuf == 2) {
 		vector<double> tmp(3, 0);
-		in>>tmp[0]; in>>tmp[1]; in>>tmp[2]; 
-		map<string, vector<double> >& vary = config.vary();
+		in >> tmp[0];
+		in >> tmp[1];
+		in >> tmp[2];
+		map<string, vector<double>>& vary = config.vary();
 		vary["WeightElim"] = tmp;
-	}else if(strbuf == "Size"){
+	} else if (strbuf == "Size") {
 		vector<double> tmp(3, 0);
-		in>>tmp[0]; in>>tmp[1]; in>>tmp[2]; 
-		map<string, vector<double> >& vary = config.vary();
+		in >> tmp[0];
+		in >> tmp[1];
+		in >> tmp[2];
+		map<string, vector<double>>& vary = config.vary();
 		vary["Size"] = tmp;
-	}else{
-		cerr<<"Warning: Vary only handles WeightElim at the moment."<<endl;
+	} else {
+		cerr << "Warning: Vary only handles WeightElim at the moment." << endl;
 		abort();
 	}
 }
 
-void Parser::parseWeightElim(istream& in, Config& config)
-{
+void Parser::parseWeightElim(istream& in, Config& config) {
 	uint on;
-	in>>on;
+	in >> on;
 	config.weightElimOn((on == 1) ? true : false);
 	double buf;
-	in>>buf;
+	in >> buf;
 	config.weightElimAlpha(buf);
-	in>>buf;
+	in >> buf;
 	config.weightElimW0(buf);
 }
 
-vector<double> Parser::readRow(istream& in)
-{
+vector<double> Parser::readRow(istream& in) {
 	vector<double> vec(0);
 	string s;
 	getline(in, s);
 	istringstream iss(s);
 	copy(istream_iterator<double>(iss), istream_iterator<double>(), back_inserter(vec));
-	//cout<<s<<endl;
+	// cout<<s<<endl;
 	/*
 	   uint i1, i2;
 	   i1 = 0;
@@ -355,12 +419,10 @@ vector<double> Parser::readRow(istream& in)
 	return vec;
 }
 
-void Parser::tabspace(istream& in)
-{
+void Parser::tabspace(istream& in) {
 	char c = in.peek();
-	while(c=='\t' || c==' '){
+	while (c == '\t' || c == ' ') {
 		in.get();
-		c=in.peek();
+		c = in.peek();
 	}
 }
-
