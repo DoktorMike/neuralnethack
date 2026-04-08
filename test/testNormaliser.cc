@@ -28,32 +28,37 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <cmath>
+#include <vector>
 
 using namespace NeuralNetHack;
 using namespace std;
 
 int testNormaliser(DataTools::DataSet& data)
 {
-	ofstream dataOrig("DataOrig.txt");
-	ofstream dataNorm("DataNorm.txt");
-	ofstream dataUnnorm("DataUnnorm.txt");
+	// Save original values
+	vector<vector<double>> origInputs, origOutputs;
+	for(uint i = 0; i < data.size(); ++i){
+		origInputs.push_back(data.pattern(i).input());
+		origOutputs.push_back(data.pattern(i).output());
+	}
 
-	data.print(dataOrig);
-
+	// Normalise then unnormalise
 	DataTools::Normaliser norm;
 	norm.calcAndNormalise(data, true);
-	data.print(dataNorm);
-
 	norm.unnormalise(data);
-	data.print(dataUnnorm);
 
-	dataOrig.close();
-	dataNorm.close();
-	dataUnnorm.close();
-
-	int ret = system("diff -q DataOrig.txt DataUnnorm.txt > /dev/null");
-	//system("rm -rf DataOrig.txt DataUnnorm.txt DataNorm.txt");
-	return (ret > 0) ? -1 : 0;
+	// Compare with tolerance (ffast-math may cause small roundtrip differences)
+	const double tol = 1e-6;
+	for(uint i = 0; i < data.size(); ++i){
+		vector<double>& in = data.pattern(i).input();
+		vector<double>& out = data.pattern(i).output();
+		for(uint j = 0; j < in.size(); ++j)
+			if(fabs(in[j] - origInputs[i][j]) > tol) return -1;
+		for(uint j = 0; j < out.size(); ++j)
+			if(fabs(out[j] - origOutputs[i][j]) > tol) return -1;
+	}
+	return 0;
 }
 
 void parseConfAndData(string fname, Config& config, DataTools::CoreDataSet& trnData, DataTools::CoreDataSet& tstData)
