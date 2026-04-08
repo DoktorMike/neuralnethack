@@ -25,26 +25,61 @@ ctest --test-dir build
 
 Requires GCC 13+ or Clang 17+ (C++23). BLAS is auto-detected (install `libopenblas-dev` or similar for best performance). To disable: `cmake -B build -DNNH_USE_BLAS=OFF`.
 
-## Quick start
+## Quick start: learning XOR
 
 ```cpp
 #include "mlp/Mlp.hh"
+#include "mlp/Adam.hh"
+#include "mlp/SummedSquare.hh"
 #include "mlp/Serialization.hh"
-#include "Ensemble.hh"
+#include "datatools/CoreDataSet.hh"
+#include "datatools/DataSet.hh"
+#include "datatools/Pattern.hh"
+
+#include <iostream>
+#include <vector>
+#include <string>
 
 using namespace MultiLayerPerceptron;
+using namespace DataTools;
 
-// Create a 4-input, 8-hidden (ReLU), 1-output (sigmoid) network
-std::vector<uint> arch = {4, 8, 1};
-std::vector<std::string> types = {"relu", "logsig"};
-Mlp mlp(arch, types, false);
+int main()
+{
+    // -- Build the XOR dataset --
+    CoreDataSet core;
+    double xor_in[][2]  = {{0,0}, {0,1}, {1,0}, {1,1}};
+    double xor_out[][1] = {{0},   {1},   {1},   {0}};
+    for (int i = 0; i < 4; ++i) {
+        std::vector<double> in(xor_in[i], xor_in[i] + 2);
+        std::vector<double> out(xor_out[i], xor_out[i] + 1);
+        core.addPattern(Pattern(std::to_string(i), in, out));
+    }
+    DataSet data;
+    data.coreDataSet(core);
 
-// After training...
-saveMlpBinary(mlp, "model.nnh");
+    // -- Create a 2-4-1 network (ReLU hidden, sigmoid output) --
+    std::vector<uint> arch = {2, 4, 1};
+    std::vector<std::string> types = {"relu", "logsig"};
+    Mlp mlp(arch, types, false);
 
-// Later...
-auto loaded = loadMlpBinary("model.nnh");
-const auto& output = loaded->propagate(input);
+    // -- Train with Adam for 2000 epochs --
+    SummedSquare error(mlp, data);
+    Adam trainer(mlp, data, error, 0.001, 4 /*batch*/, 0.01 /*lr*/);
+    trainer.numEpochs(2000);
+    trainer.train(mlp, data, std::cout);
+
+    // -- Evaluate --
+    for (int i = 0; i < 4; ++i) {
+        const auto& out = mlp.propagate(data.pattern(i).input());
+        std::cout << xor_in[i][0] << " XOR " << xor_in[i][1]
+                  << " = " << out[0] << std::endl;
+    }
+
+    // -- Save and reload --
+    saveMlpBinary(mlp, "xor.nnh");
+    auto loaded = loadMlpBinary("xor.nnh");
+    std::cout << "Loaded: " << loaded->propagate(data.pattern(1).input())[0] << std::endl;
+}
 ```
 
 ## License
