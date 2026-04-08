@@ -10,15 +10,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Options
 # ---------------------------------------------------------------------------
 option(NNH_USE_BLAS "Use BLAS for matrix operations" ON)
+option(NNH_COVERAGE "Build with code coverage instrumentation" OFF)
 
 # ---------------------------------------------------------------------------
 # Compiler flags
 # ---------------------------------------------------------------------------
-add_compile_options(
-    -Wall -pedantic -O3
-    -march=native -ffast-math -funroll-loops -ftree-vectorize -fno-math-errno
-)
-add_compile_definitions(NDEBUG)
+if(NNH_COVERAGE)
+    add_compile_options(-Wall -pedantic -O0 -g --coverage -fprofile-arcs -ftest-coverage)
+    add_link_options(--coverage)
+else()
+    add_compile_options(
+        -Wall -pedantic -O3
+        -march=native -ffast-math -funroll-loops -ftree-vectorize -fno-math-errno
+    )
+    add_compile_definitions(NDEBUG)
+endif()
 
 # ---------------------------------------------------------------------------
 # BLAS detection

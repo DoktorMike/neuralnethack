@@ -33,3 +33,25 @@ jobs:
 
       - name: Test
         run: make test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake libopenblas-dev gcovr
+
+      - name: Build and test with coverage
+        run: make coverage
+
+      - name: Generate coverage report
+        run: gcovr --xml --output coverage.xml --root . build-coverage/
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
