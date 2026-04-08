@@ -45,10 +45,5 @@ jobs:
       - name: Build, test, and collect coverage
         run: make coverage
 
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.info
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: Print coverage summary
+        run: lcov --summary coverage.info
