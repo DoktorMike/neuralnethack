@@ -121,4 +121,4 @@ Binary format: magic bytes + architecture + type strings + softmax flag + weight
 
 ## License
 
-GPL v2+
+MIT

@@ -84,4 +84,4 @@ int main()
 
 ## License
 
-GPL v2+ -- Copyright (C) Michael Green
+MIT -- Copyright (c) 2004-2026 Michael Green
