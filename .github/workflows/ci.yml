@@ -45,5 +45,23 @@ jobs:
       - name: Build, test, and collect coverage
         run: make coverage
 
-      - name: Print coverage summary
-        run: lcov --summary coverage.info
+      - name: Generate coverage badge
+        run: |
+          PCT=$(lcov --summary coverage.info 2>&1 | grep 'lines' | sed 's/.*: //' | sed 's/%.*//')
+          # Pick color based on percentage
+          if (( $(echo "$PCT >= 80" | bc -l) )); then COLOR="brightgreen"
+          elif (( $(echo "$PCT >= 60" | bc -l) )); then COLOR="yellow"
+          elif (( $(echo "$PCT >= 40" | bc -l) )); then COLOR="orange"
+          else COLOR="red"; fi
+          curl -s "https://img.shields.io/badge/coverage-${PCT}%25-${COLOR}" -o coverage-badge.svg
+          echo "Coverage: ${PCT}%"
+
+      - name: Commit badge
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f coverage-badge.svg
+          git diff --cached --quiet && exit 0
+          git commit -m "ci: update coverage badge [skip ci]"
+          git push

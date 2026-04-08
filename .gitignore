@@ -104,3 +104,4 @@ coverage.info
 coverage-base.info
 coverage-test.info
 coverage-report/
+# coverage-badge.svg is tracked (committed by CI)
