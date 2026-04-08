@@ -5,11 +5,12 @@ A fast, lightweight C++23 library for training and evaluating ensembles of multi
 ## Build
 
 ```sh
-autoreconf -fi
-./configure          # detects BLAS automatically (--with-blas=no to disable)
-make
-make check           # run tests
+cmake -B build                    # detects BLAS automatically
+cmake --build build -j$(nproc)    # parallel build
+ctest --test-dir build            # run tests
 ```
+
+To disable BLAS: `cmake -B build -DNNH_USE_BLAS=OFF`
 
 Requires a C++23 compiler (GCC 13+ or Clang 17+). Optional: cblas/openblas for BLAS-accelerated training.
 
