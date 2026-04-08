@@ -182,7 +182,7 @@ namespace MultiLayerPerceptron
 					std::vector<double>::iterator& last);
 
 			/**The weight vector. */
-			std::vector<double>* theWeights;
+			std::vector<double> theWeights;
 
 			/**The architechture. */
 			std::vector<uint> arch;

@@ -33,6 +33,7 @@ using namespace MultiLayerPerceptron;
 using namespace DataTools;
 using namespace MatrixTools;
 using namespace std;
+using std::unique_ptr;
 
 GradientDescent::GradientDescent(Mlp& mlp, DataSet& data, Error& error, double te, uint bs, double lr, double dlr, double m):Trainer(mlp, data, error, te, bs), theLearningRate(lr), theDecLearningRate(dlr), theMomentum(m)
 {}
@@ -87,9 +88,9 @@ void GradientDescent::train(ostream& os)
 	theLearningRate = origLearnRate; //Restore the learning rate
 }
 
-Trainer* GradientDescent::clone() const
+unique_ptr<Trainer> GradientDescent::clone() const
 {
-	return new GradientDescent(*this);
+	return unique_ptr<Trainer>(new GradientDescent(*this));
 }
 
 //PRIVATE--------------------------------------------------------------------//
@@ -114,14 +115,20 @@ double GradientDescent::train(DataSet& dset)
 	theError->dset(dset);
 	double err = theError->gradient();
 
-	for(uint i=0; i<theMlp->nLayers(); ++i){
-		Layer& l = theMlp->layer(i);
-		for(uint i=0; i<l.nWeights(); ++i){
-			double upd = l.gradients(i);
-			upd *= -theLearningRate;
-			upd += theMomentum * l.weightUpdates(i);
-			l.weightUpdates(i) = upd; //Store it in weightUpdates
-			l.weights(i) += upd; //Update weights.
+	const double lr = theLearningRate;
+	const double mom = theMomentum;
+
+	for(uint layer = 0; layer < theMlp->nLayers(); ++layer){
+		Layer& l = theMlp->layer(layer);
+		const uint nw = l.nWeights();
+		double* __restrict__ w   = l.weights().data();
+		double* __restrict__ g   = l.gradients().data();
+		double* __restrict__ upd = l.weightUpdates().data();
+
+		for(uint j = 0; j < nw; ++j){
+			double u = -lr * g[j] + mom * upd[j];
+			upd[j] = u;
+			w[j] += u;
 		}
 	}
 	return err;

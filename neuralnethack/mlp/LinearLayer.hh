@@ -50,6 +50,9 @@ namespace MultiLayerPerceptron
 			 */
 			virtual ~LinearLayer();
 
+			std::unique_ptr<Layer> clone() const override
+			{ return std::make_unique<LinearLayer>(*this); }
+
 			//ACCESSOR AND MUTATOR FUNCTIONS
 
 			//ACCESSOR FUNCTIONS

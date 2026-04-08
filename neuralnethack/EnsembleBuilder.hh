@@ -30,6 +30,8 @@
 #include "datatools/DataManager.hh"
 #include "datatools/Sampler.hh"
 
+#include <memory>
+
 namespace NeuralNetHack
 {
 	/**The result of a training session. A training session can
@@ -37,38 +39,43 @@ namespace NeuralNetHack
 	class Session
 	{
 		public:
-			Session():ensemble(0), trnData(0), valData(0){}
+			Session():ensemble(nullptr), trnData(nullptr), valData(nullptr){}
 
-			Session(Ensemble* c, DataTools::DataSet* trn, DataTools::DataSet* val)
-				:ensemble(c), trnData(trn), valData(val){}
+			Session(std::unique_ptr<Ensemble> c,
+					std::unique_ptr<DataTools::DataSet> trn,
+					std::unique_ptr<DataTools::DataSet> val)
+				:ensemble(std::move(c)), trnData(std::move(trn)), valData(std::move(val)){}
 
-			Session(const Session& s) {*this = s;}
+			Session(const Session& s)
+				:ensemble(s.ensemble ? std::make_unique<Ensemble>(*s.ensemble) : nullptr),
+				 trnData(s.trnData ? std::make_unique<DataTools::DataSet>(*s.trnData) : nullptr),
+				 valData(s.valData ? std::make_unique<DataTools::DataSet>(*s.valData) : nullptr)
+			{}
 
-			~Session()
-			{
-				if(ensemble != 0) delete ensemble; 
-				if(trnData != 0) delete trnData; 
-				if(valData != 0) delete valData;
-			}
+			Session(Session&&) noexcept = default;
+
+			~Session() = default;
 
 			Session& operator=(const Session& s)
 			{
 				if(this != &s){
-					ensemble = new Ensemble(*s.ensemble);
-					trnData = new DataTools::DataSet(*s.trnData);
-					valData = new DataTools::DataSet(*s.valData);
+					ensemble = s.ensemble ? std::make_unique<Ensemble>(*s.ensemble) : nullptr;
+					trnData = s.trnData ? std::make_unique<DataTools::DataSet>(*s.trnData) : nullptr;
+					valData = s.valData ? std::make_unique<DataTools::DataSet>(*s.valData) : nullptr;
 				}
 				return *this;
 			}
 
-			/**The pointer to the ensemble that holds all the models. */
-			Ensemble* ensemble;
+			Session& operator=(Session&&) noexcept = default;
 
-			/**The pointer to the DataSet used for training. */
-			DataTools::DataSet* trnData;
+			/**The ensemble that holds all the models. */
+			std::unique_ptr<Ensemble> ensemble;
 
-			/**The pointer to the DataSet used for validation. */
-			DataTools::DataSet* valData;
+			/**The DataSet used for training. */
+			std::unique_ptr<DataTools::DataSet> trnData;
+
+			/**The DataSet used for validation. */
+			std::unique_ptr<DataTools::DataSet> valData;
 	};
 
 	/**A base class representing the different ensemble builders.

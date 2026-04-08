@@ -34,26 +34,24 @@ using namespace std;
 Mlp::Mlp(const vector<uint>& a, const vector<string>& t, bool s):
 	theArch(a), theTypes(t), theSoftmax(s)
 {
-	theLayers = vector<Layer*>(0);
 	createLayers();
 }
 
 Mlp::Mlp(const MlpModel& mlpmodel):
 	theArch(mlpmodel.architecture), theTypes(mlpmodel.types), theSoftmax(mlpmodel.softmax)
 {
-	theLayers = vector<Layer*>(0);
 	createLayers();
 }
 
 Mlp::Mlp(const Mlp& mlp)
-{*this = mlp;}
-
-Mlp::~Mlp()
+	:theArch(mlp.theArch), theTypes(mlp.theTypes), theSoftmax(mlp.theSoftmax)
 {
-	for(vector<Layer*>::iterator it = theLayers.begin(); it != theLayers.end(); ++it) 
-		delete *it;
-	theLayers.clear();
+	theLayers.reserve(mlp.theLayers.size());
+	for(const auto& l : mlp.theLayers)
+		theLayers.push_back(l->clone());
 }
+
+Mlp::~Mlp() = default;
 
 Mlp& Mlp::operator=(const Mlp& mlp)
 {
@@ -61,11 +59,10 @@ Mlp& Mlp::operator=(const Mlp& mlp)
 		theArch = mlp.theArch;
 		theTypes = mlp.theTypes;
 		theSoftmax = mlp.theSoftmax;
-		theLayers = vector<Layer*>(0);
-		createLayers();
-		assert(theLayers.size()==mlp.theLayers.size());
-		for(uint i=0; i<theTypes.size(); ++i)
-			*(theLayers[i]) = *(mlp.theLayers[i]);
+		theLayers.clear();
+		theLayers.reserve(mlp.theLayers.size());
+		for(const auto& l : mlp.theLayers)
+			theLayers.push_back(l->clone());
 	}
 	return *this;
 }
@@ -79,12 +76,10 @@ Layer& Mlp::operator[](const uint i)
 
 vector<double> Mlp::weights() const
 {
-	vector<double> w(0);
-	vector<Layer*>::const_iterator it;
-
-	for(it=theLayers.begin(); it!=theLayers.end(); ++it){
-		vector<double>& tmp = (*it)->weights();
-		w.insert(w.end(),tmp.begin(), tmp.end());
+	vector<double> w;
+	for(const auto& l : theLayers){
+		vector<double>& tmp = l->weights();
+		w.insert(w.end(), tmp.begin(), tmp.end());
 	}
 	return w;
 }
@@ -92,25 +87,21 @@ vector<double> Mlp::weights() const
 void Mlp::weights(vector<double>& w)
 {
 	assert(w.size()==nWeights());
-	vector<Layer*>::iterator itl;
-	vector<double>::iterator itw = w.begin();
-	for(itl=theLayers.begin(); itl!=theLayers.end(); ++itl){
-		vector<double>& tmp = (*itl)->weights();
-		vector<double>::iterator ittmp = tmp.begin();
-		for(; ittmp != tmp.end(); ++ittmp, ++itw)
+	auto itw = w.begin();
+	for(auto& l : theLayers){
+		vector<double>& tmp = l->weights();
+		for(auto ittmp = tmp.begin(); ittmp != tmp.end(); ++ittmp, ++itw)
 			*ittmp = *itw;
 	}
 }
 
 vector<double> Mlp::gradients() const
 {
-	vector<double> g(0);
+	vector<double> g;
 	g.reserve(nWeights());
-	vector<Layer*>::const_iterator it;
-
-	for(it=theLayers.begin(); it!=theLayers.end(); ++it){
-		vector<double>& tmp = (*it)->gradients();
-		g.insert(g.end(),tmp.begin(),tmp.end());
+	for(const auto& l : theLayers){
+		vector<double>& tmp = l->gradients();
+		g.insert(g.end(), tmp.begin(), tmp.end());
 	}
 	return g;
 }
@@ -118,13 +109,11 @@ vector<double> Mlp::gradients() const
 void Mlp::gradients(vector<double>& g)
 {
 	assert(g.size()==nWeights());
-	vector<Layer*>::iterator itl = theLayers.begin();
-	vector<double>::iterator itg = g.begin();
-	while(itl != theLayers.end()){
-		vector<double>& tmp = (*itl)->gradients();
-		vector<double>::iterator ittmp = tmp.begin();
-		for(; ittmp != tmp.end(); ++ittmp, ++itg) *ittmp = *itg;
-		++itl;
+	auto itg = g.begin();
+	for(auto& l : theLayers){
+		vector<double>& tmp = l->gradients();
+		for(auto ittmp = tmp.begin(); ittmp != tmp.end(); ++ittmp, ++itg)
+			*ittmp = *itg;
 	}
 }
 
@@ -139,10 +128,9 @@ uint Mlp::nLayers() const
 
 uint Mlp::nWeights() const
 {
-	vector<Layer*>::const_iterator it;
 	uint tmp=0;
-	for(it=theLayers.begin(); it!=theLayers.end(); ++it)
-		tmp+=(*it)->nWeights();
+	for(const auto& l : theLayers)
+		tmp += l->nWeights();
 	return tmp;
 }
 
@@ -151,52 +139,45 @@ uint Mlp::size() const
 
 void Mlp::regenerateWeights()
 {
-	vector<Layer*>::iterator itl;
-	for(itl=theLayers.begin(); itl!=theLayers.end(); ++itl)
-		(*itl)->regenerateWeights();
+	for(auto& l : theLayers)
+		l->regenerateWeights();
 }
 
 const vector<double>& Mlp::propagate(const vector<double>& input)
 {
-	vector<Layer*>::iterator it; 
 	const vector<double>* inOut = &input;
-
-	for(it=theLayers.begin(); it!=theLayers.end(); ++it)
-		inOut = &((*it)->propagate(*inOut));
+	for(auto& l : theLayers)
+		inOut = &(l->propagate(*inOut));
 	return *inOut;
 }
 
 void Mlp::printWeights(ostream& os) const
 {
-	vector<Layer*>::const_iterator itl;
-	for(itl=theLayers.begin(); itl!=theLayers.end(); ++itl)
-		(*itl)->printWeights(os);
+	for(const auto& l : theLayers)
+		l->printWeights(os);
 }
 
 void Mlp::printGradients(ostream& os) const
 {
-	vector<Layer*>::const_iterator itl;
-	for(itl=theLayers.begin(); itl!=theLayers.end(); ++itl)
-		(*itl)->printGradients(os);
+	for(const auto& l : theLayers)
+		l->printGradients(os);
 }
 
 //PRIVATE--------------------------------------------------------------------//
 
 void Mlp::createLayers()
 {
-	vector<uint>::iterator it;
+	auto it = theArch.begin();
 	int i=0;
 
 	for(it=theArch.begin()+1; it!=theArch.end(); ++it, ++i){
 		string t = theTypes.at(i);
-		Layer* l = 0;
 		if(t == SIGMOID)
-			l = new SigmoidLayer(*(it),*(it-1));
+			theLayers.push_back(make_unique<SigmoidLayer>(*(it),*(it-1)));
 		else if(t == TANHYP)
-			l = new TanHypLayer(*(it),*(it-1));
+			theLayers.push_back(make_unique<TanHypLayer>(*(it),*(it-1)));
 		else if(t == LINEAR)
-			l = new LinearLayer(*(it),*(it-1));
-		theLayers.push_back(l);	
+			theLayers.push_back(make_unique<LinearLayer>(*(it),*(it-1)));
 	}
 }
 

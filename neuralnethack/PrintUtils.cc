@@ -159,13 +159,16 @@ void PrintUtils::printValEnslist(ostream& os, vector<Session>& sessions,
 void PrintUtils::printSaliencies(std::ostream& os, std::vector<Session>& sessions, const Config& config)
 {
 	vector<double> sals(config.architecture()[0], 0);
-	for(vector<Session>::iterator it = sessions.begin(); it != sessions.end(); ++it){
-		Ensemble* ensemble = it->ensemble;
-		DataSet* trn = it->trnData;
-		vector<double> tmp = Saliency::saliency(*ensemble, *trn, false);
+	for(auto it = sessions.begin(); it != sessions.end(); ++it){
+		Ensemble& ensemble = *(it->ensemble);
+		DataSet& trn = *(it->trnData);
+		vector<double> tmp = Saliency::saliency(ensemble, trn, false);
 		transform(sals.begin(), sals.end(), tmp.begin(), sals.begin(), plus<double>());
 	}
-	transform(sals.begin(), sals.end(), sals.begin(), bind2nd(divides<double>(), sessions.size()));
+	{
+		double divisor = sessions.size();
+		for(auto& s : sals) s /= divisor;
+	}
 	Saliency::print(os, sals);
 }
 

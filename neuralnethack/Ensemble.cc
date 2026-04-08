@@ -30,26 +30,33 @@ using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
 using namespace MatrixTools;
 using std::vector;
+using std::unique_ptr;
+using std::make_unique;
 
-Ensemble::Ensemble():theEnsemble(0), theScales(0){}
+Ensemble::Ensemble():theEnsemble(), theScales(){}
 
-Ensemble::Ensemble(Mlp& mlp, double s):theEnsemble(1, new Mlp(mlp)), theScales(1,s){}
-
-Ensemble::Ensemble(const Ensemble& c){*this=c;}
-
-Ensemble::~Ensemble()
+Ensemble::Ensemble(Mlp& mlp, double s):theEnsemble(), theScales(1,s)
 {
-	vector<Mlp*>::iterator it;
-	for(it = theEnsemble.begin(); it != theEnsemble.end(); ++it)
-		delete *it;
-	theEnsemble.clear();
+	theEnsemble.push_back(make_unique<Mlp>(mlp));
 }
+
+Ensemble::Ensemble(const Ensemble& c)
+	:theScales(c.theScales)
+{
+	theEnsemble.reserve(c.theEnsemble.size());
+	for(const auto& m : c.theEnsemble)
+		theEnsemble.push_back(make_unique<Mlp>(*m));
+}
+
+Ensemble::~Ensemble() = default;
 
 Ensemble& Ensemble::operator=(const Ensemble& c)
 {
 	if(this!=&c){
-		for(uint i=0; i<c.theEnsemble.size(); ++i)
-			theEnsemble.push_back(new Mlp(*(c.theEnsemble[i])));
+		theEnsemble.clear();
+		theEnsemble.reserve(c.theEnsemble.size());
+		for(const auto& m : c.theEnsemble)
+			theEnsemble.push_back(make_unique<Mlp>(*m));
 		theScales=c.theScales;
 	}
 	return *this;
@@ -66,34 +73,32 @@ Mlp& Ensemble::mlp(const uint i)
 
 void Ensemble::delMlp(const uint i)
 {
-	//I may need to think more here.
 	assert(i<theEnsemble.size());
-	delete theEnsemble[i];
 	theEnsemble.erase(theEnsemble.begin()+i);
 	theScales.erase(theScales.begin()+i);
 }
 
 void Ensemble::addMlp(Mlp& mlp, double s)
 {
-	theEnsemble.push_back(new Mlp(mlp));
+	theEnsemble.push_back(make_unique<Mlp>(mlp));
 	theScales.push_back(s);
 }
 
 void Ensemble::addMlp(Mlp& mlp)
 {
-	theEnsemble.push_back(new Mlp(mlp));
+	theEnsemble.push_back(make_unique<Mlp>(mlp));
 	theScales.assign(theEnsemble.size(), 1.0/theEnsemble.size());
 }
 
-void Ensemble::addMlp(Mlp* mlp, double s)
+void Ensemble::addMlp(unique_ptr<Mlp> mlp, double s)
 {
-	theEnsemble.push_back(mlp);
+	theEnsemble.push_back(std::move(mlp));
 	theScales.push_back(s);
 }
 
-void Ensemble::addMlp(Mlp* mlp)
+void Ensemble::addMlp(unique_ptr<Mlp> mlp)
 {
-	theEnsemble.push_back(mlp);
+	theEnsemble.push_back(std::move(mlp));
 	theScales.assign(theEnsemble.size(), 1.0/theEnsemble.size());
 }
 
@@ -115,8 +120,8 @@ vector<double> Ensemble::propagate(const vector<double>& input)
 {
 	assert(theEnsemble.size() == theScales.size());
 	assert(!theEnsemble.empty());
-	vector<Mlp*>::iterator itm = theEnsemble.begin();
-	vector<double>::iterator its = theScales.begin();
+	auto itm = theEnsemble.begin();
+	auto its = theScales.begin();
 	vector<double> output = (*itm)->propagate(input); ++itm;
 	mul(output, *its++);
 	for(; itm != theEnsemble.end(); ++itm){

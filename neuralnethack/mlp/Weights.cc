@@ -41,9 +41,9 @@ Weights::Weights(vector<uint>& a):arch(a)
 		prev = *it;
 	}
 	
-	theWeights = new vector<double>(num);
+	theWeights.resize(num);
 	for(int i=0; i<num; i++)
-		(*theWeights)[i] = 0.5-drand48(); 
+		theWeights[i] = 0.5-drand48();
 }
 
 Weights::Weights(const Weights& w) {*this = w;}
@@ -51,7 +51,7 @@ Weights::Weights(const Weights& w) {*this = w;}
 Weights& Weights::operator=(const Weights& w)
 {
 	if(this != &w){
-		theWeights = new vector<double>(*(w.theWeights));
+		theWeights = w.theWeights;
 		arch = w.arch;
 	}
 	return *this;
@@ -61,7 +61,7 @@ void Weights::print()
 {
 	vector<uint>::iterator itaprev = arch.begin();
 	vector<uint>::iterator itacurr = itaprev;
-	vector<double>::iterator itw = (*theWeights).begin();
+	vector<double>::iterator itw = theWeights.begin();
 	int i=0;
 
 	while(++itacurr != arch.end()){
@@ -83,7 +83,7 @@ void Weights::kill(uint layer, uint ncurr, uint nprev)
 	update(index(layer, ncurr, nprev), 0.0);
 }
 
-void Weights::update(uint n, double w){(*theWeights)[n] = w;}
+void Weights::update(uint n, double w){theWeights[n] = w;}
 
 void Weights::update(uint layer, uint ncurr, uint nprev, double w)
 {
@@ -91,7 +91,7 @@ void Weights::update(uint layer, uint ncurr, uint nprev, double w)
 }
 
 vector<double>& Weights::weights()
-{return (*theWeights);}
+{return theWeights;}
 
 void Weights::weights(uint layer, vector<double>::iterator& first, 
 		vector<double>::iterator& last)
@@ -107,10 +107,10 @@ void Weights::weights(uint layer, uint ncurr, uint nprev,
 		vector<double>::iterator& last)
 {itor(layer,ncurr,nprev,first,last);}
 
-Weights::~Weights(){delete theWeights;}
+Weights::~Weights(){}
 
 uint Weights::size()
-{return (*theWeights).size();}
+{return theWeights.size();}
 
 /*---------------------------------------------------------------------------*/
 
@@ -140,7 +140,7 @@ void Weights::itor(uint layer, vector<double>::iterator& first,
 	vector<double>::iterator& last)
 {
     assert(layer>=0 && layer<arch.size()-1); //Throw an exception instead!!
-    first = (*theWeights).begin() + index(layer);
+    first = theWeights.begin() + index(layer);
     last = first+arch[layer+1]*(arch[layer]+1)-1;
 }
 

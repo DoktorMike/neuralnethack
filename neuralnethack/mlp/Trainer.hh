@@ -27,6 +27,7 @@
 #include "Error.hh"
 #include "../datatools/DataSet.hh"
 
+#include <memory>
 #include <string>
 #include <ostream>
 
@@ -111,24 +112,24 @@ namespace MultiLayerPerceptron
 			 */
 			 void train(Mlp& mlp, DataTools::DataSet& dset, std::ostream& os);
 			
-			/**Method used to train a copy of the current MLP. 
-			 * This creates a copy of the current 
+			/**Method used to train a copy of the current MLP.
+			 * This creates a copy of the current
 			 * Mlp, trains it and returns it to the caller.
 			 * The Error function in the Trainer is the same.
 			 * \param dset the data set to train the MLP on.
 			 * \param os the ostream to print the training process to.
-			 * \return a pointer to the newly trained Mlp.
+			 * \return a unique_ptr to the newly trained Mlp.
 			 */
-			Mlp* trainNew(DataTools::DataSet& dset, std::ostream& os);
+			std::unique_ptr<Mlp> trainNew(DataTools::DataSet& dset, std::ostream& os);
 
-			/**Method used to train a copy of the current MLP. 
-			 * This creates a copy of the current 
+			/**Method used to train a copy of the current MLP.
+			 * This creates a copy of the current
 			 * Mlp, trains it and returns it to the caller.
 			 * The DataSet and the Error function in the Trainer is the same.
 			 * \param os the ostream to print the training process to.
-			 * \return a pointer to the newly trained Mlp.
+			 * \return a unique_ptr to the newly trained Mlp.
 			 */
-			Mlp* trainNew(std::ostream& os);
+			std::unique_ptr<Mlp> trainNew(std::ostream& os);
 
 			/**Method used to train an MLP. This uses the Mlp the DataSet
 			 * and the Error function in the Trainer.
@@ -137,9 +138,9 @@ namespace MultiLayerPerceptron
 			virtual void train(std::ostream& os) = 0;
 
 			/**Method that clones the Trainer and returns a copy of it.
-			 * \return the clone of this Trainer.
+			 * \return a unique_ptr to the clone of this Trainer.
 			 */
-			virtual Trainer* clone() const = 0;
+			virtual std::unique_ptr<Trainer> clone() const = 0;
 
 		protected:
 			/**Basic constructor.

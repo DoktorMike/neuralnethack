@@ -61,7 +61,7 @@ Ensemble* EnsembleBuilder::getEnsemble()
 		cerr<<"Error: No ensemble has been built yet"<<endl;
 	}else{
 		ensemble = new Ensemble();
-		for(vector<Session>::iterator it = theSessions.begin(); it != theSessions.end(); ++it)
+		for(auto it = theSessions.begin(); it != theSessions.end(); ++it)
 			ensemble->addMlp(it->ensemble->mlp(0));
 	}
 	return ensemble;
@@ -81,11 +81,12 @@ Ensemble* EnsembleBuilder::buildEnsemble()
 		pair<DataSet, DataSet>* dataSets = theSampler->next();
 		DataSet& trnData = dataSets->first;
 		DataSet& valData = dataSets->second;
-		Mlp* newMlp = theTrainer->trainNew(trnData, cout);
+		auto newMlp = theTrainer->trainNew(trnData, cout);
 		ensemble->addMlp(*newMlp); //This copies the mlp.
-		theSessions.push_back(Session(new Ensemble(*newMlp, 1), 
-					new DataSet(trnData), new DataSet(valData)));
-		delete newMlp;
+		theSessions.push_back(Session(
+					std::make_unique<Ensemble>(*newMlp, 1),
+					std::make_unique<DataSet>(trnData),
+					std::make_unique<DataSet>(valData)));
 		delete dataSets;
 	}
 

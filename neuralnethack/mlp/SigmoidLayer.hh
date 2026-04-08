@@ -51,6 +51,9 @@ namespace MultiLayerPerceptron
 			 */
 			virtual ~SigmoidLayer();
 
+			std::unique_ptr<Layer> clone() const override
+			{ return std::make_unique<SigmoidLayer>(*this); }
+
 			//ACCESSOR AND MUTATOR FUNCTIONS
 
 			//ACCESSOR FUNCTIONS

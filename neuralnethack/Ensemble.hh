@@ -26,6 +26,7 @@
 
 #include "mlp/Mlp.hh"
 
+#include <memory>
 #include <vector>
 
 namespace NeuralNetHack{
@@ -51,6 +52,9 @@ namespace NeuralNetHack{
 			 */
 			Ensemble(const Ensemble& c);
 
+			/**Move constructor. */
+			Ensemble(Ensemble&&) noexcept = default;
+
 			/**Basic destructor. */
 			~Ensemble();
 
@@ -58,6 +62,9 @@ namespace NeuralNetHack{
 			 * \param c the object to assign from.
 			 */
 			Ensemble& operator=(const Ensemble& c);
+
+			/**Move assignment operator. */
+			Ensemble& operator=(Ensemble&&) noexcept = default;
 
 			/**Index operator.
 			 * \param i the index of the MLP that is to be returned.
@@ -89,22 +96,18 @@ namespace NeuralNetHack{
 			 */
 			void addMlp(MultiLayerPerceptron::Mlp& mlp);
 
-			/**Add an MLP to this ensemble. This will use the mlp without
-			 * copying it. Thus the mlp pointed to will be destroyed when this
-			 * object is destroyed.
-			 * \param mlp the MLP to add.
+			/**Add an MLP to this ensemble by taking ownership.
+			 * \param mlp the MLP to add (ownership transferred).
 			 * \param s the scale for this MLP.
 			 */
-			void addMlp(MultiLayerPerceptron::Mlp* mlp, double s);
+			void addMlp(std::unique_ptr<MultiLayerPerceptron::Mlp> mlp, double s);
 
-			/**Add an MLP to this ensemble. This will use the mlp without
-			 * copying it. Thus the mlp pointed to will be destroyed when this
-			 * object is destroyed.
-			 * The scale for each MLP in the Committe is set to 1/N. 
+			/**Add an MLP to this ensemble by taking ownership.
+			 * The scale for each MLP in the Committe is set to 1/N.
 			 * Thus all previous scales are destroyed.
-			 * \param mlp the MLP to add.
+			 * \param mlp the MLP to add (ownership transferred).
 			 */
-			void addMlp(MultiLayerPerceptron::Mlp* mlp);
+			void addMlp(std::unique_ptr<MultiLayerPerceptron::Mlp> mlp);
 
 			/**Return the scale for the MLP located at index i.
 			 * \param i the index of the MLP which scale is to be returned.
@@ -130,7 +133,7 @@ namespace NeuralNetHack{
 
 		private:
 			/**A committee of MLPs. */
-			std::vector<MultiLayerPerceptron::Mlp*> theEnsemble;
+			std::vector<std::unique_ptr<MultiLayerPerceptron::Mlp>> theEnsemble;
 
 			/**The scales(weights) to use when combining the output from each
 			 * MLP. By default the standard mean value is computed.

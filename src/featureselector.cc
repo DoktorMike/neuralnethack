@@ -93,7 +93,7 @@ pair<Ensemble, double> validateFeatures(DataSet& trn, Config& config)
 		delete eb;
 		delete tmp;
 	}
-	return make_pair<Ensemble, double>(ensemble, best.second);
+	return make_pair(ensemble, best.second);
 }
 
 template<class T> struct mapValueIndex : public unary_function<T, void>

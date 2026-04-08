@@ -6,6 +6,9 @@
 /* Define to 1 if you have the <cassert> header file. */
 #undef HAVE_CASSERT
 
+/* Define to 1 if you have the <cblas.h> header file. */
+#undef HAVE_CBLAS_H
+
 /* Define to 1 if you have the <cctype> header file. */
 #undef HAVE_CCTYPE
 
@@ -39,9 +42,6 @@
 /* Define to 1 if you have the <iterator> header file. */
 #undef HAVE_ITERATOR
 
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
-
 /* Define to 1 if you have the <numeric> header file. */
 #undef HAVE_NUMERIC
 
@@ -53,6 +53,9 @@
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
@@ -105,8 +108,13 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C89 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #undef STDC_HEADERS
+
+/* Define to 1 if BLAS is available */
+#undef USE_BLAS
 
 /* Version number of package */
 #undef VERSION

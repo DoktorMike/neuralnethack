@@ -82,7 +82,7 @@ int testSimpleSaliency()
 	output.push_back(1);
 	Pattern p("someid", input, output);
 
-	vector<double> saliency = Saliency::saliency(mlp, p);
+	vector<double> saliency = Saliency::saliency(mlp, p, false);
 	/**\todo Recalculate the saliency so this test will work again. */
 	//if( fabs(saliency[0] - 0.0818615505097) > 1e-13 ) return EXIT_FAILURE;
 	//if( fabs(saliency[1] - 0.0606381855627) > 1e-13 ) return EXIT_FAILURE;
@@ -104,7 +104,7 @@ int testSaliency(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Con
 	mlp = trainer->mlp();
 	Ensemble c(*mlp, 1);
 	
-	vector<double> saliencies = Saliency::saliency(c, trnData);
+	vector<double> saliencies = Saliency::saliency(c, trnData, false);
 	Saliency::print(cout, saliencies);
 
 	delete trainer;
