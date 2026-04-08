@@ -4,6 +4,7 @@
 #include <config.h>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <iterator>
 #include <iostream>
 
