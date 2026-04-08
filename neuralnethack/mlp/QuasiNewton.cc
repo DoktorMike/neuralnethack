@@ -25,11 +25,20 @@
 #include "Error.hh"
 #include "../matrixtools/MatrixTools.hh"
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
+
 #include <cmath>
 #include <ostream>
 #include <iomanip>
 #include <algorithm>
-#include <functional>
 
 #define ITMAX				10
 #define CGOLD				0.3819660
@@ -51,7 +60,7 @@ using std::unique_ptr;
 
 static float maxarg1,maxarg2;
 
-QuasiNewton::QuasiNewton(Mlp& mlp, DataSet& data, Error& error, double te, uint bs):Trainer(mlp, data, error, te, bs)
+QuasiNewton::QuasiNewton(Mlp& mlp, DataSet& data, Error& error, double te, uint bs):Trainer(mlp, data, error, te, bs), flatN(0)
 {}
 
 QuasiNewton::~QuasiNewton(){}
@@ -61,17 +70,17 @@ void QuasiNewton::train(ostream& os)
 	theError->mlp(*theMlp);
 	theError->dset(*theData);
 	resetVectors();
-	
+
 	double err = 10;
 	double prevErr = 100;
 	float alpha=0;
-	uint cntr = theNumEpochs; 
+	uint cntr = theNumEpochs;
 	uint width = 14;
 
 	os.setf(ios::left);
 	os<<setw(width)<<"# Epoch"<<setw(width)<<"TrnErr"<<setw(width)<<"StepLen"<<endl;
-	while(cntr-- && !hasConverged(err, prevErr)){//err > theTrainingError){
-		mul(G, g, vectorTemp1); //Gg used in findAlpha!
+	while(cntr-- && !hasConverged(err, prevErr)){
+		flatMulVec(G, g, vectorTemp1); //Gg used in findAlpha!
 		prevErr = err;
 		err=findAlpha(alpha); //Determine steplength
 		{
@@ -109,6 +118,7 @@ QuasiNewton& QuasiNewton::operator=(const QuasiNewton& qn)
 {
 	if(this!=&qn){
 		Trainer::operator=(qn);
+		flatN = qn.flatN;
 		G = qn.G;
 		w = qn.w;
 		wPrev = qn.wPrev;
@@ -128,7 +138,9 @@ QuasiNewton& QuasiNewton::operator=(const QuasiNewton& qn)
 void QuasiNewton::resetVectors()
 {
 	uint n	= theMlp->nWeights();
-	G		= identity(n);
+	flatN	= n;
+	G.assign(n * n, 0.0);
+	flatIdentity(G);
 	w		= theMlp->weights();
 	wPrev	= vector<double>(n,0);
 	dw		= vector<double>(n,0);
@@ -138,16 +150,15 @@ void QuasiNewton::resetVectors()
 	dg		= vector<double>(n,0);
 	u		= vector<double>(n,0);
 
-	//Temporary variables that I don't want to reallocate all the time.
-	matrixTemp1 = identity(n);
-	matrixTemp2 = identity(n);
+	matrixTemp1.assign(n * n, 0.0);
+	matrixTemp2.assign(n * n, 0.0);
 	vectorTemp1 = vector<double>(n,0);
 	vectorTemp2 = vector<double>(n,0);
 }
 
 void QuasiNewton::updateBfgs()
 {
-	const uint n = w.size();
+	const uint n = flatN;
 	{
 		const double* __restrict__ wp   = w.data();
 		const double* __restrict__ wpp  = wPrev.data();
@@ -162,20 +173,20 @@ void QuasiNewton::updateBfgs()
 		}
 	}
 
-	double dwdg = innerProduct(dw, dg);		//dwdg
-	vector<double> Gdg=dg;					//Gdg
-	mul(G,dg,Gdg);
-	double dgGdg = innerProduct(dg, Gdg);	//dgGdg
+	double dwdg = innerProduct(dw, dg);
+	vector<double> Gdg = dg;
+	flatMulVec(G, dg, Gdg);
+	double dgGdg = innerProduct(dg, Gdg);
 
 	//Term 1
-	outerProduct(dw,dw,matrixTemp1);
-	div(matrixTemp1, dwdg);
+	flatOuterProduct(dw, dw, matrixTemp1);
+	flatScale(matrixTemp1, 1.0 / dwdg);
 
 	//Term 2
-	outerProduct(Gdg, Gdg, matrixTemp2);
-	div(matrixTemp2, dgGdg);
+	flatOuterProduct(Gdg, Gdg, matrixTemp2);
+	flatScale(matrixTemp2, 1.0 / dgGdg);
 
-	sub(matrixTemp1, matrixTemp2, matrixTemp1); //matrixTemp1 holds the result.
+	flatSub(matrixTemp1, matrixTemp2, matrixTemp1);
 
 	//Building u
 	{
@@ -194,17 +205,17 @@ void QuasiNewton::updateBfgs()
 	}
 
 	//Term 3
-	outerProduct(vectorTemp1, vectorTemp1, matrixTemp2);
-	mul(matrixTemp2, dgGdg);
+	flatOuterProduct(vectorTemp1, vectorTemp1, matrixTemp2);
+	flatScale(matrixTemp2, dgGdg);
 
-	sub(matrixTemp1, matrixTemp2, matrixTemp1); //matrixTemp1 holds the result.
+	flatSub(matrixTemp1, matrixTemp2, matrixTemp1);
 
-	add(G, matrixTemp1, G);
+	flatAdd(G, matrixTemp1, G);
 }
 
 void QuasiNewton::updateDfp()
 {
-	const uint n = w.size();
+	const uint n = flatN;
 	{
 		const double* __restrict__ wp   = w.data();
 		const double* __restrict__ wpp  = wPrev.data();
@@ -219,20 +230,19 @@ void QuasiNewton::updateDfp()
 		}
 	}
 
-	double dwdg = innerProduct(dw, dg);		//dwdg
-	vector<double> Gdg=dg;					//Gdg
-	mul(G,dg,Gdg);       
-	double dgGdg = innerProduct(dg, Gdg);	//dgGdg
+	double dwdg = innerProduct(dw, dg);
+	vector<double> Gdg = dg;
+	flatMulVec(G, dg, Gdg);
+	double dgGdg = innerProduct(dg, Gdg);
 
-	//matrixTemp1 = G;
-	outerProduct(dw,dw,matrixTemp1);
-	div(matrixTemp1, dwdg);
+	flatOuterProduct(dw, dw, matrixTemp1);
+	flatScale(matrixTemp1, 1.0 / dwdg);
 
-	outerProduct(Gdg, Gdg, matrixTemp2);
-	div(matrixTemp2, dgGdg);
+	flatOuterProduct(Gdg, Gdg, matrixTemp2);
+	flatScale(matrixTemp2, 1.0 / dgGdg);
 
-	add(G,matrixTemp1,G);
-	sub(G,matrixTemp2,G);
+	flatAdd(G, matrixTemp1, G);
+	flatSub(G, matrixTemp2, G);
 }
 
 float QuasiNewton::findAlpha(float& alpha)
@@ -245,24 +255,24 @@ float QuasiNewton::findAlpha(float& alpha)
 	return brent(ax,bx,cx,tol,&alpha);
 }
 
-void QuasiNewton::mnbrak(float *ax, float *bx, float *cx, 
+void QuasiNewton::mnbrak(float *ax, float *bx, float *cx,
 		float *fa, float *fb, float *fc)
 {
 	float ulim,u,r,q,fu,dum;
-	*fa=err(*ax);					 
-	*fb=err(*bx); 
+	*fa=err(*ax);
+	*fb=err(*bx);
 	if (*fb > *fa) {
 		SHFT(dum,*ax,*bx,dum);
 		SHFT(dum,*fb,*fa,dum);
 	}
-	*cx=(*bx)+GOLD*(*bx-*ax); 
+	*cx=(*bx)+GOLD*(*bx-*ax);
 	*fc=err(*cx);
-	while (*fb > *fc) { 
+	while (*fb > *fc) {
 		r=(*bx-*ax)*(*fb-*fc);
 		q=(*bx-*cx)*(*fb-*fa);
 		u=(*bx)-((*bx-*cx)*q-(*bx-*ax)*r)/(2.0*SIGN(FMAX(fabs(q-r),TINY),q-r));
 		ulim=(*bx)+GLIMIT*(*cx-*bx);
-		if ((*bx-u)*(u-*cx) > 0.0) { 
+		if ((*bx-u)*(u-*cx) > 0.0) {
 			fu=err(u);
 			if (fu < *fc) {
 				*ax=(*bx);
@@ -276,13 +286,13 @@ void QuasiNewton::mnbrak(float *ax, float *bx, float *cx,
 				return;
 			}
 			u=(*cx)+GOLD*(*cx-*bx);
-			fu=err(u); 
-		} else if ((*cx-u)*(u-ulim) > 0.0) { 
 			fu=err(u);
-			if (fu < *fc) { 
+		} else if ((*cx-u)*(u-ulim) > 0.0) {
+			fu=err(u);
+			if (fu < *fc) {
 				SHFT(*bx,*cx,u,*cx+GOLD*(*cx-*bx));
 				SHFT(*fb,*fc,fu,err(u));
-			}	   
+			}
 		} else if ((u-ulim)*(ulim-*cx) >= 0.0) {
 			u=ulim;
 			fu=err(u);
@@ -290,30 +300,30 @@ void QuasiNewton::mnbrak(float *ax, float *bx, float *cx,
 			u=(*cx)+GOLD*(*cx-*bx);
 			fu=err(u);
 		}
-		SHFT(*ax,*bx,*cx,u); 
+		SHFT(*ax,*bx,*cx,u);
 		SHFT(*fa,*fb,*fc,fu);
-	}		   
-}	   
+	}
+}
 
 float QuasiNewton::brent(float ax, float bx, float cx, float tol,
 		float *xmin)
 
-{		   
+{
 	int iter;
 	float a,b,etemp,fu,fv,fw,fx,p,q,r,tol1,tol2,u,v,w,x,xm;
 	float e=0.0;
 	float d=0.0;
 	a=(ax < cx ? ax : cx);
 	b=(ax > cx ? ax : cx);
-	x=w=v=bx; 
+	x=w=v=bx;
 	fw=fv=fx=err(x);
 	for (iter=1;iter<=ITMAX;iter++) {
 		xm=0.5*(a+b);
 		tol2=2.0*(tol1=tol*fabs(x)+ZEPS);
 		if (fabs(x-xm) <= (tol2-0.5*(b-a))) {
-			*xmin=x; 
+			*xmin=x;
 			return fx;
-		}	   
+		}
 		if (fabs(e) > tol1) {
 			r=(x-w)*(fx-fv);
 			q=(x-v)*(fx-fw);
@@ -333,12 +343,12 @@ float QuasiNewton::brent(float ax, float bx, float cx, float tol,
 			}
 		} else {
 			d=CGOLD*(e=(x >= xm ? a-x : b-x));
-		} 
+		}
 		u=(fabs(d) >= tol1 ? x+d : x+SIGN(tol1,d));
 		fu=err(u);
 		if (fu <= fx) {
 			if (u >= x) a=x; else b=x;
-			SHFT(v,w,x,u) 
+			SHFT(v,w,x,u)
 				SHFT(fv,fw,fx,fu)
 		} else {
 			if (u < x) a=u; else b=u;
@@ -353,19 +363,18 @@ float QuasiNewton::brent(float ax, float bx, float cx, float tol,
 			}
 		}
 	}
-	//cerr<<"Too many iterations in brent."<<endl;
 	*xmin=x;
 	return fx;
-}										  
+}
 
 float QuasiNewton::err(float alfa)
 {
 	mul(vectorTemp1, alfa, vectorTemp2);
-	add(vectorTemp2,w,vectorTemp2); //vectorTemp1=w+alfa*G*g;
+	add(vectorTemp2,w,vectorTemp2);
 
-	theMlp->weights(vectorTemp2); //set weights.
+	theMlp->weights(vectorTemp2);
 	float err=theError->outputError(*theMlp, *theData);
-	theMlp->weights(w); //reset weights.
+	theMlp->weights(w);
 
 	return err;
 }
@@ -381,5 +390,97 @@ bool QuasiNewton::converged()
 	vector<double>::iterator maxdg = max_element(dg.begin(), dg.end(), less_mag());
 	if(*maxdg < EPS) return true;
 	return false;
+}
+
+//FLAT MATRIX HELPERS--------------------------------------------------------//
+
+void QuasiNewton::flatIdentity(vector<double>& m)
+{
+	fill(m.begin(), m.end(), 0.0);
+	for(uint i = 0; i < flatN; ++i)
+		m[i * flatN + i] = 1.0;
+}
+
+void QuasiNewton::flatMulVec(const vector<double>& m, const vector<double>& v, vector<double>& res)
+{
+#ifdef USE_BLAS
+	cblas_dgemv(CblasRowMajor, CblasNoTrans, flatN, flatN, 1.0,
+				m.data(), flatN, v.data(), 1, 0.0, res.data(), 1);
+#else
+	fill(res.begin(), res.end(), 0.0);
+	const double* __restrict__ mp = m.data();
+	const double* __restrict__ vp = v.data();
+	double* __restrict__ rp = res.data();
+	for(uint i = 0; i < flatN; ++i){
+		double sum = 0.0;
+		const double* __restrict__ row = mp + i * flatN;
+		for(uint j = 0; j < flatN; ++j)
+			sum += row[j] * vp[j];
+		rp[i] = sum;
+	}
+#endif
+}
+
+void QuasiNewton::flatOuterProduct(const vector<double>& v1, const vector<double>& v2, vector<double>& res)
+{
+#ifdef USE_BLAS
+	fill(res.begin(), res.end(), 0.0);
+	cblas_dger(CblasRowMajor, flatN, flatN, 1.0,
+			   v1.data(), 1, v2.data(), 1, res.data(), flatN);
+#else
+	const double* __restrict__ v1p = v1.data();
+	const double* __restrict__ v2p = v2.data();
+	double* __restrict__ rp = res.data();
+	for(uint i = 0; i < flatN; ++i){
+		double* __restrict__ row = rp + i * flatN;
+		const double vi = v1p[i];
+		for(uint j = 0; j < flatN; ++j)
+			row[j] = vi * v2p[j];
+	}
+#endif
+}
+
+void QuasiNewton::flatScale(vector<double>& m, double s)
+{
+	const uint nn = flatN * flatN;
+#ifdef USE_BLAS
+	cblas_dscal(nn, s, m.data(), 1);
+#else
+	double* __restrict__ mp = m.data();
+	for(uint i = 0; i < nn; ++i)
+		mp[i] *= s;
+#endif
+}
+
+void QuasiNewton::flatAdd(const vector<double>& m1, const vector<double>& m2, vector<double>& res)
+{
+	const uint nn = flatN * flatN;
+#ifdef USE_BLAS
+	if(res.data() != m1.data())
+		cblas_dcopy(nn, m1.data(), 1, res.data(), 1);
+	cblas_daxpy(nn, 1.0, m2.data(), 1, res.data(), 1);
+#else
+	const double* __restrict__ a = m1.data();
+	const double* __restrict__ b = m2.data();
+	double* __restrict__ r = res.data();
+	for(uint i = 0; i < nn; ++i)
+		r[i] = a[i] + b[i];
+#endif
+}
+
+void QuasiNewton::flatSub(const vector<double>& m1, const vector<double>& m2, vector<double>& res)
+{
+	const uint nn = flatN * flatN;
+#ifdef USE_BLAS
+	if(res.data() != m1.data())
+		cblas_dcopy(nn, m1.data(), 1, res.data(), 1);
+	cblas_daxpy(nn, -1.0, m2.data(), 1, res.data(), 1);
+#else
+	const double* __restrict__ a = m1.data();
+	const double* __restrict__ b = m2.data();
+	double* __restrict__ r = res.data();
+	for(uint i = 0; i < nn; ++i)
+		r[i] = a[i] - b[i];
+#endif
 }
 
