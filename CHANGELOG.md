@@ -1,6 +1,49 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+## 2.0.0 (2026-04-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* replace Autotools with CMake
+
+### Features
+
+* add ReLU activations, Adam optimizer, dropout, and serialization ([f49e20c](https://github.com/DoktorMike/neuralnethack/commit/f49e20c430e385328e4888428944eab9edeca32d))
+* modernize to C++17 with BLAS, unique_ptr, and vectorized hot paths ([62dcc10](https://github.com/DoktorMike/neuralnethack/commit/62dcc100ffdd2a2a5ef70a65f2c0e607e2e486d5))
+* wire Adam/AdamW parameters through Config and Parser ([0b068e7](https://github.com/DoktorMike/neuralnethack/commit/0b068e7d4aa4b9b129182021e11c27624dda3551))
+
+
+### Bug Fixes
+
+* compare numerically with tolerance in testNormaliser ([b06d3a8](https://github.com/DoktorMike/neuralnethack/commit/b06d3a81a4d9166cf958921bbd234dd45f6a7a7b))
+
+
+### build
+
+* replace Autotools with CMake ([524b7e6](https://github.com/DoktorMike/neuralnethack/commit/524b7e66c4ef9edac69e023795e03da1fb646921))
+
+
+### Other
+
+* add classification metrics to XOR test ([9bccce8](https://github.com/DoktorMike/neuralnethack/commit/9bccce8d79a6affa48f03fc0b66f613aa090f9f2))
+* add XOR integration test ([5637c96](https://github.com/DoktorMike/neuralnethack/commit/5637c96f7c4391d58028158f83e78cb01ae555a2))
+* batch forward/backward propagation using GEMM ([885019c](https://github.com/DoktorMike/neuralnethack/commit/885019c4ad361c3cbda7695419aec6b65717f61b))
+* contiguous matrix storage and devirtualized activations ([d894caf](https://github.com/DoktorMike/neuralnethack/commit/d894caf8696c7d0b5b3f646837d9e3df5a49a3a5))
+* replace full BFGS with L-BFGS (O(mn) memory) ([e17408a](https://github.com/DoktorMike/neuralnethack/commit/e17408a86782453ff2c2e567fba3ca9b7db2effc))
+
+
+### Documentation
+
+* add AGENTS.md with architecture overview ([7f26a90](https://github.com/DoktorMike/neuralnethack/commit/7f26a90a252a8f2d5b22c161582427df4e5376a5))
+* add markdown README ([a4ea3d3](https://github.com/DoktorMike/neuralnethack/commit/a4ea3d3a078db689bb352e012f098c62a30bc52e))
+* extend README with XOR training example ([c3b94d2](https://github.com/DoktorMike/neuralnethack/commit/c3b94d28b9b8ca5ef3967e7b874ff87410e7f295))
+* merge old ChangeLog into semver CHANGELOG.md ([290c0e6](https://github.com/DoktorMike/neuralnethack/commit/290c0e621dba23ac7e3894a3e4093f8ebb6de1f4))
+* update AUTHORS ([467faa1](https://github.com/DoktorMike/neuralnethack/commit/467faa16138b2979503d874e0c8a006d6731909f))
+* update README ([d3cf6a7](https://github.com/DoktorMike/neuralnethack/commit/d3cf6a7ec656a1238c82a0f72cf401c0a6138af5))
+* update README with features and quick start ([834ff92](https://github.com/DoktorMike/neuralnethack/commit/834ff92ee42f179df664d49aec89753891656e8a))
 
 ## [1.0.0] - 2026-04-08
 
