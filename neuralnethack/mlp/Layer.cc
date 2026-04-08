@@ -188,3 +188,85 @@ void Layer::applyDerivative(vector<double>& deltas)
 	theDerivScale(theOutputs.data(), deltas.data(), ncurr);
 }
 
+const double* Layer::propagateBatch(const double* input, uint B, uint n_in)
+{
+	assert(n_in == nprev);
+	theBatchOutputs.resize(B * ncurr);
+	double* out = theBatchOutputs.data();
+	const double* wt = theWeights.data();
+	const uint stride = nprev + 1;
+
+#ifdef USE_BLAS
+	// Out[B x ncurr] = Input[B x nprev] * W[ncurr x nprev]^T
+	// W is [ncurr x (nprev+1)] row-major; ldb=stride skips bias column
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans,
+				B, ncurr, nprev,
+				1.0,
+				input, nprev,
+				wt, stride,
+				0.0,
+				out, ncurr);
+
+	// Add bias to each row
+	for(uint b = 0; b < B; ++b)
+		for(uint j = 0; j < ncurr; ++j)
+			out[b * ncurr + j] += wt[j * stride + nprev];
+#else
+	for(uint b = 0; b < B; ++b){
+		for(uint j = 0; j < ncurr; ++j){
+			const double* row = wt + j * stride;
+			double sum = row[nprev]; // bias
+			for(uint k = 0; k < nprev; ++k)
+				sum += input[b * nprev + k] * row[k];
+			out[b * ncurr + j] = sum;
+		}
+	}
+#endif
+
+	// Apply activation to all B*ncurr elements
+	theActivation(out, B * ncurr);
+
+	return out;
+}
+
+void Layer::applyDerivativeBatch(uint B)
+{
+	theDerivScale(theBatchOutputs.data(), theBatchLocalGradients.data(), B * ncurr);
+}
+
+void Layer::accumulateGradientsBatch(const double* input, uint B)
+{
+	const double* delta = theBatchLocalGradients.data();
+	double* grad = theGradients.data();
+	const uint stride = nprev + 1;
+
+#ifdef USE_BLAS
+	// dW[ncurr x nprev] += Delta^T[ncurr x B] * Input[B x nprev]
+	// grad has ldc=stride to skip bias column
+	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,
+				ncurr, nprev, B,
+				1.0,
+				delta, ncurr,
+				input, nprev,
+				1.0,
+				grad, stride);
+#else
+	for(uint i = 0; i < ncurr; ++i){
+		for(uint j = 0; j < nprev; ++j){
+			double sum = 0;
+			for(uint b = 0; b < B; ++b)
+				sum += delta[b * ncurr + i] * input[b * nprev + j];
+			grad[i * stride + j] += sum;
+		}
+	}
+#endif
+
+	// Bias gradients: column-sum of delta
+	for(uint i = 0; i < ncurr; ++i){
+		double sum = 0;
+		for(uint b = 0; b < B; ++b)
+			sum += delta[b * ncurr + i];
+		grad[i * stride + nprev] += sum;
+	}
+}
+

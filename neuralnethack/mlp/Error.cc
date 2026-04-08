@@ -22,6 +22,7 @@
 
 
 #include "Error.hh"
+#include "../datatools/Pattern.hh"
 
 #include <vector>
 #include <cmath>
@@ -120,6 +121,26 @@ double Error::weightElim() const
 		we += wisqr/(w0sqr + wisqr);
 	}
 	return we;
+}
+
+void Error::packBatch(DataSet& dset,
+		vector<double>& inputMatrix,
+		vector<double>& targetMatrix) const
+{
+	const uint B = dset.size();
+	const uint n_in = dset.nInput();
+	const uint n_out = dset.nOutput();
+
+	inputMatrix.resize(B * n_in);
+	targetMatrix.resize(B * n_out);
+
+	for(uint b = 0; b < B; ++b){
+		Pattern& p = dset.pattern(b);
+		const vector<double>& inp = p.input();
+		copy(inp.begin(), inp.end(), inputMatrix.data() + b * n_in);
+		const vector<double>& out = p.output();
+		copy(out.begin(), out.end(), targetMatrix.data() + b * n_out);
+	}
 }
 
 //PRIVATE--------------------------------------------------------------------//

@@ -23,11 +23,21 @@
 
 #include "SummedSquare.hh"
 #include "../matrixtools/MatrixTools.hh"
+#include "../datatools/Pattern.hh"
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
 
 #include <cmath>
 #include <cassert>
 #include <algorithm>
-#include <functional>
 
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
@@ -48,35 +58,93 @@ double SummedSquare::gradient(Mlp& mlp, DataSet& dset)
 double SummedSquare::gradient()
 {
 	assert(theDset!=0 && theMlp!=0);
-	double err=0;
 
-	//Set all gradients to zero.
 	killGradients();
 
-	uint bs=theDset->size();
-	for(uint i=0; i<bs; ++i){
-		Pattern& p = theDset->pattern(i);
-		const vector<double>& out = theMlp->propagate(p.input());
-		Layer& last = (*theMlp)[theMlp->nLayers()-1];
-		localGradient(last, out, p.output());
-		backpropagate();
-		gradientBatch((*theMlp)[0], p.input());
+	const uint bs = theDset->size();
+	const uint nOut = theMlp->layer(theMlp->nLayers()-1).nNeurons();
 
-		for(uint i=1; i<theMlp->nLayers(); ++i)
-			gradientBatch((*theMlp)[i],(*theMlp)[i-1]);
-		err += outputError(out, p.output());
+	// Pack dataset into contiguous batch matrices
+	vector<double> inputMatrix, targetMatrix;
+	packBatch(*theDset, inputMatrix, targetMatrix);
+
+	// Batch forward pass (one GEMM per layer)
+	const double* batchOut = theMlp->propagateBatch(inputMatrix.data(), bs);
+
+	// Compute output-layer local gradients: delta = (target - output) * f'(output)
+	Layer& last = (*theMlp)[theMlp->nLayers()-1];
+	last.batchLocalGradients().resize(bs * nOut);
+	{
+		double* delta = last.batchLocalGradients().data();
+		const double* t = targetMatrix.data();
+		const double* o = batchOut;
+		for(uint i = 0; i < bs * nOut; ++i)
+			delta[i] = t[i] - o[i];
+	}
+	// SummedSquare applies derivative to output layer (unlike CrossEntropy)
+	last.applyDerivativeBatch(bs);
+
+	// Batch backpropagate deltas through hidden layers (one GEMM per layer)
+	for(int l = theMlp->size()-1; l > 0; --l){
+		Layer& curr = (*theMlp)[l-1];
+		Layer& next = (*theMlp)[l];
+		const uint nc = curr.nNeurons();
+		const uint nn = next.nNeurons();
+		const uint nextStride = nc + 1;
+
+		curr.batchLocalGradients().resize(bs * nc);
+		double* clg = curr.batchLocalGradients().data();
+		const double* nlg = next.batchLocalGradients().data();
+		const double* wt = next.weights().data();
+
+#ifdef USE_BLAS
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+					bs, nc, nn,
+					1.0,
+					nlg, nn,
+					wt, nextStride,
+					0.0,
+					clg, nc);
+#else
+		for(uint b = 0; b < bs; ++b){
+			for(uint j = 0; j < nc; ++j){
+				double err = 0;
+				for(uint k = 0; k < nn; ++k)
+					err += nlg[b * nn + k] * wt[k * nextStride + j];
+				clg[b * nc + j] = err;
+			}
+		}
+#endif
+		curr.applyDerivativeBatch(bs);
 	}
 
-	for(uint i=0; i<theMlp->nLayers(); ++i){
-		Layer& l = theMlp->layer(i);
-		vector<double>& g = l.gradients();
-		//Divide the gradients with batch size
-		std::transform(g.begin(), g.end(), g.begin(), 
-				std::bind2nd(std::divides<double>(), -(double)bs));
+	// Batch gradient accumulation (one GEMM per layer)
+	(*theMlp)[0].accumulateGradientsBatch(inputMatrix.data(), bs);
+	for(uint l = 1; l < theMlp->nLayers(); ++l)
+		(*theMlp)[l].accumulateGradientsBatch((*theMlp)[l-1].batchOutputs().data(), bs);
+
+	// Compute total error
+	double err = 0;
+	{
+		const double* o = batchOut;
+		const double* t = targetMatrix.data();
+		for(uint b = 0; b < bs; ++b)
+			for(uint j = 0; j < nOut; ++j){
+				double diff = t[b * nOut + j] - o[b * nOut + j];
+				err += diff * diff;
+			}
+	}
+
+	// Divide gradients by -bs and apply weight elimination
+	for(uint l = 0; l < theMlp->nLayers(); ++l){
+		Layer& layer = theMlp->layer(l);
+		vector<double>& g = layer.gradients();
+		std::transform(g.begin(), g.end(), g.begin(),
+				[bs](double v){ return v / -(double)bs; });
 		if(theWeightElimOn == true)
-			weightElimGradLayer(g, l.weights(), l.nNeurons(), l.nPrevious());
+			weightElimGradLayer(g, layer.weights(), layer.nNeurons(), layer.nPrevious());
 	}
-	
+
 	return err/(double)bs;
 }
 
@@ -92,7 +160,7 @@ double SummedSquare::outputError() const
 	assert(theDset!=0 && theMlp!=0);
 	double err=0;
 	uint bs=theDset->size();
-	
+
 	for(uint i=0; i<bs; ++i){
 		Pattern& p=theDset->pattern(i);
 		vector<double> output=theMlp->propagate(p.input());
@@ -103,7 +171,7 @@ double SummedSquare::outputError() const
 
 //PRIVATE--------------------------------------------------------------------//
 
-SummedSquare::SummedSquare(const SummedSquare& sse):Error(*(sse.theMlp), 
+SummedSquare::SummedSquare(const SummedSquare& sse):Error(*(sse.theMlp),
 		*(sse.theDset)){*this = sse;}
 
 SummedSquare& SummedSquare::operator=(const SummedSquare& sse)
@@ -152,7 +220,7 @@ void SummedSquare::gradient(Layer& first, vector<double>& in)
 	for(uint i=0; i<first.size(); ++i){
 		for(uint j=0; j<in.size(); ++j)
 			first.gradients(i,j) = first.localGradients(i) * in[j];
-		first.gradients(i, in.size()) = first.localGradients(i); //bias
+		first.gradients(i, in.size()) = first.localGradients(i);
 	}
 }
 
@@ -161,7 +229,7 @@ void SummedSquare::gradientBatch(Layer& first, vector<double>& in)
 	for(uint i=0; i<first.size(); ++i){
 		for(uint j=0; j<in.size(); ++j)
 			first.gradients(i, j) += first.localGradients(i) * in[j];
-		first.gradients(i, in.size()) += first.localGradients(i); //bias
+		first.gradients(i, in.size()) += first.localGradients(i);
 	}
 }
 
@@ -170,7 +238,7 @@ void SummedSquare::gradient(Layer& curr, Layer& prev)
 	for(uint i=0; i<curr.size(); ++i){
 		for(uint j=0; j<prev.size(); ++j)
 			curr.gradients(i, j) = curr.localGradients(i) * prev.outputs(j);
-		curr.gradients(i, prev.size()) = curr.localGradients(i); //bias
+		curr.gradients(i, prev.size()) = curr.localGradients(i);
 	}
 }
 
@@ -179,14 +247,13 @@ void SummedSquare::gradientBatch(Layer& curr, Layer& prev)
 	for(uint i=0; i<curr.size(); ++i){
 		for(uint j=0; j<prev.size(); ++j)
 			curr.gradients(i, j) += curr.localGradients(i) * prev.outputs(j);
-		curr.gradients(i, prev.size()) += curr.localGradients(i); //bias
+		curr.gradients(i, prev.size()) += curr.localGradients(i);
 	}
 }
 
 double SummedSquare::outputError(const vector<double>& out, const vector<double>& dout) const
 {
 	assert(out.size()==dout.size());
-
 	vector<double>::const_iterator ito = out.begin();
 	vector<double>::const_iterator itd = dout.begin();
 	double e = 0;
@@ -203,3 +270,4 @@ void SummedSquare::killGradients()
 		g.assign(g.size(), 0);
 	}
 }
+

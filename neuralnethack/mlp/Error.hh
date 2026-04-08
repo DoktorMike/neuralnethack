@@ -183,10 +183,19 @@ namespace MultiLayerPerceptron
 			 */
 			void weightElimGrad();
 
-			/**Calculates the weight elimination term. 
+			/**Calculates the weight elimination term.
 			 * \return the weight elimination term.
 			 */
 			double weightElim() const;
+
+			/**Pack a DataSet into contiguous row-major batch matrices.
+			 * \param dset the DataSet to pack.
+			 * \param inputMatrix output: resized to [B x n_in].
+			 * \param targetMatrix output: resized to [B x n_out].
+			 */
+			void packBatch(DataTools::DataSet& dset,
+					std::vector<double>& inputMatrix,
+					std::vector<double>& targetMatrix) const;
 
 			/**The Mlp associated with an Error.*/
 			MultiLayerPerceptron::Mlp* theMlp;
