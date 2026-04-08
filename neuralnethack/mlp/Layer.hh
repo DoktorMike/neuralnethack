@@ -479,15 +479,33 @@ inline std::vector<double>& Layer::batchOutputs() {
 inline std::vector<double>& Layer::batchLocalGradients() {
 	return theBatchLocalGradients;
 }
-inline void Layer::normType(NormType nt) { theNormType = nt; }
-inline NormType Layer::normType() const { return theNormType; }
-inline std::vector<double>& Layer::gamma() { return theGamma; }
-inline std::vector<double>& Layer::beta() { return theBeta; }
-inline std::vector<double>& Layer::gammaGradients() { return theGammaGrad; }
-inline std::vector<double>& Layer::betaGradients() { return theBetaGrad; }
-inline std::vector<double>& Layer::gammaUpdates() { return theGammaUpdate; }
-inline std::vector<double>& Layer::betaUpdates() { return theBetaUpdate; }
-inline uint Layer::nNormParams() const { return theNormType != NormType::None ? 2 * ncurr : 0; }
+inline void Layer::normType(NormType nt) {
+	theNormType = nt;
+}
+inline NormType Layer::normType() const {
+	return theNormType;
+}
+inline std::vector<double>& Layer::gamma() {
+	return theGamma;
+}
+inline std::vector<double>& Layer::beta() {
+	return theBeta;
+}
+inline std::vector<double>& Layer::gammaGradients() {
+	return theGammaGrad;
+}
+inline std::vector<double>& Layer::betaGradients() {
+	return theBetaGrad;
+}
+inline std::vector<double>& Layer::gammaUpdates() {
+	return theGammaUpdate;
+}
+inline std::vector<double>& Layer::betaUpdates() {
+	return theBetaUpdate;
+}
+inline uint Layer::nNormParams() const {
+	return theNormType != NormType::None ? 2 * ncurr : 0;
+}
 inline void Layer::dropoutRate(double rate) {
 	theDropoutRate = rate;
 }

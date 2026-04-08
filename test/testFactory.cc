@@ -19,7 +19,7 @@ using namespace NeuralNetHack;
 #define CHECK(cond, msg)                                                                           \
 	do {                                                                                           \
 		if (!(cond)) {                                                                             \
-			std::cerr << "FAIL: " << (msg) << std::endl;                                          \
+			std::cerr << "FAIL: " << (msg) << std::endl;                                           \
 			return false;                                                                          \
 		}                                                                                          \
 	} while (0)
@@ -42,9 +42,8 @@ static bool testWeightsUpdate() {
 	Weights w(arch);
 	double newVal = 3.14;
 	w.update(0, newVal);
-	CHECK(w.weights()[0] == newVal,
-	      "Weights update: expected " + std::to_string(newVal) +
-	          ", got " + std::to_string(w.weights()[0]));
+	CHECK(w.weights()[0] == newVal, "Weights update: expected " + std::to_string(newVal) +
+	                                    ", got " + std::to_string(w.weights()[0]));
 	std::cout << "  PASS: Weights update works" << std::endl;
 	return true;
 }
@@ -54,8 +53,7 @@ static bool testWeightsKill() {
 	Weights w(arch);
 	w.update(5, 99.0);
 	w.kill(5);
-	CHECK(w.weights()[5] == 0.0,
-	      "Weights kill: expected 0, got " + std::to_string(w.weights()[5]));
+	CHECK(w.weights()[5] == 0.0, "Weights kill: expected 0, got " + std::to_string(w.weights()[5]));
 	std::cout << "  PASS: Weights kill works" << std::endl;
 	return true;
 }
@@ -67,17 +65,13 @@ static bool testWeightsCopyConstructor() {
 	w1.update(12, 4.56);
 
 	Weights w2(w1);
-	CHECK(w2.size() == w1.size(),
-	      "Copy ctor: size mismatch");
-	CHECK(w2.weights()[0] == 1.23,
-	      "Copy ctor: weight[0] mismatch");
-	CHECK(w2.weights()[12] == 4.56,
-	      "Copy ctor: weight[12] mismatch");
+	CHECK(w2.size() == w1.size(), "Copy ctor: size mismatch");
+	CHECK(w2.weights()[0] == 1.23, "Copy ctor: weight[0] mismatch");
+	CHECK(w2.weights()[12] == 4.56, "Copy ctor: weight[12] mismatch");
 
 	// Verify independence: mutating the copy does not affect the original
 	w2.update(0, 9.99);
-	CHECK(w1.weights()[0] == 1.23,
-	      "Copy ctor: modifying copy affected original");
+	CHECK(w1.weights()[0] == 1.23, "Copy ctor: modifying copy affected original");
 	std::cout << "  PASS: Weights copy constructor works" << std::endl;
 	return true;
 }
@@ -92,17 +86,13 @@ static bool testWeightsAssignment() {
 	Weights w2(arch2);
 	w2 = w1;
 
-	CHECK(w2.size() == w1.size(),
-	      "Assignment: size mismatch");
-	CHECK(w2.weights()[0] == 7.77,
-	      "Assignment: weight[0] mismatch");
-	CHECK(w2.weights()[6] == 8.88,
-	      "Assignment: weight[6] mismatch");
+	CHECK(w2.size() == w1.size(), "Assignment: size mismatch");
+	CHECK(w2.weights()[0] == 7.77, "Assignment: weight[0] mismatch");
+	CHECK(w2.weights()[6] == 8.88, "Assignment: weight[6] mismatch");
 
 	// Verify independence
 	w2.update(0, 0.01);
-	CHECK(w1.weights()[0] == 7.77,
-	      "Assignment: modifying assignee affected original");
+	CHECK(w1.weights()[0] == 7.77, "Assignment: modifying assignee affected original");
 	std::cout << "  PASS: Weights assignment operator works" << std::endl;
 	return true;
 }

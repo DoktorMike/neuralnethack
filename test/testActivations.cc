@@ -8,9 +8,8 @@
 using namespace MultiLayerPerceptron;
 
 int main() {
-	const std::vector<std::string> activations = {
-		"logsig", "tansig", "purelin", "relu", "leakyrelu", "elu"
-	};
+	const std::vector<std::string> activations = {"logsig", "tansig",    "purelin",
+	                                              "relu",   "leakyrelu", "elu"};
 
 	const std::vector<uint> arch = {2, 3, 1};
 	const std::vector<double> input = {0.5, 0.5};
@@ -30,16 +29,16 @@ int main() {
 
 		// Check output is finite
 		if (!std::isfinite(output[0])) {
-			std::cerr << "  FAIL: output is not finite for " << act
-			          << " (got " << output[0] << ")" << std::endl;
+			std::cerr << "  FAIL: output is not finite for " << act << " (got " << output[0] << ")"
+			          << std::endl;
 			pass = false;
 			continue;
 		}
 
 		// Check output is in [0, 1] (sigmoid output layer)
 		if (output[0] < 0.0 || output[0] > 1.0) {
-			std::cerr << "  FAIL: output out of [0,1] for " << act
-			          << " (got " << output[0] << ")" << std::endl;
+			std::cerr << "  FAIL: output out of [0,1] for " << act << " (got " << output[0] << ")"
+			          << std::endl;
 			pass = false;
 			continue;
 		}
@@ -51,8 +50,7 @@ int main() {
 		const std::vector<double>& cloneOutput = cloned.propagate(input);
 
 		if (cloneOutput[0] != output[0]) {
-			std::cerr << "  FAIL: clone output mismatch for " << act
-			          << " (original=" << output[0]
+			std::cerr << "  FAIL: clone output mismatch for " << act << " (original=" << output[0]
 			          << ", clone=" << cloneOutput[0] << ")" << std::endl;
 			pass = false;
 			continue;

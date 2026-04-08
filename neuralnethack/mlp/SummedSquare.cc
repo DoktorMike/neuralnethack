@@ -115,9 +115,11 @@ double SummedSquare::gradient() {
 			weightElimGradLayer(g, layer.weights(), layer.nNeurons(), layer.nPrevious());
 		if (layer.normType() != NormType::None) {
 			auto& gg = layer.gammaGradients();
-			std::transform(gg.begin(), gg.end(), gg.begin(), [bs](double v) { return v / -(double)bs; });
+			std::transform(gg.begin(), gg.end(), gg.begin(),
+			               [bs](double v) { return v / -(double)bs; });
 			auto& bg = layer.betaGradients();
-			std::transform(bg.begin(), bg.end(), bg.begin(), [bs](double v) { return v / -(double)bs; });
+			std::transform(bg.begin(), bg.end(), bg.begin(),
+			               [bs](double v) { return v / -(double)bs; });
 		}
 	}
 

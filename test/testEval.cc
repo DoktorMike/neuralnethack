@@ -247,8 +247,7 @@ static bool testEvaluator() {
 		std::cerr << "FAIL (fnf expected 0.0, got " << fnf << ")" << std::endl;
 		ok = false;
 	}
-	if (ok)
-		std::cout << "PASS (TPF=" << tpf << ", TNF=" << tnf << ")" << std::endl;
+	if (ok) std::cout << "PASS (TPF=" << tpf << ", TNF=" << tnf << ")" << std::endl;
 	return ok;
 }
 
@@ -281,8 +280,7 @@ static bool testEvaluatorImperfect() {
 		std::cerr << "FAIL (tnf expected 1.0, got " << tnf << ")" << std::endl;
 		ok = false;
 	}
-	if (ok)
-		std::cout << "PASS (TPF=" << tpf << ", TNF=" << tnf << ")" << std::endl;
+	if (ok) std::cout << "PASS (TPF=" << tpf << ", TNF=" << tnf << ")" << std::endl;
 	return ok;
 }
 
@@ -354,7 +352,8 @@ static bool testEnsembleAuc() {
 	srand(42);
 	srand48(42);
 
-	CoreDataSet core; DataSet data;
+	CoreDataSet core;
+	DataSet data;
 	buildXorDataSet(core, data);
 	Mlp mlp = trainXorMlp(data);
 
@@ -382,7 +381,8 @@ static bool testEnsembleSummedSquare() {
 	srand(42);
 	srand48(42);
 
-	CoreDataSet core; DataSet data;
+	CoreDataSet core;
+	DataSet data;
 	buildXorDataSet(core, data);
 	Mlp mlp = trainXorMlp(data);
 
@@ -408,7 +408,8 @@ static bool testEnsembleCrossEntropy() {
 	srand(42);
 	srand48(42);
 
-	CoreDataSet core; DataSet data;
+	CoreDataSet core;
+	DataSet data;
 	buildXorDataSet(core, data);
 
 	// Use logsig output for cross-entropy compatibility

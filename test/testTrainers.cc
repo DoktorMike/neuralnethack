@@ -42,8 +42,10 @@ static double evaluateAccuracy(Mlp& mlp, DataSet& data) {
 }
 
 static bool testGDSSE() {
-	srand(42); srand48(42);
-	CoreDataSet core; DataSet data;
+	srand(42);
+	srand48(42);
+	CoreDataSet core;
+	DataSet data;
 	buildXorDataSet(core, data);
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -59,8 +61,10 @@ static bool testGDSSE() {
 }
 
 static bool testGDCE() {
-	srand(42); srand48(42);
-	CoreDataSet core; DataSet data;
+	srand(42);
+	srand48(42);
+	CoreDataSet core;
+	DataSet data;
 	buildXorDataSet(core, data);
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -76,8 +80,10 @@ static bool testGDCE() {
 }
 
 static bool testAdamSSE() {
-	srand(42); srand48(42);
-	CoreDataSet core; DataSet data;
+	srand(42);
+	srand48(42);
+	CoreDataSet core;
+	DataSet data;
 	buildXorDataSet(core, data);
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -93,8 +99,10 @@ static bool testAdamSSE() {
 }
 
 static bool testAdamCE() {
-	srand(42); srand48(42);
-	CoreDataSet core; DataSet data;
+	srand(42);
+	srand48(42);
+	CoreDataSet core;
+	DataSet data;
 	buildXorDataSet(core, data);
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -110,8 +118,10 @@ static bool testAdamCE() {
 }
 
 static bool testQNSSE() {
-	srand(42); srand48(42);
-	CoreDataSet core; DataSet data;
+	srand(42);
+	srand48(42);
+	CoreDataSet core;
+	DataSet data;
 	buildXorDataSet(core, data);
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -129,10 +139,25 @@ static bool testQNSSE() {
 int main() {
 	bool pass = true;
 	std::cout << "Testing optimizer/loss combinations on XOR:" << std::endl;
-	if (!testGDSSE()) { std::cerr << "  FAIL" << std::endl; pass = false; }
-	if (!testGDCE()) { std::cerr << "  FAIL" << std::endl; pass = false; }
-	if (!testAdamSSE()) { std::cerr << "  FAIL" << std::endl; pass = false; }
-	if (!testAdamCE()) { std::cerr << "  FAIL" << std::endl; pass = false; }
-	if (!testQNSSE()) { std::cerr << "  FAIL" << std::endl; pass = false; }
+	if (!testGDSSE()) {
+		std::cerr << "  FAIL" << std::endl;
+		pass = false;
+	}
+	if (!testGDCE()) {
+		std::cerr << "  FAIL" << std::endl;
+		pass = false;
+	}
+	if (!testAdamSSE()) {
+		std::cerr << "  FAIL" << std::endl;
+		pass = false;
+	}
+	if (!testAdamCE()) {
+		std::cerr << "  FAIL" << std::endl;
+		pass = false;
+	}
+	if (!testQNSSE()) {
+		std::cerr << "  FAIL" << std::endl;
+		pass = false;
+	}
 	return pass ? EXIT_SUCCESS : EXIT_FAILURE;
 }

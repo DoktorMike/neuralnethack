@@ -44,10 +44,14 @@ bool evaluate(Mlp& mlp, DataSet& data, const std::string& label) {
 
 		std::cout << "  pattern " << i << ": got=" << got << " expected=" << expected << std::endl;
 
-		if (actual == 1 && predicted == 1) tp++;
-		else if (actual == 0 && predicted == 0) tn++;
-		else if (actual == 0 && predicted == 1) fp++;
-		else fn++;
+		if (actual == 1 && predicted == 1)
+			tp++;
+		else if (actual == 0 && predicted == 0)
+			tn++;
+		else if (actual == 0 && predicted == 1)
+			fp++;
+		else
+			fn++;
 
 		if (predicted != actual) pass = false;
 	}

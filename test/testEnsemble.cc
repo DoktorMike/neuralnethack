@@ -11,12 +11,12 @@
 using namespace MultiLayerPerceptron;
 using namespace NeuralNetHack;
 
-#define CHECK(cond, msg)                                                       \
-	do {                                                                       \
-		if (!(cond)) {                                                         \
-			std::cerr << "FAIL: " << (msg) << std::endl;                       \
-			pass = false;                                                       \
-		}                                                                      \
+#define CHECK(cond, msg)                                                                           \
+	do {                                                                                           \
+		if (!(cond)) {                                                                             \
+			std::cerr << "FAIL: " << (msg) << std::endl;                                           \
+			pass = false;                                                                          \
+		}                                                                                          \
 	} while (0)
 
 int main() {
@@ -48,8 +48,7 @@ int main() {
 
 	CHECK(output.size() == 1, "output should have 1 element for a 2-3-1 network");
 	CHECK(std::isfinite(output[0]), "output should be finite");
-	CHECK(output[0] >= 0.0 && output[0] <= 1.0,
-	      "output should be in [0,1] for logsig output");
+	CHECK(output[0] >= 0.0 && output[0] <= 1.0, "output should be in [0,1] for logsig output");
 
 	std::cout << "Ensemble propagate output: " << output[0] << std::endl;
 
@@ -59,8 +58,7 @@ int main() {
 
 	std::vector<double> output_after_del = ensemble.propagate(input);
 	CHECK(output_after_del.size() == 1, "output should still have 1 element after delMlp");
-	CHECK(std::isfinite(output_after_del[0]),
-	      "output should be finite after delMlp");
+	CHECK(std::isfinite(output_after_del[0]), "output should be finite after delMlp");
 	CHECK(output_after_del[0] >= 0.0 && output_after_del[0] <= 1.0,
 	      "output should be in [0,1] after delMlp");
 
@@ -71,21 +69,17 @@ int main() {
 	ptr->regenerateWeights();
 	ensemble.addMlp(std::move(ptr), 0.5);
 
-	CHECK(ensemble.size() == 2,
-	      "ensemble size should be 2 after adding via unique_ptr");
+	CHECK(ensemble.size() == 2, "ensemble size should be 2 after adding via unique_ptr");
 
 	std::vector<double> output_ptr = ensemble.propagate(input);
 	CHECK(output_ptr.size() == 1, "output should have 1 element after unique_ptr add");
-	CHECK(std::isfinite(output_ptr[0]),
-	      "output should be finite after unique_ptr add");
+	CHECK(std::isfinite(output_ptr[0]), "output should be finite after unique_ptr add");
 
-	std::cout << "After addMlp(unique_ptr) propagate output: " << output_ptr[0]
-	          << std::endl;
+	std::cout << "After addMlp(unique_ptr) propagate output: " << output_ptr[0] << std::endl;
 
 	// -- 7. Test copy constructor --
 	Ensemble copy(ensemble);
-	CHECK(copy.size() == ensemble.size(),
-	      "copy should have the same size as original");
+	CHECK(copy.size() == ensemble.size(), "copy should have the same size as original");
 
 	std::vector<double> out_orig = ensemble.propagate(input);
 	std::vector<double> out_copy = copy.propagate(input);
@@ -93,8 +87,7 @@ int main() {
 	CHECK(out_orig.size() == out_copy.size(),
 	      "copy output should have the same size as original output");
 	for (size_t i = 0; i < out_orig.size(); ++i) {
-		CHECK(out_orig[i] == out_copy[i],
-		      "copy output should match original output exactly");
+		CHECK(out_orig[i] == out_copy[i], "copy output should match original output exactly");
 	}
 
 	std::cout << "Copy constructor output matches: " << out_copy[0] << std::endl;
@@ -111,12 +104,10 @@ int main() {
 	CHECK(out_loaded.size() == out_orig.size(),
 	      "loaded output should have the same size as original output");
 	for (size_t i = 0; i < out_orig.size(); ++i) {
-		CHECK(out_orig[i] == out_loaded[i],
-		      "loaded output should match original output exactly");
+		CHECK(out_orig[i] == out_loaded[i], "loaded output should match original output exactly");
 	}
 
-	std::cout << "Save/load roundtrip output matches: " << out_loaded[0]
-	          << std::endl;
+	std::cout << "Save/load roundtrip output matches: " << out_loaded[0] << std::endl;
 
 	// Clean up the file
 	std::remove(path.c_str());

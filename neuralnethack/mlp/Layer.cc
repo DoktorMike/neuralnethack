@@ -282,8 +282,10 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in) {
 					theBatchNormMean[j] = mean;
 					theBatchNormVar[j] = var;
 					// Update running stats
-					theRunningMean[j] = (1.0 - theBNMomentum) * theRunningMean[j] + theBNMomentum * mean;
-					theRunningVar[j] = (1.0 - theBNMomentum) * theRunningVar[j] + theBNMomentum * var;
+					theRunningMean[j] =
+					    (1.0 - theBNMomentum) * theRunningMean[j] + theBNMomentum * mean;
+					theRunningVar[j] =
+					    (1.0 - theBNMomentum) * theRunningVar[j] + theBNMomentum * var;
 					// Normalize and scale/shift
 					double inv_std = 1.0 / sqrt(var + NORM_EPS);
 					for (uint b = 0; b < B; ++b) {
@@ -388,8 +390,7 @@ void Layer::accumulateGradientsBatch(const double* input, uint B) {
 }
 
 void Layer::applyNormBackwardBatch(uint B) {
-	if (theNormType == NormType::None)
-		return;
+	if (theNormType == NormType::None) return;
 
 	double* delta = theBatchLocalGradients.data();
 	const double* zhat = theBatchZHat.data();

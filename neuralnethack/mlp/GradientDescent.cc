@@ -129,8 +129,12 @@ double GradientDescent::train(DataSet& dset) {
 			double* bg = l.betaGradients().data();
 			double* bu = l.betaUpdates().data();
 			for (uint j = 0; j < nn; ++j) {
-				double ug = -lr * gg[j] + mom * gu[j]; gu[j] = ug; gm[j] += ug;
-				double ub = -lr * bg[j] + mom * bu[j]; bu[j] = ub; bt[j] += ub;
+				double ug = -lr * gg[j] + mom * gu[j];
+				gu[j] = ug;
+				gm[j] += ug;
+				double ub = -lr * bg[j] + mom * bu[j];
+				bu[j] = ub;
+				bt[j] += ub;
 			}
 		}
 	}

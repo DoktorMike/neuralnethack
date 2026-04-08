@@ -138,7 +138,8 @@ double Adam::trainEpoch(DataSet& dset) {
 				v_ptr[j] = b2 * v_ptr[j] + (1 - b2) * gg[j] * gg[j];
 				gm[j] -= lr * (m_ptr[j] * bc1) / (sqrt(v_ptr[j] * bc2) + eps);
 			}
-			m_ptr += nn; v_ptr += nn;
+			m_ptr += nn;
+			v_ptr += nn;
 			for (uint j = 0; j < nn; ++j) {
 				m_ptr[j] = b1 * m_ptr[j] + (1 - b1) * bg[j];
 				v_ptr[j] = b2 * v_ptr[j] + (1 - b2) * bg[j] * bg[j];
