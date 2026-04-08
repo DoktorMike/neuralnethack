@@ -141,6 +141,13 @@ namespace MultiLayerPerceptron
 			 */
 			const std::vector<double>& propagate(const std::vector<double>& pattern);
 
+			/**Propagate a batch of inputs through the entire MLP using GEMM.
+			 * \param input pointer to row-major input batch [B x arch[0]].
+			 * \param B the batch size.
+			 * \return pointer to output batch [B x arch[last]].
+			 */
+			const double* propagateBatch(const double* input, uint B);
+
 //SIZE etc
 			/**Return the number of layers contained in this MLP.
 			 * \return the number of layers.

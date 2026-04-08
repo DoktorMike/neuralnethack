@@ -257,6 +257,33 @@ namespace MultiLayerPerceptron
 			 */
 			void applyDerivative(std::vector<double>& deltas);
 
+			/**Propagate a batch of inputs through this layer using GEMM.
+			 * \param input pointer to row-major input matrix [B x nprev].
+			 * \param B the batch size.
+			 * \param n_in number of input columns (must equal nprev).
+			 * \return pointer to batch outputs [B x ncurr].
+			 */
+			const double* propagateBatch(const double* input, uint B, uint n_in);
+
+			/**Apply activation derivative to batch local gradients.
+			 * Both theBatchLocalGradients and theBatchOutputs are [B x ncurr].
+			 * \param B the batch size.
+			 */
+			void applyDerivativeBatch(uint B);
+
+			/**Accumulate weight gradients from batch via GEMM.
+			 * dW += Delta^T * Input, bias_grad += column_sum(Delta).
+			 * \param input pointer to row-major input matrix [B x nprev].
+			 * \param B the batch size.
+			 */
+			void accumulateGradientsBatch(const double* input, uint B);
+
+			/**Return batch outputs storage. */
+			std::vector<double>& batchOutputs();
+
+			/**Return batch local gradients storage. */
+			std::vector<double>& batchLocalGradients();
+
 			/**Calculates the Local Induced Field for each node in this layer. 
 			 * Note that the bias should not be included in the parameter 
 			 * since it is explicitly included later.
@@ -296,6 +323,12 @@ namespace MultiLayerPerceptron
 
 			/**The update used for this layers weights. */
 			std::vector<double> theWeightUpdates;
+
+			/**Batch outputs: row-major [B x ncurr]. */
+			std::vector<double> theBatchOutputs;
+
+			/**Batch local gradients: row-major [B x ncurr]. */
+			std::vector<double> theBatchLocalGradients;
 
 			/**Batch activation function pointer. */
 			using ActivationFn = void(*)(double* __restrict__ outputs, uint n);
@@ -379,6 +412,9 @@ namespace MultiLayerPerceptron
 	inline uint Layer::nPrevious() const {return nprev;}
 
 	inline uint Layer::size() const {return nNeurons();}
+
+	inline std::vector<double>& Layer::batchOutputs() {return theBatchOutputs;}
+	inline std::vector<double>& Layer::batchLocalGradients() {return theBatchLocalGradients;}
 
 	//PRIVATE--------------------------------------------------------------------//
 

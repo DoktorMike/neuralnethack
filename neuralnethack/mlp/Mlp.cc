@@ -151,6 +151,17 @@ const vector<double>& Mlp::propagate(const vector<double>& input)
 	return *inOut;
 }
 
+const double* Mlp::propagateBatch(const double* input, uint B)
+{
+	const double* layerInput = input;
+	uint n_in = theArch[0];
+	for(auto& l : theLayers){
+		layerInput = l->propagateBatch(layerInput, B, n_in);
+		n_in = l->nNeurons();
+	}
+	return layerInput;
+}
+
 void Mlp::printWeights(ostream& os) const
 {
 	for(const auto& l : theLayers)
