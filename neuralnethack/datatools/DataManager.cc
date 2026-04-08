@@ -26,12 +26,18 @@
 #include <algorithm>
 #include <cmath>
 #include <cassert>
-#include <ext/numeric>
+#include <numeric>
+#include <random>
 #include <fstream>
 #include <iterator>
 
 using namespace DataTools;
 using namespace std;
+
+static std::mt19937& rng() {
+	static std::mt19937 gen(std::random_device{}());
+	return gen;
+}
 
 DataManager::DataManager():indices(vector<uint>(0)), isRandom(true){}
 
@@ -65,7 +71,7 @@ pair<DataSet, DataSet>* DataManager::split(DataSet& ds, double ratio)
 	DataSet validation(ds);
 
 	indices = ds.indices();
-	if(isRandom) random_shuffle(indices.begin(), indices.end());
+	if(isRandom) shuffle(indices.begin(), indices.end(), rng());
 
 	//Tell the dataSets which data points to use.
 	training.indices().assign(indices.begin(), indices.begin()+nTraining);
@@ -88,7 +94,7 @@ vector<DataSet>* DataManager::split(DataSet& ds, uint k)
 	}
 
 	indices = ds.indices();
-	if(isRandom) random_shuffle(indices.begin(), indices.end());
+	if(isRandom) shuffle(indices.begin(), indices.end(), rng());
 	
 	vector<uint> tmpIndices(0);
 	vector<uint>::iterator indexIterator = indices.begin();
@@ -114,7 +120,7 @@ pair<DataSet, DataSet>* DataManager::split(DataSet& ds)
 	vector<uint> origInd = ds.indices();
 	buildIndicesWithReplacement(origInd);
 	assert(origInd.size() == indices.size());
-	if(isRandom) random_shuffle(indices.begin(), indices.end());
+	if(isRandom) shuffle(indices.begin(), indices.end(), rng());
 	trn.indices(indices);
 
 	//It's ok to sort here since we don't really disrupt the trnSet.
@@ -129,7 +135,7 @@ pair<DataSet, DataSet>* DataManager::split(DataSet& ds)
 				indices.end(), 
 				valInd.begin()), 
 			valInd.end());
-	if(isRandom) random_shuffle(valInd.begin(), valInd.end());
+	if(isRandom) shuffle(valInd.begin(), valInd.end(), rng());
 	val.indices(valInd);
 
 	return new pair<DataSet, DataSet>(trn, val);
@@ -157,7 +163,7 @@ void DataManager::buildIndices(uint n)
 {
 	indices = vector<uint>(n);
 	iota(indices.begin(), indices.end(), 0);
-	random_shuffle(indices.begin(), indices.end());
+	shuffle(indices.begin(), indices.end(), rng());
 }
 
 void DataManager::buildIndicesWithReplacement(uint n)

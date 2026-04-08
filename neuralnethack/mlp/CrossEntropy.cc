@@ -266,9 +266,10 @@ double CrossEntropy::outputError(const vector<double>& out, const vector<double>
 
 	vector<double>::const_iterator ito = out.begin();
 	vector<double>::const_iterator itd = dout.begin();
-	if(dout.size() == 1)
+	if(dout.size() == 1){
 		if(*itd == 0.0) return (1.0 - *ito > tiny) ? log(1.0 - *ito) : power;
 		else return (*ito > tiny) ? log(*ito) : power;
+	}
 
 	double e = 0;
 	for(; ito!=out.end(); ++ito, ++itd){

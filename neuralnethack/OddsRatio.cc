@@ -41,7 +41,6 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::ostream;
-using std::unary_function;
 
 //Effective odds ratio calculations
 
@@ -59,7 +58,7 @@ vector<double> OddsRatio::oddsRatio(Ensemble& committee, DataSet& data)
 	return oddsrat;
 }
 
-template<class T> struct or_calc : public unary_function<T, void>
+template<class T> struct or_calc
 {
 	or_calc(Ensemble& e, std::vector<T>& i) : ens(e), input(i), oddsrat(0)
 	{ oddsrat.reserve(input.size()); }

@@ -59,7 +59,6 @@ using std::ifstream;
 using std::ostringstream;
 using std::ostream_iterator;
 using std::make_pair;
-using std::unary_function;
 using std::abs;
 using std::advance;
 
@@ -96,7 +95,7 @@ pair<Ensemble, double> validateFeatures(DataSet& trn, Config& config)
 	return make_pair(ensemble, best.second);
 }
 
-template<class T> struct mapValueIndex : public unary_function<T, void>
+template<class T> struct mapValueIndex
 {
 	mapValueIndex():index(0){}
 	void operator() (T& x){	sals.insert(make_pair(abs(x), ++index)); }

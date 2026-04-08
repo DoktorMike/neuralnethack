@@ -37,19 +37,16 @@ using DataTools::Pattern;
 
 using std::vector;
 using std::plus;
-using std::divides;
-using std::bind2nd;
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::ostream;
-using std::binary_function;
 
 //Saliency calculations based on gradients.
 
 template<class T>
-struct plusMag : public binary_function<T,T,T> {
-	T operator()(T& x, T& y) { return fabs(x) + fabs(y);}
+struct plusMag {
+	T operator()(T& x, T& y) const { return fabs(x) + fabs(y);}
 };
 
 vector<double> Saliency::saliencyMagnitude(Ensemble& ensemble, DataSet& data, bool inner)
@@ -60,8 +57,7 @@ vector<double> Saliency::saliencyMagnitude(Ensemble& ensemble, DataSet& data, bo
 		transform(sal.begin(), sal.end(), tmp.begin(), 
 				sal.begin(), plus<double>());
 	}
-	transform(sal.begin(), sal.end(), sal.begin(), 
-			bind2nd(divides<double>(), (double)ensemble.size()));
+	{ double d = ensemble.size(); for(auto& s : sal) s /= d; }
 	return sal;
 }
 
@@ -73,8 +69,7 @@ vector<double> Saliency::saliency(Ensemble& ensemble, DataSet& data, bool inner)
 		transform(sal.begin(), sal.end(), tmp.begin(), 
 				sal.begin(), plus<double>());
 	}
-	transform(sal.begin(), sal.end(), sal.begin(), 
-			bind2nd(divides<double>(), (double)ensemble.size()));
+	{ double d = ensemble.size(); for(auto& s : sal) s /= d; }
 	return sal;
 }
 
@@ -86,8 +81,7 @@ vector<double> Saliency::saliency(Ensemble& ensemble, Pattern& pattern, bool inn
 		transform(sal.begin(), sal.end(), tmp.begin(), 
 				sal.begin(), plus<double>());
 	}
-	transform(sal.begin(), sal.end(), sal.begin(), 
-			bind2nd(divides<double>(), (double)ensemble.size()));
+	{ double d = ensemble.size(); for(auto& s : sal) s /= d; }
 	return sal;
 }
 
@@ -100,8 +94,7 @@ vector<double> Saliency::saliencyMagnitude(Mlp& mlp, DataSet& data, bool inner)
 		transform(sal.begin(), sal.end(), tmp.begin(), 
 				sal.begin(), plusMag<double>());
 	}
-	transform(sal.begin(), sal.end(), sal.begin(), 
-			bind2nd(divides<double>(), (double)data.size()));
+	{ double d = data.size(); for(auto& s : sal) s /= d; }
 	return sal;
 }
 
@@ -114,8 +107,7 @@ vector<double> Saliency::saliency(Mlp& mlp, DataSet& data, bool inner)
 		transform(sal.begin(), sal.end(), tmp.begin(), 
 				sal.begin(), plus<double>());
 	}
-	transform(sal.begin(), sal.end(), sal.begin(), 
-			bind2nd(divides<double>(), (double)data.size()));
+	{ double d = data.size(); for(auto& s : sal) s /= d; }
 	return sal;
 }
 
