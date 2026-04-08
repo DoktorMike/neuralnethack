@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/DoktorMike/neuralnethack/compare/v2.0.1...v2.1.0) (2026-04-08)
+
+
+### Features
+
+* add BatchNorm and LayerNorm support ([89215e9](https://github.com/DoktorMike/neuralnethack/commit/89215e93fac3f9e5977cb5674166c7aa4d93e2d1))
+
+
+### Other
+
+* add 5 new test suites to improve coverage (29.8% -> 47.6%) ([4011d95](https://github.com/DoktorMike/neuralnethack/commit/4011d953ddc508ee1cde92e396fd57c721b49cca))
+* add code coverage with gcov and Codecov upload ([8c23097](https://github.com/DoktorMike/neuralnethack/commit/8c23097a9b1617e0a5778ad523b0802681b854f0))
+* add format check job with badge, plus C++23 and license badges ([563f8fe](https://github.com/DoktorMike/neuralnethack/commit/563f8fea1bb6979e99f72c2e1eb80d8310cc74af))
+* add normalization test (BatchNorm, LayerNorm, baseline on XOR) ([93dba9b](https://github.com/DoktorMike/neuralnethack/commit/93dba9b8bf6c17ea4dd694c332b130e2eb361ceb))
+* add self-hosted coverage badge to README ([7e7db31](https://github.com/DoktorMike/neuralnethack/commit/7e7db31c5a79a760583dc5e54b3f8704f92f09ac))
+* apply clang-format to all source files ([e761369](https://github.com/DoktorMike/neuralnethack/commit/e76136999c1007a8d26f71bc1681e1add33ee090))
+* remove Codecov upload, just print coverage summary ([fcdd189](https://github.com/DoktorMike/neuralnethack/commit/fcdd18930d2e1c073479b9bb72625e9628d94abc))
+* update coverage badge [skip ci] ([f9665b4](https://github.com/DoktorMike/neuralnethack/commit/f9665b48cca0d5447fcac3ec69217f1947935494))
+* use lcov for coverage reports (local HTML + Codecov upload) ([0c198f3](https://github.com/DoktorMike/neuralnethack/commit/0c198f31c9a557eee0e0fa38c2f82871fe85660a))
+
 ### [2.0.1](https://github.com/DoktorMike/neuralnethack/compare/v2.0.0...v2.0.1) (2026-04-08)
 
 
