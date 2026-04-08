@@ -275,6 +275,29 @@ class Layer {
 	/**Get training mode. */
 	bool isTraining() const;
 
+	/**Set normalization type for this layer. */
+	void normType(NormType nt);
+
+	/**Get normalization type. */
+	NormType normType() const;
+
+	/**Accessors for normalization parameters. */
+	std::vector<double>& gamma();
+	std::vector<double>& beta();
+	std::vector<double>& gammaGradients();
+	std::vector<double>& betaGradients();
+	std::vector<double>& gammaUpdates();
+	std::vector<double>& betaUpdates();
+
+	/**Number of learnable normalization parameters (2*ncurr if norm active, 0 otherwise). */
+	uint nNormParams() const;
+
+	/**Propagate batch local gradients backward through normalization.
+	 * Accumulates gamma/beta gradients and transforms deltas to pre-norm space.
+	 * \param B the batch size.
+	 */
+	void applyNormBackwardBatch(uint B);
+
 	/**Calculates the Local Induced Field for each node in this layer.
 	 * Note that the bias should not be included in the parameter
 	 * since it is explicitly included later.
@@ -332,6 +355,22 @@ class Layer {
 
 	/**Batch local gradients: row-major [B x ncurr]. */
 	std::vector<double> theBatchLocalGradients;
+
+	// --- Normalization state ---
+	NormType theNormType;
+	std::vector<double> theGamma;
+	std::vector<double> theBeta;
+	std::vector<double> theGammaGrad;
+	std::vector<double> theBetaGrad;
+	std::vector<double> theGammaUpdate;
+	std::vector<double> theBetaUpdate;
+	std::vector<double> theRunningMean;
+	std::vector<double> theRunningVar;
+	double theBNMomentum;
+	std::vector<double> theBatchZHat;
+	std::vector<double> theBatchNormMean;
+	std::vector<double> theBatchNormVar;
+	static constexpr double NORM_EPS = 1e-5;
 
 	/**Batch activation function pointer. */
 	using ActivationFn = void (*)(double* __restrict__ outputs, uint n);
@@ -440,6 +479,15 @@ inline std::vector<double>& Layer::batchOutputs() {
 inline std::vector<double>& Layer::batchLocalGradients() {
 	return theBatchLocalGradients;
 }
+inline void Layer::normType(NormType nt) { theNormType = nt; }
+inline NormType Layer::normType() const { return theNormType; }
+inline std::vector<double>& Layer::gamma() { return theGamma; }
+inline std::vector<double>& Layer::beta() { return theBeta; }
+inline std::vector<double>& Layer::gammaGradients() { return theGammaGrad; }
+inline std::vector<double>& Layer::betaGradients() { return theBetaGrad; }
+inline std::vector<double>& Layer::gammaUpdates() { return theGammaUpdate; }
+inline std::vector<double>& Layer::betaUpdates() { return theBetaUpdate; }
+inline uint Layer::nNormParams() const { return theNormType != NormType::None ? 2 * ncurr : 0; }
 inline void Layer::dropoutRate(double rate) {
 	theDropoutRate = rate;
 }

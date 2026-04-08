@@ -93,7 +93,11 @@ Layer::Layer(const uint nc, const uint np, const string t)
     : ncurr(nc), nprev(np), theType(t), theWeights(ncurr * (nprev + 1), 0), theOutputs(ncurr, 0),
       theLocalGradients(ncurr, 0), theGradients(ncurr * (nprev + 1), 0),
       theWeightUpdates(ncurr * (nprev + 1), 0), theDropoutRate(0.0), theTraining(false),
-      theDropoutMask(ncurr, 1.0), theActivation(nullptr), theDerivScale(nullptr) {
+      theDropoutMask(ncurr, 1.0), theNormType(NormType::None), theGamma(ncurr, 1.0),
+      theBeta(ncurr, 0.0), theGammaGrad(ncurr, 0.0), theBetaGrad(ncurr, 0.0),
+      theGammaUpdate(ncurr, 0.0), theBetaUpdate(ncurr, 0.0), theRunningMean(ncurr, 0.0),
+      theRunningVar(ncurr, 1.0), theBNMomentum(0.1), theActivation(nullptr),
+      theDerivScale(nullptr) {
 	if (t == SIGMOID) {
 		theActivation = sigmoidActivation;
 		theDerivScale = sigmoidDerivScale;
@@ -135,6 +139,16 @@ Layer& Layer::operator=(const Layer& layer) {
 		theDropoutRate = layer.theDropoutRate;
 		theTraining = layer.theTraining;
 		theDropoutMask = layer.theDropoutMask;
+		theNormType = layer.theNormType;
+		theGamma = layer.theGamma;
+		theBeta = layer.theBeta;
+		theGammaGrad = layer.theGammaGrad;
+		theBetaGrad = layer.theBetaGrad;
+		theGammaUpdate = layer.theGammaUpdate;
+		theBetaUpdate = layer.theBetaUpdate;
+		theRunningMean = layer.theRunningMean;
+		theRunningVar = layer.theRunningVar;
+		theBNMomentum = layer.theBNMomentum;
 		theActivation = layer.theActivation;
 		theDerivScale = layer.theDerivScale;
 	}
@@ -245,6 +259,76 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in) {
 	}
 #endif
 
+	// Apply normalization (between linear and activation)
+	if (theNormType != NormType::None) {
+		const uint total = B * ncurr;
+		theBatchZHat.resize(total);
+		if (theNormType == NormType::BatchNorm) {
+			theBatchNormMean.resize(ncurr);
+			theBatchNormVar.resize(ncurr);
+			if (theTraining && B > 1) {
+				// Compute per-neuron mean and variance across batch
+				for (uint j = 0; j < ncurr; ++j) {
+					double mean = 0;
+					for (uint b = 0; b < B; ++b)
+						mean += out[b * ncurr + j];
+					mean /= B;
+					double var = 0;
+					for (uint b = 0; b < B; ++b) {
+						double d = out[b * ncurr + j] - mean;
+						var += d * d;
+					}
+					var /= B;
+					theBatchNormMean[j] = mean;
+					theBatchNormVar[j] = var;
+					// Update running stats
+					theRunningMean[j] = (1.0 - theBNMomentum) * theRunningMean[j] + theBNMomentum * mean;
+					theRunningVar[j] = (1.0 - theBNMomentum) * theRunningVar[j] + theBNMomentum * var;
+					// Normalize and scale/shift
+					double inv_std = 1.0 / sqrt(var + NORM_EPS);
+					for (uint b = 0; b < B; ++b) {
+						double zh = (out[b * ncurr + j] - mean) * inv_std;
+						theBatchZHat[b * ncurr + j] = zh;
+						out[b * ncurr + j] = theGamma[j] * zh + theBeta[j];
+					}
+				}
+			} else {
+				// Inference: use running stats
+				for (uint j = 0; j < ncurr; ++j) {
+					double inv_std = 1.0 / sqrt(theRunningVar[j] + NORM_EPS);
+					for (uint b = 0; b < B; ++b) {
+						double zh = (out[b * ncurr + j] - theRunningMean[j]) * inv_std;
+						theBatchZHat[b * ncurr + j] = zh;
+						out[b * ncurr + j] = theGamma[j] * zh + theBeta[j];
+					}
+				}
+			}
+		} else { // LayerNorm
+			theBatchNormMean.resize(B);
+			theBatchNormVar.resize(B);
+			for (uint b = 0; b < B; ++b) {
+				double mean = 0;
+				for (uint j = 0; j < ncurr; ++j)
+					mean += out[b * ncurr + j];
+				mean /= ncurr;
+				double var = 0;
+				for (uint j = 0; j < ncurr; ++j) {
+					double d = out[b * ncurr + j] - mean;
+					var += d * d;
+				}
+				var /= ncurr;
+				theBatchNormMean[b] = mean;
+				theBatchNormVar[b] = var;
+				double inv_std = 1.0 / sqrt(var + NORM_EPS);
+				for (uint j = 0; j < ncurr; ++j) {
+					double zh = (out[b * ncurr + j] - mean) * inv_std;
+					theBatchZHat[b * ncurr + j] = zh;
+					out[b * ncurr + j] = theGamma[j] * zh + theBeta[j];
+				}
+			}
+		}
+	}
+
 	// Apply activation to all B*ncurr elements
 	theActivation(out, B * ncurr);
 
@@ -300,5 +384,69 @@ void Layer::accumulateGradientsBatch(const double* input, uint B) {
 		for (uint b = 0; b < B; ++b)
 			sum += delta[b * ncurr + i];
 		grad[i * stride + nprev] += sum;
+	}
+}
+
+void Layer::applyNormBackwardBatch(uint B) {
+	if (theNormType == NormType::None)
+		return;
+
+	double* delta = theBatchLocalGradients.data();
+	const double* zhat = theBatchZHat.data();
+
+	if (theNormType == NormType::BatchNorm) {
+		for (uint j = 0; j < ncurr; ++j) {
+			// Accumulate gamma/beta gradients
+			double dg = 0, db = 0;
+			for (uint b = 0; b < B; ++b) {
+				uint idx = b * ncurr + j;
+				dg += delta[idx] * zhat[idx];
+				db += delta[idx];
+			}
+			theGammaGrad[j] += dg;
+			theBetaGrad[j] += db;
+
+			// Propagate through BN
+			double inv_std = 1.0 / sqrt(theBatchNormVar[j] + NORM_EPS);
+			double mean_dz = 0, mean_dz_zh = 0;
+			for (uint b = 0; b < B; ++b) {
+				uint idx = b * ncurr + j;
+				double dz = delta[idx] * theGamma[j];
+				mean_dz += dz;
+				mean_dz_zh += dz * zhat[idx];
+			}
+			mean_dz /= B;
+			mean_dz_zh /= B;
+			for (uint b = 0; b < B; ++b) {
+				uint idx = b * ncurr + j;
+				double dz = delta[idx] * theGamma[j];
+				delta[idx] = inv_std * (dz - mean_dz - zhat[idx] * mean_dz_zh);
+			}
+		}
+	} else { // LayerNorm
+		for (uint b = 0; b < B; ++b) {
+			// Accumulate gamma/beta gradients
+			for (uint j = 0; j < ncurr; ++j) {
+				uint idx = b * ncurr + j;
+				theGammaGrad[j] += delta[idx] * zhat[idx];
+				theBetaGrad[j] += delta[idx];
+			}
+			// Propagate through LN
+			double inv_std = 1.0 / sqrt(theBatchNormVar[b] + NORM_EPS);
+			double mean_dz = 0, mean_dz_zh = 0;
+			for (uint j = 0; j < ncurr; ++j) {
+				uint idx = b * ncurr + j;
+				double dz = delta[idx] * theGamma[j];
+				mean_dz += dz;
+				mean_dz_zh += dz * zhat[idx];
+			}
+			mean_dz /= ncurr;
+			mean_dz_zh /= ncurr;
+			for (uint j = 0; j < ncurr; ++j) {
+				uint idx = b * ncurr + j;
+				double dz = delta[idx] * theGamma[j];
+				delta[idx] = inv_std * (dz - mean_dz - zhat[idx] * mean_dz_zh);
+			}
+		}
 	}
 }

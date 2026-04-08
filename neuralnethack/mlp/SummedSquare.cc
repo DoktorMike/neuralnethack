@@ -86,6 +86,7 @@ double SummedSquare::gradient() {
 		}
 #endif
 		curr.applyDerivativeBatch(bs);
+		curr.applyNormBackwardBatch(bs);
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)
@@ -112,6 +113,12 @@ double SummedSquare::gradient() {
 		std::transform(g.begin(), g.end(), g.begin(), [bs](double v) { return v / -(double)bs; });
 		if (theWeightElimOn == true)
 			weightElimGradLayer(g, layer.weights(), layer.nNeurons(), layer.nPrevious());
+		if (layer.normType() != NormType::None) {
+			auto& gg = layer.gammaGradients();
+			std::transform(gg.begin(), gg.end(), gg.begin(), [bs](double v) { return v / -(double)bs; });
+			auto& bg = layer.betaGradients();
+			std::transform(bg.begin(), bg.end(), bg.begin(), [bs](double v) { return v / -(double)bs; });
+		}
 	}
 
 	return err / (double)bs;
@@ -225,5 +232,9 @@ void SummedSquare::killGradients() {
 		Layer& l = theMlp->layer(i);
 		vector<double>& g = l.gradients();
 		g.assign(g.size(), 0);
+		if (l.normType() != NormType::None) {
+			l.gammaGradients().assign(l.gammaGradients().size(), 0);
+			l.betaGradients().assign(l.betaGradients().size(), 0);
+		}
 	}
 }

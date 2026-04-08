@@ -85,6 +85,7 @@ double CrossEntropy::gradient() {
 		}
 #endif
 		curr.applyDerivativeBatch(bs);
+		curr.applyNormBackwardBatch(bs);
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)
@@ -121,6 +122,10 @@ double CrossEntropy::gradient() {
 		div(g, -(double)bs);
 		if (theWeightElimOn == true)
 			weightElimGradLayer(g, layer.weights(), layer.nNeurons(), layer.nPrevious());
+		if (layer.normType() != NormType::None) {
+			div(layer.gammaGradients(), -(double)bs);
+			div(layer.betaGradients(), -(double)bs);
+		}
 	}
 
 	return -err / (double)bs;
@@ -246,5 +251,9 @@ void CrossEntropy::killGradients() {
 		Layer& l = theMlp->layer(i);
 		vector<double>& g = l.gradients();
 		g.assign(g.size(), 0);
+		if (l.normType() != NormType::None) {
+			l.gammaGradients().assign(l.gammaGradients().size(), 0);
+			l.betaGradients().assign(l.betaGradients().size(), 0);
+		}
 	}
 }

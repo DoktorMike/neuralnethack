@@ -125,6 +125,11 @@ class Mlp {
 	 */
 	void dropoutRate(double rate);
 
+	/**Set normalization type for hidden layers (not output layer).
+	 * \param nt the normalization type.
+	 */
+	void normType(NormType nt);
+
 	/**Propagate a batch of inputs through the entire MLP using GEMM.
 	 * \param input pointer to row-major input batch [B x arch[0]].
 	 * \param B the batch size.

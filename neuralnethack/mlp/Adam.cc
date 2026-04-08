@@ -30,11 +30,13 @@ void Adam::train(ostream& os) {
 		theBatchSize = theData->size();
 	}
 
-	// Initialize moment vectors
-	uint nw = theMlp->nWeights();
-	if (theM.size() != nw) {
-		theM.assign(nw, 0.0);
-		theV.assign(nw, 0.0);
+	// Initialize moment vectors (weights + norm params)
+	uint nTotal = theMlp->nWeights();
+	for (uint i = 0; i < theMlp->nLayers(); ++i)
+		nTotal += theMlp->layer(i).nNormParams();
+	if (theM.size() != nTotal) {
+		theM.assign(nTotal, 0.0);
+		theV.assign(nTotal, 0.0);
 		theTimestep = 0;
 	}
 
@@ -122,6 +124,28 @@ double Adam::trainEpoch(DataSet& dset) {
 			wt[j] -= lr * mHat / (sqrt(vHat) + eps);
 		}
 		offset += nw;
+		// Update norm params (no weight decay applied)
+		if (l.normType() != NormType::None) {
+			const uint nn = l.nNeurons();
+			double* gm = l.gamma().data();
+			double* gg = l.gammaGradients().data();
+			double* bt = l.beta().data();
+			double* bg = l.betaGradients().data();
+			double* m_ptr = theM.data() + offset;
+			double* v_ptr = theV.data() + offset;
+			for (uint j = 0; j < nn; ++j) {
+				m_ptr[j] = b1 * m_ptr[j] + (1 - b1) * gg[j];
+				v_ptr[j] = b2 * v_ptr[j] + (1 - b2) * gg[j] * gg[j];
+				gm[j] -= lr * (m_ptr[j] * bc1) / (sqrt(v_ptr[j] * bc2) + eps);
+			}
+			m_ptr += nn; v_ptr += nn;
+			for (uint j = 0; j < nn; ++j) {
+				m_ptr[j] = b1 * m_ptr[j] + (1 - b1) * bg[j];
+				v_ptr[j] = b2 * v_ptr[j] + (1 - b2) * bg[j] * bg[j];
+				bt[j] -= lr * (m_ptr[j] * bc1) / (sqrt(v_ptr[j] * bc2) + eps);
+			}
+			offset += 2 * nn;
+		}
 	}
 	return err;
 }

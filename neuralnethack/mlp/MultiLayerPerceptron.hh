@@ -31,6 +31,9 @@ namespace MultiLayerPerceptron {
 /// A define for the maximum training error.
 #define MAX_ERROR 0.00001
 
+/// Normalization type for layers.
+enum class NormType : unsigned char { None = 0, BatchNorm = 1, LayerNorm = 2 };
+
 } // namespace MultiLayerPerceptron
 
 #endif

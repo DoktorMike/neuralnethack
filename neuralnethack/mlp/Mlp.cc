@@ -123,6 +123,12 @@ void Mlp::dropoutRate(double rate) {
 		theLayers[i]->dropoutRate(rate);
 }
 
+void Mlp::normType(NormType nt) {
+	// Apply to hidden layers only, not the output layer
+	for (uint i = 0; i + 1 < theLayers.size(); ++i)
+		theLayers[i]->normType(nt);
+}
+
 const vector<double>& Mlp::propagate(const vector<double>& input) {
 	const vector<double>* inOut = &input;
 	for (auto& l : theLayers)

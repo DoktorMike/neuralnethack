@@ -119,6 +119,20 @@ double GradientDescent::train(DataSet& dset) {
 			upd[j] = u;
 			w[j] += u;
 		}
+		// Update normalization params
+		if (l.normType() != NormType::None) {
+			const uint nn = l.nNeurons();
+			double* gm = l.gamma().data();
+			double* gg = l.gammaGradients().data();
+			double* gu = l.gammaUpdates().data();
+			double* bt = l.beta().data();
+			double* bg = l.betaGradients().data();
+			double* bu = l.betaUpdates().data();
+			for (uint j = 0; j < nn; ++j) {
+				double ug = -lr * gg[j] + mom * gu[j]; gu[j] = ug; gm[j] += ug;
+				double ub = -lr * bg[j] + mom * bu[j]; bu[j] = ub; bt[j] += ub;
+			}
+		}
 	}
 	return err;
 }
