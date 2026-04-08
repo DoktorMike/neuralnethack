@@ -1,17 +1,52 @@
-# NeuralNetHack - A small ANN package for ensembles of MLPs.
+# NeuralNetHack
 
-Copyright (C) 2016 Michael Green
+A fast, lightweight C++23 library for training and evaluating ensembles of multi-layer perceptrons. Zero external dependencies beyond an optional BLAS library. Designed for research, teaching, and embedding in larger systems.
 
-neuralnethack is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+## Features
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+- **Activations**: Sigmoid, TanH, Linear, ReLU, Leaky ReLU, ELU
+- **Optimizers**: SGD with momentum, Adam/AdamW, L-BFGS
+- **Loss functions**: Cross-entropy, Summed square error
+- **Regularization**: Dropout (inverted), weight elimination
+- **Ensembles**: Weighted ensemble of MLPs with bootstrap/cross-split/hold-out sampling
+- **Model selection**: Grid search over regularization with cross-validation
+- **Feature selection**: Backward elimination via saliency/clamping
+- **Evaluation**: ROC/AUC, goodness of fit
+- **Serialization**: Binary save/load for models and ensembles
+- **Performance**: BLAS-accelerated batch GEMM training, devirtualized activations, SIMD-friendly loops
 
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+## Build
 
-Comments are welcome.
+```sh
+cmake -B build
+cmake --build build -j$(nproc)
+ctest --test-dir build
+```
 
-- Michael Green <micke.green@gmail.com>
+Requires GCC 13+ or Clang 17+ (C++23). BLAS is auto-detected (install `libopenblas-dev` or similar for best performance). To disable: `cmake -B build -DNNH_USE_BLAS=OFF`.
 
+## Quick start
 
-[![Build Status](https://travis-ci.org/DoktorMike/neuralnethack.svg?branch=master)](https://travis-ci.org/DoktorMike/neuralnethack)
+```cpp
+#include "mlp/Mlp.hh"
+#include "mlp/Serialization.hh"
+#include "Ensemble.hh"
+
+using namespace MultiLayerPerceptron;
+
+// Create a 4-input, 8-hidden (ReLU), 1-output (sigmoid) network
+std::vector<uint> arch = {4, 8, 1};
+std::vector<std::string> types = {"relu", "logsig"};
+Mlp mlp(arch, types, false);
+
+// After training...
+saveMlpBinary(mlp, "model.nnh");
+
+// Later...
+auto loaded = loadMlpBinary("model.nnh");
+const auto& output = loaded->propagate(input);
+```
+
+## License
+
+GPL v2+ -- Copyright (C) Michael Green
