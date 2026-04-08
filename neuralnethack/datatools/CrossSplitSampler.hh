@@ -20,6 +20,7 @@ namespace DataTools
 			CrossSplitSampler(DataSet& data, const uint numSplits, const uint numParts);
 			CrossSplitSampler(const CrossSplitSampler& cv);
 			virtual ~CrossSplitSampler();
+			using Sampler::operator=;
 			CrossSplitSampler& operator=(const CrossSplitSampler& cv);
 
 			/**\todo Fix the k=1 issue. Abort or empty validation set?*/

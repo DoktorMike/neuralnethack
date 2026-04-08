@@ -13,6 +13,7 @@ namespace DataTools
 			BootstrapSampler(DataSet& data, const uint numSplits);
 			BootstrapSampler(const BootstrapSampler& me);
 			virtual ~BootstrapSampler();
+			using Sampler::operator=;
 			BootstrapSampler& operator=(const BootstrapSampler& me);
 
 			std::pair<DataSet, DataSet>* next();

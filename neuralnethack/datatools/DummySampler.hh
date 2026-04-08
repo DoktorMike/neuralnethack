@@ -13,6 +13,7 @@ namespace DataTools
 			DummySampler(DataSet& data, const uint numSplits);
 			DummySampler(const DummySampler& me);
 			virtual ~DummySampler();
+			using Sampler::operator=;
 			DummySampler& operator=(const DummySampler& me);
 
 			std::pair<DataSet, DataSet>* next();

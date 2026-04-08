@@ -13,6 +13,7 @@ namespace DataTools
 			HoldOutSampler(DataSet& data, const double rat, const uint numSplits);
 			HoldOutSampler(const HoldOutSampler& ho);
 			virtual ~HoldOutSampler();
+			using Sampler::operator=;
 			HoldOutSampler& operator=(const HoldOutSampler& ho);
 
 			std::pair<DataSet, DataSet>* next();
