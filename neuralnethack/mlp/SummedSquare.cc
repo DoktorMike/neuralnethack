@@ -113,16 +113,17 @@ SummedSquare& SummedSquare::operator=(const SummedSquare& sse)
 	return *this;
 }
 
-void SummedSquare::localGradient(Layer& ol, const vector<double>& out, 
+void SummedSquare::localGradient(Layer& ol, const vector<double>& out,
 		const vector<double>& dout)
 {
 	assert(out.size() == ol.size() && dout.size() == out.size());
-
-	vector<double>::const_iterator ito = out.begin();
-	vector<double>::const_iterator itdo = dout.begin();
-
-	for(uint i=0; i<ol.nNeurons(); ++i, ++ito, ++itdo)
-		ol.localGradients(i) = (*itdo - *ito) * ol.firePrime(i);
+	const uint n = ol.nNeurons();
+	double* __restrict__ lg = ol.localGradients().data();
+	const double* __restrict__ o  = out.data();
+	const double* __restrict__ d  = dout.data();
+	for(uint i = 0; i < n; ++i)
+		lg[i] = d[i] - o[i];
+	ol.applyDerivative(ol.localGradients());
 }
 
 void SummedSquare::backpropagate()
@@ -133,13 +134,17 @@ void SummedSquare::backpropagate()
 
 void SummedSquare::localGradient(Layer& curr, Layer& next)
 {
-	for(uint j=0; j<curr.nNeurons(); ++j){
+	const uint nc = curr.nNeurons();
+	const uint nn = next.nNeurons();
+	double* __restrict__ clg = curr.localGradients().data();
+	const double* __restrict__ nlg = next.localGradients().data();
+	for(uint j = 0; j < nc; ++j){
 		double err = 0;
-		for(uint i=0; i<next.nNeurons(); ++i)
-			err += next.localGradients(i)*next.weights(i,j);
-		err = err*curr.firePrime(j);
-		curr.localGradients(j) = err;
+		for(uint i = 0; i < nn; ++i)
+			err += nlg[i] * next.weights(i, j);
+		clg[j] = err;
 	}
+	curr.applyDerivative(curr.localGradients());
 }
 
 void SummedSquare::gradient(Layer& first, vector<double>& in)

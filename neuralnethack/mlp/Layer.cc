@@ -23,15 +23,64 @@
 
 #include "Layer.hh"
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
+
 #include <iostream>
 #include <cassert>
 
 #include <algorithm>
 #include <iterator>
 #include <numeric>
+#include <cmath>
 
 using namespace MultiLayerPerceptron;
 using namespace std;
+
+// Vectorizable batch activation functions ------------------------------------
+
+static void sigmoidActivation(double* __restrict__ out, uint n) {
+	for(uint i = 0; i < n; ++i)
+		out[i] = 1.0 / (1.0 + exp(-out[i]));
+}
+
+static void tanhypActivation(double* __restrict__ out, uint n) {
+	for(uint i = 0; i < n; ++i)
+		out[i] = tanh(out[i]);
+}
+
+static void linearActivation(double* __restrict__, uint) {
+	// identity: no-op
+}
+
+// Vectorizable batch derivative-scale functions ------------------------------
+// Each computes deltas[i] *= f'(outputs[i])
+
+static void sigmoidDerivScale(const double* __restrict__ out,
+                               double* __restrict__ deltas, uint n) {
+	for(uint i = 0; i < n; ++i)
+		deltas[i] *= out[i] * (1.0 - out[i]);
+}
+
+static void tanhypDerivScale(const double* __restrict__ out,
+                              double* __restrict__ deltas, uint n) {
+	for(uint i = 0; i < n; ++i)
+		deltas[i] *= (1.0 - out[i] * out[i]);
+}
+
+static void linearDerivScale(const double* __restrict__,
+                              double* __restrict__, uint) {
+	// f'(x) = 1, so deltas unchanged
+}
+
+// Layer implementation -------------------------------------------------------
 
 Layer::Layer(const uint nc, const uint np, const string t):
 	ncurr(nc),
@@ -41,8 +90,13 @@ Layer::Layer(const uint nc, const uint np, const string t):
 	theOutputs(ncurr,0),
 	theLocalGradients(ncurr,0),
 	theGradients(ncurr*(nprev+1), 0),
-	theWeightUpdates(ncurr*(nprev+1), 0)
+	theWeightUpdates(ncurr*(nprev+1), 0),
+	theActivation(nullptr),
+	theDerivScale(nullptr)
 {
+	if(t == SIGMOID)     { theActivation = sigmoidActivation; theDerivScale = sigmoidDerivScale; }
+	else if(t == TANHYP) { theActivation = tanhypActivation;  theDerivScale = tanhypDerivScale; }
+	else if(t == LINEAR) { theActivation = linearActivation;  theDerivScale = linearDerivScale; }
 	regenerateWeights();
 }
 
@@ -64,6 +118,8 @@ Layer& Layer::operator=(const Layer& layer)
 		theLocalGradients=layer.theLocalGradients;
 		theGradients=layer.theGradients;
 		theWeightUpdates=layer.theWeightUpdates;
+		theActivation=layer.theActivation;
+		theDerivScale=layer.theDerivScale;
 	}
 	return *this;
 }
@@ -73,8 +129,6 @@ double& Layer::operator[](const uint i)
 	assert(i < theOutputs.size());
 	return theOutputs[i];
 }
-
-//ACCESSOR FUNCTIONS
 
 //PRINTS
 
@@ -102,14 +156,35 @@ vector<double> Layer::calcLifs(const vector<double>& input)
 
 vector<double>& Layer::propagate(const vector<double>& input)
 {
-	vector<double>::iterator itw = theWeights.begin(), ito;
-	for(ito = theOutputs.begin(); ito != theOutputs.end(); ++ito){
-		*ito = inner_product(input.begin(), input.end(), itw, *(itw+input.size()));
-		advance(itw, input.size()+1);
-		*ito = fire(*ito);
+	// Phase 1: compute local induced fields (weighted sums + bias)
+	const uint ni = input.size();
+	const uint stride = ni + 1;
+	const double* __restrict__ wt = theWeights.data();
+	double* __restrict__ out = theOutputs.data();
+
+#ifdef USE_BLAS
+	const double* __restrict__ inp = input.data();
+	for(uint i = 0; i < ncurr; ++i)
+		out[i] = cblas_ddot(ni, inp, 1, wt + i * stride, 1) + wt[i * stride + ni];
+#else
+	const double* __restrict__ inp = input.data();
+	for(uint i = 0; i < ncurr; ++i){
+		const double* __restrict__ row = wt + i * stride;
+		double sum = row[ni]; // bias
+		for(uint j = 0; j < ni; ++j)
+			sum += inp[j] * row[j];
+		out[i] = sum;
 	}
+#endif
+
+	// Phase 2: apply activation in a single vectorizable loop
+	theActivation(out, ncurr);
+
 	return theOutputs;
 }
 
-
+void Layer::applyDerivative(vector<double>& deltas)
+{
+	theDerivScale(theOutputs.data(), deltas.data(), ncurr);
+}
 

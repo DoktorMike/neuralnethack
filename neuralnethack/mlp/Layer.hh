@@ -242,13 +242,20 @@ namespace MultiLayerPerceptron
 			 */
 			virtual double firePrimePrime(const uint i) const = 0;
 
-			/**Propagates an input pattern through this layer. 
-			 * Note that the bias should not be included in the parameter 
+			/**Propagates an input pattern through this layer.
+			 * Note that the bias should not be included in the parameter
 			 * since it is explicitly included later.
 			 * \param input the input to propagate.
 			 * \return the outputs from this Layer.
 			 */
 			std::vector<double>& propagate(const std::vector<double>& input);
+
+			/**Apply the activation derivative to a vector of deltas in batch.
+			 * Computes deltas[i] *= f'(outputs[i]) for all neurons,
+			 * using a function pointer instead of virtual dispatch.
+			 * \param deltas the vector to scale by the derivative.
+			 */
+			void applyDerivative(std::vector<double>& deltas);
 
 			/**Calculates the Local Induced Field for each node in this layer. 
 			 * Note that the bias should not be included in the parameter 
@@ -290,9 +297,23 @@ namespace MultiLayerPerceptron
 			/**The update used for this layers weights. */
 			std::vector<double> theWeightUpdates;
 
+			/**Batch activation function pointer. */
+			using ActivationFn = void(*)(double* __restrict__ outputs, uint n);
+
+			/**Batch derivative-scale function pointer.
+			 * Computes deltas[i] *= f'(outputs[i]). */
+			using DerivScaleFn = void(*)(const double* __restrict__ outputs,
+			                              double* __restrict__ deltas, uint n);
+
+			/**Batch activation function for this layer's type. */
+			ActivationFn theActivation;
+
+			/**Batch derivative-scale function for this layer's type. */
+			DerivScaleFn theDerivScale;
+
 			/**The functor for initialising the weights. */
-			template <class T> struct newRand 
-			{ 
+			template <class T> struct newRand
+			{
 				void operator()(T& a){ a = 0.5-drand48(); }
 			};
 	};

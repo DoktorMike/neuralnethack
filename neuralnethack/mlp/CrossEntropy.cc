@@ -131,13 +131,17 @@ void CrossEntropy::backpropagate()
 
 void CrossEntropy::localGradient(Layer& curr, Layer& next)
 {
-	for(uint j=0; j<curr.nNeurons(); ++j){
+	const uint nc = curr.nNeurons();
+	const uint nn = next.nNeurons();
+	double* __restrict__ clg = curr.localGradients().data();
+	const double* __restrict__ nlg = next.localGradients().data();
+	for(uint j = 0; j < nc; ++j){
 		double err = 0;
-		for(uint i=0; i<next.nNeurons(); ++i)
-			err += next.localGradients(i)*next.weights(i,j);
-		err = err*curr.firePrime(j);
-		curr.localGradients(j) = err;
+		for(uint i = 0; i < nn; ++i)
+			err += nlg[i] * next.weights(i, j);
+		clg[j] = err;
 	}
+	curr.applyDerivative(curr.localGradients());
 }
 
 void CrossEntropy::gradient(Layer& first, vector<double>& in)

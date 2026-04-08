@@ -137,8 +137,19 @@ namespace MultiLayerPerceptron
 			 */
 			bool converged();
 
-			/**The estimation of the inverse Hessian matrix. */
-			std::vector< std::vector<double> > G;
+			// Flat matrix helpers (row-major, flatN x flatN)
+			void flatIdentity(std::vector<double>& m);
+			void flatMulVec(const std::vector<double>& m, const std::vector<double>& v, std::vector<double>& res);
+			void flatOuterProduct(const std::vector<double>& v1, const std::vector<double>& v2, std::vector<double>& res);
+			void flatScale(std::vector<double>& m, double s);
+			void flatAdd(const std::vector<double>& m1, const std::vector<double>& m2, std::vector<double>& res);
+			void flatSub(const std::vector<double>& m1, const std::vector<double>& m2, std::vector<double>& res);
+
+			/**Dimension of the flat matrices. */
+			uint flatN;
+
+			/**The estimation of the inverse Hessian matrix (flatN*flatN row-major). */
+			std::vector<double> G;
 
 			/**The weight vector at t+1. */
 			std::vector<double> w;
@@ -161,11 +172,11 @@ namespace MultiLayerPerceptron
 			/**I will figure out something good to say here. :-)*/
 			std::vector<double> u;
 
-			/**Temporary matrix variable. */
-			std::vector< std::vector<double> > matrixTemp1;
+			/**Temporary matrix (flatN*flatN row-major). */
+			std::vector<double> matrixTemp1;
 
-			/**Temporary matrix variable. */
-			std::vector< std::vector<double> > matrixTemp2;
+			/**Temporary matrix (flatN*flatN row-major). */
+			std::vector<double> matrixTemp2;
 
 			/**Temporary vector variable. */
 			std::vector<double> vectorTemp1;
