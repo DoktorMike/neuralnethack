@@ -43,19 +43,44 @@ int main()
     trainer.numEpochs(2000);
     trainer.train(std::cout);
 
-    // -- Evaluate: each output should be within 0.2 of the target --
+    // -- Evaluate --
     bool pass = true;
+    int tp = 0, tn = 0, fp = 0, fn = 0;
+    double threshold = 0.5;
+
+    std::cout << std::endl;
     for (int i = 0; i < 4; ++i) {
         const auto& out = mlp.propagate(data.pattern(i).input());
         double expected = xor_out[i][0];
         double got = out[0];
+        int predicted = (got >= threshold) ? 1 : 0;
+        int actual = (int)expected;
+
         std::cout << xor_in[i][0] << " XOR " << xor_in[i][1]
-                  << " = " << got << " (expected " << expected << ")" << std::endl;
+                  << " = " << got << " (predicted " << predicted
+                  << ", expected " << actual << ")" << std::endl;
+
+        if (actual == 1 && predicted == 1) tp++;
+        else if (actual == 0 && predicted == 0) tn++;
+        else if (actual == 0 && predicted == 1) fp++;
+        else fn++;
+
         if (fabs(got - expected) > 0.2) {
             std::cerr << "  FAIL: error too large" << std::endl;
             pass = false;
         }
     }
+
+    double accuracy = (double)(tp + tn) / (tp + tn + fp + fn);
+    double sensitivity = (tp + fn > 0) ? (double)tp / (tp + fn) : 0.0;
+    double specificity = (tn + fp > 0) ? (double)tn / (tn + fp) : 0.0;
+    double balanced_accuracy = (sensitivity + specificity) / 2.0;
+
+    std::cout << std::endl
+              << "Accuracy:          " << accuracy << std::endl
+              << "Balanced Accuracy: " << balanced_accuracy << std::endl
+              << "Sensitivity:       " << sensitivity << std::endl
+              << "Specificity:       " << specificity << std::endl;
 
     // -- Test save/load roundtrip --
     saveMlpBinary(mlp, "xor_test.nnh");
