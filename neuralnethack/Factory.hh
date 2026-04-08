@@ -29,6 +29,7 @@
 #include "mlp/Mlp.hh"
 #include "mlp/GradientDescent.hh"
 #include "mlp/QuasiNewton.hh"
+#include "mlp/Adam.hh"
 #include "mlp/SummedSquare.hh"
 #include "mlp/CrossEntropy.hh"
 #include "ModelEstimator.hh"

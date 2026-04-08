@@ -80,7 +80,9 @@ void Trainer::train(Mlp& mlp, DataSet& data, ostream& os)
 {
 	theMlp = &mlp;
 	theData = &data;
+	theMlp->training(true);
 	train(os);
+	theMlp->training(false);
 }
 
 unique_ptr<Mlp> Trainer::trainNew(DataSet& data, ostream& os)
@@ -94,7 +96,9 @@ unique_ptr<Mlp> Trainer::trainNew(ostream& os)
 	Mlp* tmp = theMlp;
 	theMlp = new Mlp(*tmp);
 	theMlp->regenerateWeights();
+	theMlp->training(true);
 	train(os);
+	theMlp->training(false);
 	std::swap(tmp, theMlp);
 	return unique_ptr<Mlp>(tmp);
 }

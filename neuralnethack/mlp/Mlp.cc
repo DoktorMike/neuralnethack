@@ -25,6 +25,9 @@
 #include "SigmoidLayer.hh"
 #include "TanHypLayer.hh"
 #include "LinearLayer.hh"
+#include "ReLULayer.hh"
+#include "LeakyReLULayer.hh"
+#include "ELULayer.hh"
 
 #include <cassert>
 
@@ -143,6 +146,19 @@ void Mlp::regenerateWeights()
 		l->regenerateWeights();
 }
 
+void Mlp::training(bool t)
+{
+	for(auto& l : theLayers)
+		l->training(t);
+}
+
+void Mlp::dropoutRate(double rate)
+{
+	// Apply to hidden layers only, not the output layer
+	for(uint i = 0; i + 1 < theLayers.size(); ++i)
+		theLayers[i]->dropoutRate(rate);
+}
+
 const vector<double>& Mlp::propagate(const vector<double>& input)
 {
 	const vector<double>* inOut = &input;
@@ -189,6 +205,12 @@ void Mlp::createLayers()
 			theLayers.push_back(make_unique<TanHypLayer>(*(it),*(it-1)));
 		else if(t == LINEAR)
 			theLayers.push_back(make_unique<LinearLayer>(*(it),*(it-1)));
+		else if(t == RELU)
+			theLayers.push_back(make_unique<ReLULayer>(*(it),*(it-1)));
+		else if(t == LEAKYRELU)
+			theLayers.push_back(make_unique<LeakyReLULayer>(*(it),*(it-1)));
+		else if(t == ELU_ACT)
+			theLayers.push_back(make_unique<ELULayer>(*(it),*(it-1)));
 	}
 }
 

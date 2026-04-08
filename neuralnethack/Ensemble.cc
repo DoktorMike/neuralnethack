@@ -71,6 +71,12 @@ Mlp& Ensemble::mlp(const uint i)
 	return *(theEnsemble[i]);
 }
 
+const Mlp& Ensemble::mlp(const uint i) const
+{
+	assert(i<theEnsemble.size());
+	return *(theEnsemble[i]);
+}
+
 void Ensemble::delMlp(const uint i)
 {
 	assert(i<theEnsemble.size());
