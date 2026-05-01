@@ -97,6 +97,7 @@ set(LIB_SOURCES
     neuralnethack/evaltools/Evaluator.cc
     neuralnethack/evaltools/Gof.cc
     neuralnethack/evaltools/Roc.cc
+    neuralnethack/evaltools/ConfusionMatrix.cc
     # matrixtools
     neuralnethack/matrixtools/MatrixTools.cc
     # parser
@@ -156,7 +157,7 @@ set_target_properties(neuralnethack_bin PROPERTIES OUTPUT_NAME neuralnethack)
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)

@@ -230,3 +230,71 @@ double ErrorMeasures::r2(Ensemble& committee, DataSet& data) {
 	buildFlatRegressionVectors(committee, data, y, t);
 	return r2(y, t);
 }
+
+// ---- Confusion-matrix derived metrics -----------------------------------
+
+double ErrorMeasures::accuracy(const ConfusionMatrix& cm) {
+	uint total = cm.total();
+	if (total == 0) return std::nan("");
+	return static_cast<double>(cm.correct()) / static_cast<double>(total);
+}
+
+double ErrorMeasures::precision(const ConfusionMatrix& cm, uint cls) {
+	uint pred = cm.predictedTotal(cls);
+	if (pred == 0) return std::nan("");
+	return static_cast<double>(cm.count(cls, cls)) / static_cast<double>(pred);
+}
+
+double ErrorMeasures::recall(const ConfusionMatrix& cm, uint cls) {
+	uint actual = cm.actualTotal(cls);
+	if (actual == 0) return std::nan("");
+	return static_cast<double>(cm.count(cls, cls)) / static_cast<double>(actual);
+}
+
+double ErrorMeasures::f1(const ConfusionMatrix& cm, uint cls) {
+	double p = precision(cm, cls);
+	double r = recall(cm, cls);
+	if (std::isnan(p) || std::isnan(r)) return std::nan("");
+	if (p + r == 0.0) return std::nan("");
+	return 2.0 * p * r / (p + r);
+}
+
+double ErrorMeasures::mcc(const ConfusionMatrix& cm) {
+	if (cm.nClasses() != 2) return std::nan("");
+	double tp = cm.tp(), tn = cm.tn(), fp = cm.fp(), fn = cm.fn();
+	double num = tp * tn - fp * fn;
+	double den = std::sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn));
+	if (den == 0.0) return std::nan("");
+	return num / den;
+}
+
+double ErrorMeasures::balancedAccuracy(const ConfusionMatrix& cm) {
+	double s = 0.0;
+	uint counted = 0;
+	for (uint c = 0; c < cm.nClasses(); ++c) {
+		double r = recall(cm, c);
+		if (std::isnan(r)) continue;
+		s += r;
+		++counted;
+	}
+	if (counted == 0) return std::nan("");
+	return s / static_cast<double>(counted);
+}
+
+static double macroAvg(const ConfusionMatrix& cm,
+                       double (*metric)(const ConfusionMatrix&, uint)) {
+	double s = 0.0;
+	uint counted = 0;
+	for (uint c = 0; c < cm.nClasses(); ++c) {
+		double v = metric(cm, c);
+		if (std::isnan(v)) continue;
+		s += v;
+		++counted;
+	}
+	if (counted == 0) return std::nan("");
+	return s / static_cast<double>(counted);
+}
+
+double ErrorMeasures::macroPrecision(const ConfusionMatrix& cm) { return macroAvg(cm, precision); }
+double ErrorMeasures::macroRecall(const ConfusionMatrix& cm) { return macroAvg(cm, recall); }
+double ErrorMeasures::macroF1(const ConfusionMatrix& cm) { return macroAvg(cm, f1); }

@@ -1,6 +1,7 @@
 #ifndef __EvalTools_hh__
 #define __EvalTools_hh__
 
+#include "ConfusionMatrix.hh"
 #include "datatools/DataSet.hh"
 #include "Ensemble.hh"
 
@@ -9,7 +10,8 @@
 /**This namespace encloses a bunch of functions needed to
  * evaluate the performance of a classifier or a regressor.
  *
- * Classification metrics: crossEntropy, auc, gof.
+ * Classification metrics: crossEntropy, auc, gof, plus ConfusionMatrix-derived
+ * accuracy, precision, recall, f1, mcc, balancedAccuracy, and macro variants.
  * Regression metrics: mae, mape, smape, rmse, r2.
  * Generic: summedSquare.
  */
@@ -136,6 +138,46 @@ double rmse(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
  */
 double r2(const std::vector<double>& output, const std::vector<double>& target);
 double r2(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
+
+// ---- Confusion-matrix derived metrics -----------------------------------
+//
+// Build a ConfusionMatrix (binary, multi-class, or via fromEnsemble) and
+// pass it to any of these. Per-class metrics default to class 1 (the
+// positive class in the binary convention).
+
+/**Overall accuracy: correct / total. Returns NaN if the matrix is empty.*/
+double accuracy(const ConfusionMatrix& cm);
+
+/**Precision for class `cls`: TP_cls / (TP_cls + FP_cls).
+ * Returns NaN if no instance was predicted as `cls`.
+ */
+double precision(const ConfusionMatrix& cm, uint cls = 1);
+
+/**Recall (sensitivity) for class `cls`: TP_cls / (TP_cls + FN_cls).
+ * Returns NaN if `cls` never appears in the ground truth.
+ */
+double recall(const ConfusionMatrix& cm, uint cls = 1);
+
+/**F1 score for class `cls`: harmonic mean of precision and recall.
+ * Returns NaN if either input is undefined or both are zero.
+ */
+double f1(const ConfusionMatrix& cm, uint cls = 1);
+
+/**Matthews correlation coefficient for binary classification.
+ * Range -1 (anti-correlated) to +1 (perfect). Returns NaN for non-binary
+ * matrices or when the denominator is zero.
+ */
+double mcc(const ConfusionMatrix& cm);
+
+/**Mean recall across classes. Robust to class imbalance.*/
+double balancedAccuracy(const ConfusionMatrix& cm);
+
+/**Unweighted mean of per-class precision / recall / F1 across all classes.
+ * Classes whose individual metric is NaN are skipped from the mean.
+ */
+double macroPrecision(const ConfusionMatrix& cm);
+double macroRecall(const ConfusionMatrix& cm);
+double macroF1(const ConfusionMatrix& cm);
 } // namespace ErrorMeasures
 } // namespace EvalTools
 
