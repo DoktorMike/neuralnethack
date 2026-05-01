@@ -39,7 +39,7 @@ int main(const int argc, const char* argv[]) {
 	Config config;
 	DataTools::CoreDataSet trnCoreData;
 	DataTools::CoreDataSet tstCoreData;
-	parseConfAndData("./config.txt", config, trnCoreData, tstCoreData);
+	parseConfAndData("./config.toml", config, trnCoreData, tstCoreData);
 	DataTools::DataSet trnData;
 	DataTools::DataSet tstData;
 	trnData.coreDataSet(trnCoreData);

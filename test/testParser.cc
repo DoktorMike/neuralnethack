@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
 	if (argc > 1)
 		fname = string(argv[1]);
 	else
-		fname = "./parserconfigure.txt";
+		fname = "./parserconfigure.toml";
 
 	Config config;
 	DataTools::CoreDataSet trnCoreData;

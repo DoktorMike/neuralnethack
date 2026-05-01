@@ -1,0 +1,74 @@
+# Pima Indians Diabetes example. Run from this directory:
+#   ../../build/neuralnethack config-pima.toml
+
+suffix = "pima"
+seed = 1
+normalization = "Z"
+problem_type = "class"       # "class" or "regr"
+
+[data.train]
+file = "./pima.trn.tab"
+id_col = 0                   # 0 = no id column
+in_cols = "1-8"
+out_cols = "9"
+row_range = "0"              # "0" = all rows
+
+[data.test]
+file = "./pima.tst.tab"
+id_col = 0
+in_cols = "1-8"
+out_cols = "9"
+row_range = "0"
+
+[network]
+size = [8, 4, 1]
+activations = ["tansig", "logsig"]
+error_fcn = "kullback"
+
+[training]
+method = "gd"                # "gd", "adam", "qn"
+max_epochs = 1000
+
+[training.gd]
+batch_size = 1000
+learning_rate = 0.02
+lr_decay = 0.99
+momentum = 0.8
+
+# Adam alternative -- uncomment training.method = "adam" above and use these:
+# [training.adam]
+# learning_rate = 0.001
+# beta1 = 0.9
+# beta2 = 0.999
+# epsilon = 1e-8
+# weight_decay = 0.01
+
+[regularization.weight_elim]
+enabled = true
+alpha = 0.012
+w0 = 1.0
+
+[ensemble]
+method = "bagg"              # "bagg", "cs"
+runs = 5
+parts = 2
+split = "rnd"                # "rnd" or "ser"
+vary_weights = false
+
+[model_selection]
+method = "cv"                # "cv", "boot", "hold", "none"
+runs = 2
+parts = 2
+split = "rnd"
+fraction = 0.2
+
+[[model_selection.vary]]
+parameter = "WeightElim"
+subparam = 2
+start = 0.0
+stop = 1.0
+step = 0.4
+
+[output]
+save_session = true
+save_output_list = true
