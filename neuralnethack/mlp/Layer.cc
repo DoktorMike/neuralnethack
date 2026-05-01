@@ -186,7 +186,7 @@ vector<double> Layer::calcLifs(const vector<double>& input) {
 	return lif;
 }
 
-vector<double>& Layer::propagate(const vector<double>& input) {
+vector<double>& Layer::propagate(const vector<double>& input, const double* preactSkip) {
 	// Phase 1: compute local induced fields (weighted sums + bias)
 	const uint ni = input.size();
 	const uint stride = ni + 1;
@@ -207,6 +207,10 @@ vector<double>& Layer::propagate(const vector<double>& input) {
 		out[i] = sum;
 	}
 #endif
+
+	// Phase 1.5: pre-activation skip add.
+	if (preactSkip)
+		for (uint i = 0; i < ncurr; ++i) out[i] += preactSkip[i];
 
 	// Phase 2: apply activation in a single vectorizable loop
 	theActivation(out, ncurr);
@@ -230,7 +234,8 @@ void Layer::applyDerivative(vector<double>& deltas) {
 			deltas[i] *= theDropoutMask[i];
 }
 
-const double* Layer::propagateBatch(const double* input, uint B, uint n_in) {
+const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
+                                    const double* preactSkip) {
 	assert(n_in == nprev);
 	theBatchOutputs.resize(B * ncurr);
 	double* out = theBatchOutputs.data();
@@ -329,6 +334,12 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in) {
 				}
 			}
 		}
+	}
+
+	// Pre-activation skip add (after linear + bias + norm, before activation).
+	if (preactSkip) {
+		const uint total = B * ncurr;
+		for (uint i = 0; i < total; ++i) out[i] += preactSkip[i];
 	}
 
 	// Apply activation to all B*ncurr elements

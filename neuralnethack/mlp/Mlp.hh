@@ -130,6 +130,17 @@ class Mlp {
 	 */
 	void normType(NormType nt);
 
+	/**Configure a residual (skip) connection: layer `target`'s output is
+	 * element-wise added with layer `source`'s output after activation.
+	 *
+	 * Requires source < target and matching neuron counts. Pass source = -1
+	 * to clear an existing skip on the target layer.
+	 */
+	void skipFrom(uint target, int source);
+
+	/**Return the skip source for the given target layer, or -1 if none.*/
+	int skipFrom(uint target) const;
+
 	/**Propagate a batch of inputs through the entire MLP using GEMM.
 	 * \param input pointer to row-major input batch [B x arch[0]].
 	 * \param B the batch size.
@@ -180,6 +191,9 @@ class Mlp {
 
 	/**The layers in this MLP. */
 	std::vector<std::unique_ptr<Layer>> theLayers;
+
+	/**Skip-connection source per layer; -1 = no skip. */
+	std::vector<int> theSkipFrom;
 };
 
 // INLINES

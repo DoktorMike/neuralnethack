@@ -221,9 +221,13 @@ class Layer {
 	 * Note that the bias should not be included in the parameter
 	 * since it is explicitly included later.
 	 * \param input the input to propagate.
+	 * \param preactSkip optional pre-activation skip-add buffer of size
+	 *        nNeurons(). Added between the linear+norm step and the
+	 *        activation. Pass nullptr (default) for no skip.
 	 * \return the outputs from this Layer.
 	 */
-	std::vector<double>& propagate(const std::vector<double>& input);
+	std::vector<double>& propagate(const std::vector<double>& input,
+	                               const double* preactSkip = nullptr);
 
 	/**Apply the activation derivative to a vector of deltas in batch.
 	 * Computes deltas[i] *= f'(outputs[i]) for all neurons,
@@ -236,9 +240,12 @@ class Layer {
 	 * \param input pointer to row-major input matrix [B x nprev].
 	 * \param B the batch size.
 	 * \param n_in number of input columns (must equal nprev).
+	 * \param preactSkip optional pre-activation skip-add buffer of size
+	 *        B * nNeurons(). Added between linear+norm and activation.
 	 * \return pointer to batch outputs [B x ncurr].
 	 */
-	const double* propagateBatch(const double* input, uint B, uint n_in);
+	const double* propagateBatch(const double* input, uint B, uint n_in,
+	                             const double* preactSkip = nullptr);
 
 	/**Apply activation derivative to batch local gradients.
 	 * Both theBatchLocalGradients and theBatchOutputs are [B x ncurr].

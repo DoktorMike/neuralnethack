@@ -45,9 +45,14 @@ double CrossEntropy::gradient() {
 	// Batch forward pass (one GEMM per layer)
 	const double* batchOut = theMlp->propagateBatch(inputMatrix.data(), bs);
 
+	// Per-layer accumulator for skip-connection deltas. See SummedSquare.cc
+	// for the derivation; the same routing applies here.
+	vector<vector<double>> skipDelta(theMlp->nLayers());
+
 	// Compute output-layer local gradients: delta = target - output
-	// (CrossEntropy + sigmoid: derivative cancels)
+	// (CrossEntropy + sigmoid: derivative cancels, the result is dL/dz_eff)
 	Layer& last = (*theMlp)[theMlp->nLayers() - 1];
+	const uint lastIdx = theMlp->nLayers() - 1;
 	last.batchLocalGradients().resize(bs * nOut);
 	{
 		double* delta = last.batchLocalGradients().data();
@@ -55,6 +60,13 @@ double CrossEntropy::gradient() {
 		const double* o = batchOut;
 		for (uint i = 0; i < bs * nOut; ++i)
 			delta[i] = t[i] - o[i];
+	}
+	if (theMlp->skipFrom(lastIdx) >= 0) {
+		int src = theMlp->skipFrom(lastIdx);
+		auto& bin = skipDelta[src];
+		const auto& clg = last.batchLocalGradients();
+		if (bin.empty()) bin = clg;
+		else for (uint k = 0; k < bin.size(); ++k) bin[k] += clg[k];
 	}
 
 	// Batch backpropagate deltas through hidden layers (one GEMM per layer)
@@ -84,8 +96,18 @@ double CrossEntropy::gradient() {
 			}
 		}
 #endif
+		if (!skipDelta[l - 1].empty()) {
+			const auto& bin = skipDelta[l - 1];
+			for (uint k = 0; k < bin.size(); ++k) clg[k] += bin[k];
+		}
 		curr.applyDerivativeBatch(bs);
 		curr.applyNormBackwardBatch(bs);
+		if (theMlp->skipFrom(l - 1) >= 0) {
+			int src = theMlp->skipFrom(l - 1);
+			auto& bin = skipDelta[src];
+			if (bin.empty()) bin.assign(clg, clg + bs * nc);
+			else for (uint k = 0; k < bin.size(); ++k) bin[k] += clg[k];
+		}
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)

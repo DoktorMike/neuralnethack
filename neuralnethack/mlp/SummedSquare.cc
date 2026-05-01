@@ -46,8 +46,17 @@ double SummedSquare::gradient() {
 	// Batch forward pass (one GEMM per layer)
 	const double* batchOut = theMlp->propagateBatch(inputMatrix.data(), bs);
 
+	// Per-layer accumulator for skip-connection deltas. skipDelta[s] holds
+	// the sum of post-derivative deltas flowing back to layer s through
+	// any layers that have s as their skip source. With pre-activation skip,
+	// the gradient that passes through the identity-add is the target's
+	// post-derivative delta (= dL/dz_eff_target), which becomes a dL/dy_s
+	// contribution at the source.
+	vector<vector<double>> skipDelta(theMlp->nLayers());
+
 	// Compute output-layer local gradients: delta = (target - output) * f'(output)
 	Layer& last = (*theMlp)[theMlp->nLayers() - 1];
+	const uint lastIdx = theMlp->nLayers() - 1;
 	last.batchLocalGradients().resize(bs * nOut);
 	{
 		double* delta = last.batchLocalGradients().data();
@@ -58,6 +67,15 @@ double SummedSquare::gradient() {
 	}
 	// SummedSquare applies derivative to output layer (unlike CrossEntropy)
 	last.applyDerivativeBatch(bs);
+	// If the output layer is a skip target, route its post-derivative delta
+	// to the skip source.
+	if (theMlp->skipFrom(lastIdx) >= 0) {
+		int src = theMlp->skipFrom(lastIdx);
+		auto& bin = skipDelta[src];
+		const auto& clg = last.batchLocalGradients();
+		if (bin.empty()) bin = clg;
+		else for (uint k = 0; k < bin.size(); ++k) bin[k] += clg[k];
+	}
 
 	// Batch backpropagate deltas through hidden layers (one GEMM per layer)
 	for (int l = theMlp->size() - 1; l > 0; --l) {
@@ -85,8 +103,22 @@ double SummedSquare::gradient() {
 			}
 		}
 #endif
+		// Add any skip-connection deltas routed to this layer (these are
+		// post-derivative target deltas that act as dL/dy_curr contributions).
+		if (!skipDelta[l - 1].empty()) {
+			const auto& bin = skipDelta[l - 1];
+			for (uint k = 0; k < bin.size(); ++k) clg[k] += bin[k];
+		}
 		curr.applyDerivativeBatch(bs);
 		curr.applyNormBackwardBatch(bs);
+		// If this layer is itself a skip target, route its post-derivative
+		// delta to the skip source.
+		if (theMlp->skipFrom(l - 1) >= 0) {
+			int src = theMlp->skipFrom(l - 1);
+			auto& bin = skipDelta[src];
+			if (bin.empty()) bin.assign(clg, clg + bs * nc);
+			else for (uint k = 0; k < bin.size(); ++k) bin[k] += clg[k];
+		}
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)

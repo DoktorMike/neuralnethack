@@ -7,6 +7,7 @@
 #include "ELULayer.hh"
 
 #include <cassert>
+#include <iostream>
 
 using namespace MultiLayerPerceptron;
 using namespace std;
@@ -14,15 +15,18 @@ using namespace std;
 Mlp::Mlp(const vector<uint>& a, const vector<string>& t, bool s)
     : theArch(a), theTypes(t), theSoftmax(s) {
 	createLayers();
+	theSkipFrom.assign(theLayers.size(), -1);
 }
 
 Mlp::Mlp(const MlpModel& mlpmodel)
     : theArch(mlpmodel.architecture), theTypes(mlpmodel.types), theSoftmax(mlpmodel.softmax) {
 	createLayers();
+	theSkipFrom.assign(theLayers.size(), -1);
 }
 
 Mlp::Mlp(const Mlp& mlp)
-    : theArch(mlp.theArch), theTypes(mlp.theTypes), theSoftmax(mlp.theSoftmax) {
+    : theArch(mlp.theArch), theTypes(mlp.theTypes), theSoftmax(mlp.theSoftmax),
+      theSkipFrom(mlp.theSkipFrom) {
 	theLayers.reserve(mlp.theLayers.size());
 	for (const auto& l : mlp.theLayers)
 		theLayers.push_back(l->clone());
@@ -35,6 +39,7 @@ Mlp& Mlp::operator=(const Mlp& mlp) {
 		theArch = mlp.theArch;
 		theTypes = mlp.theTypes;
 		theSoftmax = mlp.theSoftmax;
+		theSkipFrom = mlp.theSkipFrom;
 		theLayers.clear();
 		theLayers.reserve(mlp.theLayers.size());
 		for (const auto& l : mlp.theLayers)
@@ -131,17 +136,22 @@ void Mlp::normType(NormType nt) {
 
 const vector<double>& Mlp::propagate(const vector<double>& input) {
 	const vector<double>* inOut = &input;
-	for (auto& l : theLayers)
-		inOut = &(l->propagate(*inOut));
+	for (uint i = 0; i < theLayers.size(); ++i) {
+		int src = theSkipFrom[i];
+		const double* skipPtr = (src >= 0) ? theLayers[src]->outputs().data() : nullptr;
+		inOut = &(theLayers[i]->propagate(*inOut, skipPtr));
+	}
 	return *inOut;
 }
 
 const double* Mlp::propagateBatch(const double* input, uint B) {
 	const double* layerInput = input;
 	uint n_in = theArch[0];
-	for (auto& l : theLayers) {
-		layerInput = l->propagateBatch(layerInput, B, n_in);
-		n_in = l->nNeurons();
+	for (uint i = 0; i < theLayers.size(); ++i) {
+		int src = theSkipFrom[i];
+		const double* skipPtr = (src >= 0) ? theLayers[src]->batchOutputs().data() : nullptr;
+		layerInput = theLayers[i]->propagateBatch(layerInput, B, n_in, skipPtr);
+		n_in = theLayers[i]->nNeurons();
 	}
 	return layerInput;
 }
@@ -154,6 +164,31 @@ void Mlp::printWeights(ostream& os) const {
 void Mlp::printGradients(ostream& os) const {
 	for (const auto& l : theLayers)
 		l->printGradients(os);
+}
+
+void Mlp::skipFrom(uint target, int source) {
+	assert(target < theLayers.size());
+	if (source < 0) {
+		theSkipFrom[target] = -1;
+		return;
+	}
+	uint s = static_cast<uint>(source);
+	if (s >= target) {
+		cerr << "Mlp::skipFrom: source " << s << " must be < target " << target << endl;
+		abort();
+	}
+	if (theLayers[s]->nNeurons() != theLayers[target]->nNeurons()) {
+		cerr << "Mlp::skipFrom: dim mismatch (source layer " << s << " has "
+		     << theLayers[s]->nNeurons() << " neurons, target layer " << target << " has "
+		     << theLayers[target]->nNeurons() << ")" << endl;
+		abort();
+	}
+	theSkipFrom[target] = source;
+}
+
+int Mlp::skipFrom(uint target) const {
+	assert(target < theSkipFrom.size());
+	return theSkipFrom[target];
 }
 
 // PRIVATE--------------------------------------------------------------------//

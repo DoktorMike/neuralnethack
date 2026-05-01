@@ -11,6 +11,7 @@ A fast, lightweight C++23 library for training and evaluating ensembles of multi
 ## Features
 
 - **Activations**: Sigmoid, TanH, Linear, ReLU, Leaky ReLU, ELU
+- **Topology**: sequential MLP with optional residual (skip) connections — pre-activation sum merge between same-width layers
 - **Optimizers**: SGD with momentum, Adam/AdamW, L-BFGS
 - **Loss functions**: Cross-entropy, Summed square error
 - **Normalization**: Batch normalization, Layer normalization
@@ -148,6 +149,9 @@ row_range = "0"
 size = [8, 4, 1]
 activations = ["relu", "logsig"]   # one per non-input layer
 error_fcn = "kullback"             # "sumsqr" or "kullback"
+# Optional residual connections: each entry is [target_layer, source_layer]
+# (0-indexed, source < target, both layers must have matching width).
+# skip_connections = [[2, 0]]
 
 [training]
 method = "adam"              # "gd", "adam", "qn"

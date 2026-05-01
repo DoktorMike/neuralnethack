@@ -10,7 +10,10 @@ using DataTools::DataSet;
 
 /**\todo Fix so that softmax gets forwarded ok. */
 Mlp* Factory::createMlp(const Config& config) {
-	return new Mlp(config.architecture(), config.actFcn(), false);
+	Mlp* mlp = new Mlp(config.architecture(), config.actFcn(), false);
+	for (const auto& sc : config.skipConnections())
+		mlp->skipFrom(static_cast<uint>(sc.first), sc.second);
+	return mlp;
 }
 
 Error* Factory::createError(const Config& config, DataSet& data) {

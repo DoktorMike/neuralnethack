@@ -157,7 +157,7 @@ set_target_properties(neuralnethack_bin PROPERTIES OUTPUT_NAME neuralnethack)
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)

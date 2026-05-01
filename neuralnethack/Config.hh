@@ -82,6 +82,14 @@ class Config {
 	const std::string& errFcn() const { return theErrFcn; }
 	void errFcn(const std::string& theErrFcn) { this->theErrFcn = theErrFcn; }
 
+	/**Residual skip connections as (target, source) pairs.
+	 * Both indices refer to layer positions in the architecture
+	 * (0 = first hidden layer). Source must be < target and the two layers
+	 * must have matching neuron counts.
+	 */
+	const std::vector<std::pair<int, int>>& skipConnections() const { return theSkipConnections; }
+	std::vector<std::pair<int, int>>& skipConnections() { return theSkipConnections; }
+
 	const std::string& minMethod() const { return theMinMethod; }
 	void minMethod(const std::string& theMinMethod) { this->theMinMethod = theMinMethod; }
 
@@ -240,6 +248,8 @@ class Config {
 	std::vector<std::string> theActFcn;
 	/**The error function. */
 	std::string theErrFcn;
+	/**Residual skip connections, target/source pairs. */
+	std::vector<std::pair<int, int>> theSkipConnections;
 	/**The minimisation algorithm. */
 	std::string theMinMethod;
 	/**The maximum number of epochs to train. */

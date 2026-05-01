@@ -268,7 +268,19 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 		config.actFcn(a);
 	} else if (path == "network.error_fcn")
 		config.errFcn(asString(v, path, lineno));
-	else if (path == "training.method")
+	else if (path == "network.skip_connections") {
+		if (v.kind != Value::ARRAY)
+			fail("network.skip_connections must be an array", lineno);
+		auto& sc = config.skipConnections();
+		sc.clear();
+		for (const auto& pair : v.arr) {
+			if (pair.kind != Value::ARRAY || pair.arr.size() != 2)
+				fail("network.skip_connections entries must be [target, source] pairs", lineno);
+			int target = static_cast<int>(asInt(pair.arr[0], path, lineno));
+			int source = static_cast<int>(asInt(pair.arr[1], path, lineno));
+			sc.emplace_back(target, source);
+		}
+	} else if (path == "training.method")
 		config.minMethod(asString(v, path, lineno));
 	else if (path == "training.max_epochs")
 		config.maxEpochs(static_cast<uint>(asInt(v, path, lineno)));
