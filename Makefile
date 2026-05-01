@@ -2,7 +2,7 @@ BUILD_DIR := build
 COV_DIR := build-coverage
 JOBS := $(shell nproc)
 
-.PHONY: all test clean format coverage
+.PHONY: all test examples clean format coverage
 
 all:
 	@cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
@@ -10,6 +10,10 @@ all:
 
 test: all
 	@ctest --test-dir $(BUILD_DIR) --output-on-failure
+
+examples:
+	@cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+	@cmake --build $(BUILD_DIR) -j$(JOBS) --target nnh_examples
 
 coverage:
 	@cmake -B $(COV_DIR) -DNNH_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug

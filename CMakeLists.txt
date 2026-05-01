@@ -168,6 +168,7 @@ foreach(ex ${EXAMPLES})
     add_executable(${ex} examples/${ex}.cc)
     target_link_libraries(${ex} PRIVATE neuralnethack)
 endforeach()
+add_custom_target(nnh_examples DEPENDS ${EXAMPLES})
 
 # ---------------------------------------------------------------------------
 # Tests
