@@ -1,68 +1,76 @@
 #include <evaltools/Gof.hh>
 
 #include <vector>
-#include <cmath>
 #include <iostream>
-#include <iterator>
-#include <algorithm>
 #include <ctime>
 
-void buildDeterministic(std::vector<double>& output, std::vector<uint>& target) {
-	using namespace EvalTools;
-	using namespace std;
+using namespace EvalTools;
+using std::vector;
 
+// Perfect predictions: output ~= target. HL chi-squared should be tiny.
+static void buildGoodFit(vector<double>& output, vector<uint>& target) {
 	output.clear();
 	target.clear();
-
 	for (uint i = 0; i < 200; ++i) {
 		if (i % 2 == 0) {
 			output.push_back(0.001);
-			target.push_back((uint)0);
+			target.push_back(0);
 		} else {
 			output.push_back(0.99);
-			target.push_back((uint)1);
+			target.push_back(1);
 		}
 	}
 }
 
-void buildRandom(std::vector<double>& output, std::vector<uint>& target) {
-	using namespace EvalTools;
-	using namespace std;
-
+// Inverted predictions: target is the opposite of what the output suggests.
+// HL chi-squared should be huge.
+static void buildBadFit(vector<double>& output, vector<uint>& target) {
 	output.clear();
 	target.clear();
-
 	for (uint i = 0; i < 200; ++i) {
-		double x = (double)rand() / RAND_MAX;
-		output.push_back(x);
-		target.push_back((uint)round(x));
+		if (i % 2 == 0) {
+			output.push_back(0.001);
+			target.push_back(1);
+		} else {
+			output.push_back(0.99);
+			target.push_back(0);
+		}
 	}
 }
 
-int testGof() {
-	using namespace EvalTools;
-	using namespace std;
+int main() {
+	srand48(time(0));
 
 	vector<double> output;
 	vector<uint> target;
 
-	buildDeterministic(output, target);
+	Gof gof(10);
 
-	/*
-	cout<<"OUTPUT: ";
-	copy(output.begin(), output.end(), ostream_iterator<double>(cout, " "));
-	cout<<endl<<"TARGET: ";
-	copy(target.begin(), target.end(), ostream_iterator<uint>(cout, " "));
-	*/
-	Gof* gof = new Gof(10);
-	double res = gof->goodnessOfFit(output, target);
-	delete gof;
-	// cout<<endl<<"Chi2HL: "<<res<<endl;
-	return 0;
-}
+	buildGoodFit(output, target);
+	double chi2_good = gof.goodnessOfFit(output, target);
 
-int main(int argc, char* argv[]) {
-	srand48(time(0));
+	buildBadFit(output, target);
+	double chi2_bad = gof.goodnessOfFit(output, target);
 
-	return testGof();
+	std::cout << "Chi2HL good fit: " << chi2_good << std::endl;
+	std::cout << "Chi2HL bad fit:  " << chi2_bad << std::endl;
+
+	bool pass = true;
+	// A perfect calibrated model lands well under any reasonable threshold.
+	if (!(chi2_good < 5.0)) {
+		std::cerr << "FAIL: expected chi2_good < 5, got " << chi2_good << std::endl;
+		pass = false;
+	}
+	// An anti-calibrated model blows up far above the good-fit value.
+	if (!(chi2_bad > 100.0)) {
+		std::cerr << "FAIL: expected chi2_bad > 100, got " << chi2_bad << std::endl;
+		pass = false;
+	}
+	if (!(chi2_bad > 10.0 * chi2_good)) {
+		std::cerr << "FAIL: bad fit should dwarf good fit, got "
+		          << chi2_bad << " vs " << chi2_good << std::endl;
+		pass = false;
+	}
+
+	return pass ? 0 : 1;
 }
