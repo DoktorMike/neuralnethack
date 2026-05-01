@@ -65,8 +65,11 @@ double CrossEntropy::gradient() {
 		int src = theMlp->skipFrom(lastIdx);
 		auto& bin = skipDelta[src];
 		const auto& clg = last.batchLocalGradients();
-		if (bin.empty()) bin = clg;
-		else for (uint k = 0; k < bin.size(); ++k) bin[k] += clg[k];
+		if (bin.empty())
+			bin = clg;
+		else
+			for (uint k = 0; k < bin.size(); ++k)
+				bin[k] += clg[k];
 	}
 
 	// Batch backpropagate deltas through hidden layers (one GEMM per layer)
@@ -98,15 +101,19 @@ double CrossEntropy::gradient() {
 #endif
 		if (!skipDelta[l - 1].empty()) {
 			const auto& bin = skipDelta[l - 1];
-			for (uint k = 0; k < bin.size(); ++k) clg[k] += bin[k];
+			for (uint k = 0; k < bin.size(); ++k)
+				clg[k] += bin[k];
 		}
 		curr.applyDerivativeBatch(bs);
 		curr.applyNormBackwardBatch(bs);
 		if (theMlp->skipFrom(l - 1) >= 0) {
 			int src = theMlp->skipFrom(l - 1);
 			auto& bin = skipDelta[src];
-			if (bin.empty()) bin.assign(clg, clg + bs * nc);
-			else for (uint k = 0; k < bin.size(); ++k) bin[k] += clg[k];
+			if (bin.empty())
+				bin.assign(clg, clg + bs * nc);
+			else
+				for (uint k = 0; k < bin.size(); ++k)
+					bin[k] += clg[k];
 		}
 	}
 

@@ -20,13 +20,13 @@ static bool nearly(double a, double b, double tol = 1e-9) {
 	return std::fabs(a - b) <= tol;
 }
 
-#define EXPECT(cond, label)                                                                       \
-	do {                                                                                          \
-		if (!(cond)) {                                                                            \
-			std::cerr << "FAIL: " << label << " (" << __FILE__ << ":" << __LINE__ << ")"          \
-			          << std::endl;                                                               \
-			++fails;                                                                              \
-		}                                                                                         \
+#define EXPECT(cond, label)                                                                        \
+	do {                                                                                           \
+		if (!(cond)) {                                                                             \
+			std::cerr << "FAIL: " << label << " (" << __FILE__ << ":" << __LINE__ << ")"           \
+			          << std::endl;                                                                \
+			++fails;                                                                               \
+		}                                                                                          \
 	} while (0)
 
 // Test 1: forward pass identity through skip.
@@ -135,11 +135,14 @@ static void testGradientCheckBaseline() {
 	double maxRel = 0.0;
 	for (uint k = 0; k < w.size(); ++k) {
 		double saved = w[k];
-		w[k] = saved + h; mlp.weights(w);
+		w[k] = saved + h;
+		mlp.weights(w);
 		double Lp = evalLoss();
-		w[k] = saved - h; mlp.weights(w);
+		w[k] = saved - h;
+		mlp.weights(w);
 		double Lm = evalLoss();
-		w[k] = saved; mlp.weights(w);
+		w[k] = saved;
+		mlp.weights(w);
 		double g_num = (Lp - Lm) / (2.0 * h);
 		double g_an = g_analytic[k];
 		double denom = std::max(1.0, std::fabs(g_num) + std::fabs(g_an));
@@ -193,11 +196,14 @@ static void testGradientCheck() {
 	double maxRel = 0.0;
 	for (uint k = 0; k < w.size(); ++k) {
 		double saved = w[k];
-		w[k] = saved + h; mlp.weights(w);
+		w[k] = saved + h;
+		mlp.weights(w);
 		double Lp = evalLoss();
-		w[k] = saved - h; mlp.weights(w);
+		w[k] = saved - h;
+		mlp.weights(w);
 		double Lm = evalLoss();
-		w[k] = saved; mlp.weights(w);
+		w[k] = saved;
+		mlp.weights(w);
 		double g_num = (Lp - Lm) / (2.0 * h);
 		double g_an = g_analytic[k];
 		double denom = std::max(1.0, std::fabs(g_num) + std::fabs(g_an));

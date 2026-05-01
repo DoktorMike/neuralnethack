@@ -46,7 +46,8 @@ void DataSet::coreDataSet(shared_ptr<CoreDataSet> cds) {
 	assert(cds);
 	theCoreDataSet = std::move(cds);
 	theIndices.assign(theCoreDataSet->size(), 0);
-	for (uint i = 0; i < theIndices.size(); ++i) theIndices[i] = i;
+	for (uint i = 0; i < theIndices.size(); ++i)
+		theIndices[i] = i;
 }
 
 shared_ptr<CoreDataSet> DataSet::sharedCoreDataSet() const {

@@ -30,8 +30,7 @@ void Parser::readDataFile(istream& in, const int idCol, vector<uint> inCols, vec
 			break;
 		}
 		++rowCount;
-		const bool match =
-		    takeAll || (validRow != rowRange.end() && rowCount == *validRow);
+		const bool match = takeAll || (validRow != rowRange.end() && rowCount == *validRow);
 		if (match) {
 			if (!takeAll && validRow != rowRange.end()) ++validRow;
 			row.clear();

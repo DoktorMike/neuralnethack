@@ -210,7 +210,8 @@ vector<double>& Layer::propagate(const vector<double>& input, const double* prea
 
 	// Phase 1.5: pre-activation skip add.
 	if (preactSkip)
-		for (uint i = 0; i < ncurr; ++i) out[i] += preactSkip[i];
+		for (uint i = 0; i < ncurr; ++i)
+			out[i] += preactSkip[i];
 
 	// Phase 2: apply activation in a single vectorizable loop
 	theActivation(out, ncurr);
@@ -339,7 +340,8 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 	// Pre-activation skip add (after linear + bias + norm, before activation).
 	if (preactSkip) {
 		const uint total = B * ncurr;
-		for (uint i = 0; i < total; ++i) out[i] += preactSkip[i];
+		for (uint i = 0; i < total; ++i)
+			out[i] += preactSkip[i];
 	}
 
 	// Apply activation to all B*ncurr elements

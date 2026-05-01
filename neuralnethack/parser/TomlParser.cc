@@ -269,8 +269,7 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 	} else if (path == "network.error_fcn")
 		config.errFcn(asString(v, path, lineno));
 	else if (path == "network.skip_connections") {
-		if (v.kind != Value::ARRAY)
-			fail("network.skip_connections must be an array", lineno);
+		if (v.kind != Value::ARRAY) fail("network.skip_connections must be an array", lineno);
 		auto& sc = config.skipConnections();
 		sc.clear();
 		for (const auto& pair : v.arr) {
