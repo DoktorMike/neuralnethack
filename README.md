@@ -95,9 +95,34 @@ int main()
 }
 ```
 
-## Configuration file format
+## Run from a config file
 
-For use with the CLI tools (`neuralnethack`, `ann`, `modelselector`, etc.):
+Don't want to write any C++? You don't have to. The `neuralnethack` binary takes a single config file and does the whole thing: parses the data, normalises it, trains an ensemble (with model selection if you ask for one), evaluates on the test set, and writes everything to disk.
+
+```sh
+./build/neuralnethack config.txt
+```
+
+There's a working example under `test/pima-indians-diabetes/` if you want something to run right now:
+
+```sh
+cd test/pima-indians-diabetes
+../../build/neuralnethack config-pima.txt
+```
+
+Every output file is suffixed with whatever you put in the `Suffix` field, so you can run a few experiments side by side without clobbering each other:
+
+- `result.<suffix>.txt` -- train/test AUC (cross-entropy for multi-class)
+- `networks.<suffix>.xml` -- the trained ensemble, ready to reload
+- `outputlist.<suffix>.txt` -- per-pattern model outputs (toggle with `SaveOutputList`)
+- `saliencies.<suffix>.txt` -- input saliencies, handy for feature selection
+- `myconfig.debug` -- the parsed config, so you can sanity-check what was actually used
+
+The other CLI tools (`ann`, `modelselector`, `featureselector`, `saliency`, `auc`) all read the same config format. Pick the one that matches what you're after.
+
+### Config file format
+
+Lines are `{Identifier} {Value} {Value} ...`. Anything after a `%` is a comment. A minimal binary-classification config looks like this:
 
 ```
 Suffix      myrun
@@ -125,6 +150,8 @@ MSParam     cv 3 5 rnd 0.2
 Seed        42
 Normalization Z
 ```
+
+See `test/pima-indians-diabetes/config-pima.txt` for a fully commented version that walks through every field.
 
 ## License
 
