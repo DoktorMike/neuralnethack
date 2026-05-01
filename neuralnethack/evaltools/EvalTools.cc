@@ -117,3 +117,116 @@ void ErrorMeasures::buildOutputTargetVectors(Ensemble& committee, DataSet& data,
 		target.push_back(pat.output());
 	}
 }
+
+void ErrorMeasures::buildFlatRegressionVectors(Ensemble& committee, DataSet& data,
+                                               vector<double>& output, vector<double>& target) {
+	output.clear();
+	target.clear();
+	for (uint i = 0; i < data.size(); ++i) {
+		Pattern& pat = data.pattern(i);
+		vector<double> y = committee.propagate(pat.input());
+		const vector<double>& t = pat.output();
+		output.insert(output.end(), y.begin(), y.end());
+		target.insert(target.end(), t.begin(), t.end());
+	}
+}
+
+// ---- Regression metrics --------------------------------------------------
+
+double ErrorMeasures::mae(const vector<double>& output, const vector<double>& target) {
+	assert(output.size() == target.size());
+	if (target.empty()) return std::nan("");
+	double s = 0.0;
+	for (size_t i = 0; i < target.size(); ++i)
+		s += std::fabs(target[i] - output[i]);
+	return s / static_cast<double>(target.size());
+}
+
+double ErrorMeasures::mae(Ensemble& committee, DataSet& data) {
+	vector<double> y, t;
+	buildFlatRegressionVectors(committee, data, y, t);
+	return mae(y, t);
+}
+
+double ErrorMeasures::mape(const vector<double>& output, const vector<double>& target) {
+	assert(output.size() == target.size());
+	const double eps = 1e-12;
+	double s = 0.0;
+	uint n = 0;
+	for (size_t i = 0; i < target.size(); ++i) {
+		double a = std::fabs(target[i]);
+		if (a < eps) continue; // undefined at zero
+		s += std::fabs(target[i] - output[i]) / a;
+		++n;
+	}
+	if (n == 0) return std::nan("");
+	return 100.0 * s / static_cast<double>(n);
+}
+
+double ErrorMeasures::mape(Ensemble& committee, DataSet& data) {
+	vector<double> y, t;
+	buildFlatRegressionVectors(committee, data, y, t);
+	return mape(y, t);
+}
+
+double ErrorMeasures::smape(const vector<double>& output, const vector<double>& target) {
+	assert(output.size() == target.size());
+	const double eps = 1e-12;
+	double s = 0.0;
+	uint n = 0;
+	for (size_t i = 0; i < target.size(); ++i) {
+		double denom = std::fabs(target[i]) + std::fabs(output[i]);
+		if (denom < eps) continue; // both target and output are zero
+		s += std::fabs(target[i] - output[i]) / denom;
+		++n;
+	}
+	if (n == 0) return std::nan("");
+	return 200.0 * s / static_cast<double>(n);
+}
+
+double ErrorMeasures::smape(Ensemble& committee, DataSet& data) {
+	vector<double> y, t;
+	buildFlatRegressionVectors(committee, data, y, t);
+	return smape(y, t);
+}
+
+double ErrorMeasures::rmse(const vector<double>& output, const vector<double>& target) {
+	assert(output.size() == target.size());
+	if (target.empty()) return std::nan("");
+	double s = 0.0;
+	for (size_t i = 0; i < target.size(); ++i) {
+		double d = target[i] - output[i];
+		s += d * d;
+	}
+	return std::sqrt(s / static_cast<double>(target.size()));
+}
+
+double ErrorMeasures::rmse(Ensemble& committee, DataSet& data) {
+	vector<double> y, t;
+	buildFlatRegressionVectors(committee, data, y, t);
+	return rmse(y, t);
+}
+
+double ErrorMeasures::r2(const vector<double>& output, const vector<double>& target) {
+	assert(output.size() == target.size());
+	if (target.empty()) return std::nan("");
+	double mean_t = 0.0;
+	for (double v : target) mean_t += v;
+	mean_t /= static_cast<double>(target.size());
+
+	double ss_res = 0.0, ss_tot = 0.0;
+	for (size_t i = 0; i < target.size(); ++i) {
+		double r = target[i] - output[i];
+		double d = target[i] - mean_t;
+		ss_res += r * r;
+		ss_tot += d * d;
+	}
+	if (ss_tot == 0.0) return std::nan(""); // constant target
+	return 1.0 - ss_res / ss_tot;
+}
+
+double ErrorMeasures::r2(Ensemble& committee, DataSet& data) {
+	vector<double> y, t;
+	buildFlatRegressionVectors(committee, data, y, t);
+	return r2(y, t);
+}

@@ -18,7 +18,7 @@ A fast, lightweight C++23 library for training and evaluating ensembles of multi
 - **Ensembles**: Weighted ensemble of MLPs with bootstrap/cross-split/hold-out sampling
 - **Model selection**: Grid search over regularization with cross-validation
 - **Feature selection**: Backward elimination via saliency/clamping
-- **Evaluation**: ROC/AUC, goodness of fit
+- **Evaluation**: ROC/AUC, Hosmer-Lemeshow goodness of fit, regression metrics (MAE, MAPE, sMAPE, RMSE, R²)
 - **Serialization**: Binary save/load for models and ensembles
 - **Performance**: BLAS-accelerated batch GEMM training, devirtualized activations, SIMD-friendly loops
 

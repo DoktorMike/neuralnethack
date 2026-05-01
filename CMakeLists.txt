@@ -21,7 +21,8 @@ if(NNH_COVERAGE)
 else()
     add_compile_options(
         -Wall -pedantic -O3
-        -march=native -ffast-math -funroll-loops -ftree-vectorize -fno-math-errno
+        -march=native -ffast-math -fno-finite-math-only
+        -funroll-loops -ftree-vectorize -fno-math-errno
     )
     add_compile_definitions(NDEBUG)
 endif()
@@ -155,7 +156,7 @@ set_target_properties(neuralnethack_bin PROPERTIES OUTPUT_NAME neuralnethack)
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)

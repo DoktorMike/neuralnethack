@@ -7,7 +7,11 @@
 #include <vector>
 
 /**This namespace encloses a bunch of functions needed to
- * evaluate the performance of a classifier.
+ * evaluate the performance of a classifier or a regressor.
+ *
+ * Classification metrics: crossEntropy, auc, gof.
+ * Regression metrics: mae, mape, smape, rmse, r2.
+ * Generic: summedSquare.
  */
 namespace EvalTools {
 namespace ErrorMeasures {
@@ -82,6 +86,56 @@ void buildOutputTargetVectors(NeuralNetHack::Ensemble& committee, DataTools::Dat
 void buildOutputTargetVectors(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data,
                               std::vector<std::vector<double>>& output,
                               std::vector<std::vector<double>>& target);
+
+/**Flatten a DataSet of multi-output predictions and targets into a single
+ * pair of vectors, concatenated pattern by pattern. Used by the regression
+ * metrics below.
+ */
+void buildFlatRegressionVectors(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data,
+                                std::vector<double>& output, std::vector<double>& target);
+
+// ---- Regression metrics --------------------------------------------------
+//
+// All take "flat" vectors: predictions and actuals concatenated across the
+// whole dataset. Use buildFlatRegressionVectors (or the Ensemble overloads
+// below) when you have a model + DataSet.
+
+/**Mean absolute error: \f$\frac{1}{N}\sum_i |t_i - y_i|\f$.*/
+double mae(const std::vector<double>& output, const std::vector<double>& target);
+double mae(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
+
+/**Mean absolute percentage error in percent:
+ * \f$\frac{100}{N}\sum_i |t_i - y_i| / |t_i|\f$.
+ *
+ * Elements with \f$|t_i|\f$ below a small epsilon are skipped (MAPE is
+ * undefined at zero). Returns NaN if every element is skipped.
+ */
+double mape(const std::vector<double>& output, const std::vector<double>& target);
+double mape(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
+
+/**Symmetric MAPE in percent:
+ * \f$\frac{200}{N}\sum_i |t_i - y_i| / (|t_i| + |y_i|)\f$.
+ *
+ * Bounded between 0 and 200. Better behaved than MAPE near zero, since the
+ * denominator only vanishes when both target and prediction are zero (in
+ * which case that element is skipped).
+ */
+double smape(const std::vector<double>& output, const std::vector<double>& target);
+double smape(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
+
+/**Root mean squared error: \f$\sqrt{\frac{1}{N}\sum_i (t_i - y_i)^2}\f$.*/
+double rmse(const std::vector<double>& output, const std::vector<double>& target);
+double rmse(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
+
+/**Coefficient of determination:
+ * \f$R^2 = 1 - \frac{\sum_i (t_i - y_i)^2}{\sum_i (t_i - \bar t)^2}\f$.
+ *
+ * Returns 1 for a perfect fit, 0 for a model that's no better than
+ * predicting the target mean, and can go negative for a worse-than-mean
+ * model. Returns NaN if the targets are constant (denominator is zero).
+ */
+double r2(const std::vector<double>& output, const std::vector<double>& target);
+double r2(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
 } // namespace ErrorMeasures
 } // namespace EvalTools
 
