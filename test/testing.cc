@@ -127,10 +127,11 @@ void testDataManager(DataTools::DataSet& data, Config& config) {
 		it->print(cout);
 		cout << "\n\n";
 	} while (++it != datasets->end());
-	delete datasets;
 
 	cout << "Testing splitting the first of the previous.\n";
-	datasets = manager.split(datasets->front(), config.msParamK());
+	DataTools::DataSet first = datasets->front();
+	delete datasets;
+	datasets = manager.split(first, config.msParamK());
 	it = datasets->begin();
 	do {
 		it->print(cout);
