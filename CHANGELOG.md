@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/DoktorMike/neuralnethack/compare/v2.1.1...v3.0.0) (2026-05-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* existing `.txt` configs no longer parse. Run
+`scripts/migrate-config.py old.txt -o new.toml` to convert them.
+The full schema is documented in README.md.
+
+### Features
+
+* switch config format to TOML ([b07a1cf](https://github.com/DoktorMike/neuralnethack/commit/b07a1cf3f3a3e492d8ed1c0f304fc0d269bcd143))
+
+
+### Documentation
+
+* document neuralnethack CLI binary and outputs ([5cf310f](https://github.com/DoktorMike/neuralnethack/commit/5cf310fdb6e8dd972d90059eb1e0647df5be8a96))
+
 ### [2.1.1](https://github.com/DoktorMike/neuralnethack/compare/v2.1.0...v2.1.1) (2026-04-08)
 
 
