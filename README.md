@@ -95,36 +95,106 @@ int main()
 }
 ```
 
-## Configuration file format
+## Run from a config file
 
-For use with the CLI tools (`neuralnethack`, `ann`, `modelselector`, etc.):
+Don't want to write any C++? You don't have to. The `neuralnethack` binary takes a single config file and does the whole thing: parses the data, normalises it, trains an ensemble (with model selection if you ask for one), evaluates on the test set, and writes everything to disk.
 
+```sh
+./build/neuralnethack config.toml
 ```
-Suffix      myrun
-Filename    data/train.tab
-IdCol       0
-InCol       1-8
-OutCol      9
-RowRange    0
-FilenameT   data/test.tab
-IdColT      0
-InColT      1-8
-OutColT     9
-RowRangeT   0
-PType       class
-NLay        3
-Size        8 4 1
-ActFcn      relu logsig
-ErrFcn      kullback
-MinMethod   adam
-MaxEpochs   2000
-AdamParam   0.001 0.9 0.999 1e-8 0.01
-WeightElim  0 0.01 1
-EnsParam    bagg 5 2 rnd 0
-MSParam     cv 3 5 rnd 0.2
-Seed        42
-Normalization Z
+
+There's a working example under `test/pima-indians-diabetes/` if you want something to run right now:
+
+```sh
+cd test/pima-indians-diabetes
+../../build/neuralnethack config-pima.toml
 ```
+
+Every output file is suffixed with whatever you put in the `Suffix` field, so you can run a few experiments side by side without clobbering each other:
+
+- `result.<suffix>.txt` -- train/test AUC (cross-entropy for multi-class)
+- `networks.<suffix>.xml` -- the trained ensemble, ready to reload
+- `outputlist.<suffix>.txt` -- per-pattern model outputs (toggle with `SaveOutputList`)
+- `saliencies.<suffix>.txt` -- input saliencies, handy for feature selection
+- `myconfig.debug` -- the parsed config, so you can sanity-check what was actually used
+
+The other CLI tools (`ann`, `modelselector`, `featureselector`, `saliency`, `auc`) all read the same config format. Pick the one that matches what you're after.
+
+### Config file format
+
+Configs are TOML. Sections group related settings, named keys replace the old positional tuples (no more counting arguments), and comments use `#`. A minimal binary-classification config looks like this:
+
+```toml
+suffix = "myrun"
+seed = 42
+normalization = "Z"          # "Z" or "no"
+problem_type = "class"       # "class" or "regr"
+
+[data.train]
+file = "data/train.tab"
+id_col = 0                   # 0 = no id column
+in_cols = "1-8"              # range string, 1-indexed
+out_cols = "9"
+row_range = "0"              # "0" = all rows
+
+[data.test]
+file = "data/test.tab"
+id_col = 0
+in_cols = "1-8"
+out_cols = "9"
+row_range = "0"
+
+[network]
+size = [8, 4, 1]
+activations = ["relu", "logsig"]   # one per non-input layer
+error_fcn = "kullback"             # "sumsqr" or "kullback"
+
+[training]
+method = "adam"              # "gd", "adam", "qn"
+max_epochs = 2000
+
+[training.adam]
+learning_rate = 0.001
+beta1 = 0.9
+beta2 = 0.999
+epsilon = 1e-8
+weight_decay = 0.01
+
+[regularization.weight_elim]
+enabled = false
+alpha = 0.01
+w0 = 1.0
+
+[ensemble]
+method = "bagg"              # "bagg", "cs"
+runs = 5
+parts = 2
+split = "rnd"                # "rnd" or "ser"
+vary_weights = false
+
+[model_selection]
+method = "cv"                # "cv", "boot", "hold", "none"
+runs = 3
+parts = 5
+split = "rnd"
+fraction = 0.2
+
+[output]
+save_session = true
+save_output_list = true
+```
+
+See `test/pima-indians-diabetes/config-pima.toml` for a fully commented version with every field.
+
+#### Migrating from the legacy format
+
+Configs from version 2.x and earlier used a space-separated `{Identifier} {Value} {Value} ...` format with `%` comments. There's a script for that:
+
+```sh
+scripts/migrate-config.py old-config.txt -o new-config.toml
+```
+
+It handles the field rename, splits the positional tuples (`GDParam`, `AdamParam`, `EnsParam`, `MSParam`, `WeightElim`, `Vary`) into named keys, and drops the result into the right section. Eyeball the output before running it for real.
 
 ## License
 

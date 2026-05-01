@@ -1,0 +1,70 @@
+suffix = "001"
+seed = 1
+normalization = "Z"
+problem_type = "regr"
+
+[data.train]
+file = "./pima-indians-diabetes/pima.tab"
+id_col = 0
+in_cols = "1-8"
+out_cols = "9"
+row_range = "17"
+
+[data.test]
+file = "./pima-indians-diabetes/pima.tab"
+id_col = 0
+in_cols = "1-8"
+out_cols = "9"
+row_range = "17"
+
+[network]
+size = [8, 4, 1]
+activations = ["tansig", "logsig"]
+error_fcn = "kullback"
+
+[training]
+method = "gd"
+max_epochs = 8000
+
+[training.gd]
+batch_size = 822
+learning_rate = 0.2
+lr_decay = 0.99
+momentum = 0.8
+
+[training.adam]
+learning_rate = 0.001
+beta1 = 0.9
+beta2 = 0.999
+epsilon = 1e-8
+weight_decay = 0.0
+
+[regularization.weight_elim]
+enabled = false
+alpha = 0.01
+w0 = 1.0
+
+[ensemble]
+method = "bagg"
+runs = 1
+parts = 2
+split = "ser"
+vary_weights = false
+
+[model_selection]
+method = "cv"
+runs = 1
+parts = 2
+split = "ser"
+fraction = 0.2
+
+[model_selection.msg]
+runs = 0
+parts = 1
+split = "ser"
+fraction = 0.33
+
+[output]
+save_session = true
+save_output_list = true
+info = 2

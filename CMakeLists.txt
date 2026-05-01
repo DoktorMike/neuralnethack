@@ -100,6 +100,7 @@ set(LIB_SOURCES
     neuralnethack/matrixtools/MatrixTools.cc
     # parser
     neuralnethack/parser/Parser.cc
+    neuralnethack/parser/TomlParser.cc
     neuralnethack/parser/NetworkParser.cc
     # top-level
     neuralnethack/NeuralNetHack.cc

@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
 	if (argc == 2) {
 		parseConf(argv[1], config);
 	} else {
-		parseConf("config.txt", config);
+		parseConf("config.toml", config);
 	}
 
 	DataSet trnData, tstData;
