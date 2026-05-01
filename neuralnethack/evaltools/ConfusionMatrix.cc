@@ -9,7 +9,8 @@ using namespace DataTools;
 using namespace MultiLayerPerceptron;
 using std::vector;
 
-ConfusionMatrix::ConfusionMatrix(uint nClasses) : n(nClasses), m(nClasses, vector<uint>(nClasses, 0)) {
+ConfusionMatrix::ConfusionMatrix(uint nClasses)
+    : n(nClasses), m(nClasses, vector<uint>(nClasses, 0)) {
 	assert(nClasses >= 2);
 }
 
@@ -26,43 +27,61 @@ void ConfusionMatrix::reset() {
 uint ConfusionMatrix::total() const {
 	uint t = 0;
 	for (const auto& row : m)
-		for (uint v : row) t += v;
+		for (uint v : row)
+			t += v;
 	return t;
 }
 
 uint ConfusionMatrix::correct() const {
 	uint c = 0;
-	for (uint i = 0; i < n; ++i) c += m[i][i];
+	for (uint i = 0; i < n; ++i)
+		c += m[i][i];
 	return c;
 }
 
 uint ConfusionMatrix::actualTotal(uint cls) const {
 	assert(cls < n);
 	uint s = 0;
-	for (uint v : m[cls]) s += v;
+	for (uint v : m[cls])
+		s += v;
 	return s;
 }
 
 uint ConfusionMatrix::predictedTotal(uint cls) const {
 	assert(cls < n);
 	uint s = 0;
-	for (uint i = 0; i < n; ++i) s += m[i][cls];
+	for (uint i = 0; i < n; ++i)
+		s += m[i][cls];
 	return s;
 }
 
-uint ConfusionMatrix::tp() const { assert(n == 2); return m[1][1]; }
-uint ConfusionMatrix::fp() const { assert(n == 2); return m[0][1]; }
-uint ConfusionMatrix::fn() const { assert(n == 2); return m[1][0]; }
-uint ConfusionMatrix::tn() const { assert(n == 2); return m[0][0]; }
+uint ConfusionMatrix::tp() const {
+	assert(n == 2);
+	return m[1][1];
+}
+uint ConfusionMatrix::fp() const {
+	assert(n == 2);
+	return m[0][1];
+}
+uint ConfusionMatrix::fn() const {
+	assert(n == 2);
+	return m[1][0];
+}
+uint ConfusionMatrix::tn() const {
+	assert(n == 2);
+	return m[0][0];
+}
 
 void ConfusionMatrix::print(std::ostream& os) const {
 	os << "Confusion matrix (" << n << " classes, rows=actual, cols=predicted):\n";
 	os << std::setw(8) << "";
-	for (uint j = 0; j < n; ++j) os << std::setw(8) << j;
+	for (uint j = 0; j < n; ++j)
+		os << std::setw(8) << j;
 	os << "\n";
 	for (uint i = 0; i < n; ++i) {
 		os << std::setw(8) << i;
-		for (uint j = 0; j < n; ++j) os << std::setw(8) << m[i][j];
+		for (uint j = 0; j < n; ++j)
+			os << std::setw(8) << m[i][j];
 		os << "\n";
 	}
 }

@@ -17,13 +17,13 @@ static bool nearly(double a, double b, double tol = 1e-9) {
 
 static int fails = 0;
 
-#define EXPECT(cond, label)                                                               \
-	do {                                                                                  \
-		if (!(cond)) {                                                                    \
-			std::cerr << "FAIL: " << label << " (" << __FILE__ << ":" << __LINE__ << ")"  \
-			          << std::endl;                                                       \
-			++fails;                                                                      \
-		}                                                                                 \
+#define EXPECT(cond, label)                                                                        \
+	do {                                                                                           \
+		if (!(cond)) {                                                                             \
+			std::cerr << "FAIL: " << label << " (" << __FILE__ << ":" << __LINE__ << ")"           \
+			          << std::endl;                                                                \
+			++fails;                                                                               \
+		}                                                                                          \
 	} while (0)
 
 int main() {

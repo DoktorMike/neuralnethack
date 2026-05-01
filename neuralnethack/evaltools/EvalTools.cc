@@ -211,7 +211,8 @@ double ErrorMeasures::r2(const vector<double>& output, const vector<double>& tar
 	assert(output.size() == target.size());
 	if (target.empty()) return std::nan("");
 	double mean_t = 0.0;
-	for (double v : target) mean_t += v;
+	for (double v : target)
+		mean_t += v;
 	mean_t /= static_cast<double>(target.size());
 
 	double ss_res = 0.0, ss_tot = 0.0;
@@ -281,8 +282,7 @@ double ErrorMeasures::balancedAccuracy(const ConfusionMatrix& cm) {
 	return s / static_cast<double>(counted);
 }
 
-static double macroAvg(const ConfusionMatrix& cm,
-                       double (*metric)(const ConfusionMatrix&, uint)) {
+static double macroAvg(const ConfusionMatrix& cm, double (*metric)(const ConfusionMatrix&, uint)) {
 	double s = 0.0;
 	uint counted = 0;
 	for (uint c = 0; c < cm.nClasses(); ++c) {
@@ -295,6 +295,12 @@ static double macroAvg(const ConfusionMatrix& cm,
 	return s / static_cast<double>(counted);
 }
 
-double ErrorMeasures::macroPrecision(const ConfusionMatrix& cm) { return macroAvg(cm, precision); }
-double ErrorMeasures::macroRecall(const ConfusionMatrix& cm) { return macroAvg(cm, recall); }
-double ErrorMeasures::macroF1(const ConfusionMatrix& cm) { return macroAvg(cm, f1); }
+double ErrorMeasures::macroPrecision(const ConfusionMatrix& cm) {
+	return macroAvg(cm, precision);
+}
+double ErrorMeasures::macroRecall(const ConfusionMatrix& cm) {
+	return macroAvg(cm, recall);
+}
+double ErrorMeasures::macroF1(const ConfusionMatrix& cm) {
+	return macroAvg(cm, f1);
+}

@@ -23,13 +23,13 @@ static bool nearly(double a, double b, double tol = 1e-9) {
 	return std::fabs(a - b) <= tol;
 }
 
-#define EXPECT(cond, label)                                                               \
-	do {                                                                                  \
-		if (!(cond)) {                                                                    \
-			std::cerr << "FAIL: " << label << " (" << __FILE__ << ":" << __LINE__ << ")"  \
-			          << std::endl;                                                       \
-			++fails;                                                                      \
-		}                                                                                 \
+#define EXPECT(cond, label)                                                                        \
+	do {                                                                                           \
+		if (!(cond)) {                                                                             \
+			std::cerr << "FAIL: " << label << " (" << __FILE__ << ":" << __LINE__ << ")"           \
+			          << std::endl;                                                                \
+			++fails;                                                                               \
+		}                                                                                          \
 	} while (0)
 
 int main() {
@@ -67,10 +67,14 @@ int main() {
 	// precision = 8/13 ≈ 0.6154, recall = 8/10 = 0.8, accuracy = 103/110 ≈ 0.9364.
 	{
 		ConfusionMatrix cm(2);
-		for (uint i = 0; i < 95; ++i) cm.add(0, 0); // TN
-		for (uint i = 0; i < 5; ++i) cm.add(0, 1);  // FP
-		for (uint i = 0; i < 8; ++i) cm.add(1, 1);  // TP
-		for (uint i = 0; i < 2; ++i) cm.add(1, 0);  // FN
+		for (uint i = 0; i < 95; ++i)
+			cm.add(0, 0); // TN
+		for (uint i = 0; i < 5; ++i)
+			cm.add(0, 1); // FP
+		for (uint i = 0; i < 8; ++i)
+			cm.add(1, 1); // TP
+		for (uint i = 0; i < 2; ++i)
+			cm.add(1, 0); // FN
 		EXPECT(nearly(precision(cm), 8.0 / 13.0), "imbalanced precision");
 		EXPECT(nearly(recall(cm), 0.8), "imbalanced recall");
 		EXPECT(nearly(accuracy(cm), 103.0 / 110.0), "imbalanced accuracy");
@@ -99,12 +103,16 @@ int main() {
 	// total = 16, correct = 12 → accuracy = 0.75
 	{
 		ConfusionMatrix cm(3);
-		for (uint i = 0; i < 5; ++i) cm.add(0, 0);
+		for (uint i = 0; i < 5; ++i)
+			cm.add(0, 0);
 		cm.add(0, 1);
-		for (uint i = 0; i < 4; ++i) cm.add(1, 1);
-		cm.add(1, 2); cm.add(1, 2);
+		for (uint i = 0; i < 4; ++i)
+			cm.add(1, 1);
+		cm.add(1, 2);
+		cm.add(1, 2);
 		cm.add(2, 0);
-		for (uint i = 0; i < 3; ++i) cm.add(2, 2);
+		for (uint i = 0; i < 3; ++i)
+			cm.add(2, 2);
 
 		EXPECT(cm.total() == 16, "total = 16");
 		EXPECT(cm.correct() == 12, "correct = 12");
@@ -127,7 +135,9 @@ int main() {
 	// Edge: precision NaN when class never predicted.
 	{
 		ConfusionMatrix cm(2);
-		cm.add(0, 0); cm.add(1, 0); cm.add(1, 0); // nothing ever predicted as 1
+		cm.add(0, 0);
+		cm.add(1, 0);
+		cm.add(1, 0); // nothing ever predicted as 1
 		EXPECT(std::isnan(precision(cm, 1)), "precision NaN when class never predicted");
 		// Recall is defined: class 1 appeared twice, both missed → 0.
 		EXPECT(nearly(recall(cm, 1), 0.0), "recall = 0 when all missed");
@@ -138,7 +148,8 @@ int main() {
 	// Edge: recall NaN when class never appears in actuals.
 	{
 		ConfusionMatrix cm(2);
-		cm.add(0, 0); cm.add(0, 1); // no actual class 1
+		cm.add(0, 0);
+		cm.add(0, 1); // no actual class 1
 		EXPECT(std::isnan(recall(cm, 1)), "recall NaN when class absent");
 	}
 

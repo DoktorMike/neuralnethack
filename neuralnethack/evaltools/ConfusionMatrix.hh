@@ -25,9 +25,9 @@ class ConfusionMatrix {
 	uint nClasses() const { return n; }
 	uint count(uint actual, uint predicted) const { return m[actual][predicted]; }
 	uint total() const;
-	uint correct() const;          // diagonal sum
-	uint actualTotal(uint cls) const;     // row sum
-	uint predictedTotal(uint cls) const;  // column sum
+	uint correct() const;                // diagonal sum
+	uint actualTotal(uint cls) const;    // row sum
+	uint predictedTotal(uint cls) const; // column sum
 
 	// Binary convenience (asserts nClasses() == 2).
 	uint tp() const;

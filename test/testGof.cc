@@ -67,8 +67,8 @@ int main() {
 		pass = false;
 	}
 	if (!(chi2_bad > 10.0 * chi2_good)) {
-		std::cerr << "FAIL: bad fit should dwarf good fit, got "
-		          << chi2_bad << " vs " << chi2_good << std::endl;
+		std::cerr << "FAIL: bad fit should dwarf good fit, got " << chi2_bad << " vs " << chi2_good
+		          << std::endl;
 		pass = false;
 	}
 
