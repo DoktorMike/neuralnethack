@@ -53,9 +53,9 @@ int main(int argc, char* argv[]) {
 		fname = "./parserconfigure.toml";
 
 	Config config;
-	DataTools::CoreDataSet trnCoreData;
-	DataTools::CoreDataSet tstCoreData;
-	parseConfAndData(fname, config, trnCoreData, tstCoreData);
+	auto trnCoreData = std::make_shared<DataTools::CoreDataSet>();
+	auto tstCoreData = std::make_shared<DataTools::CoreDataSet>();
+	parseConfAndData(fname, config, *trnCoreData, *tstCoreData);
 	DataTools::DataSet trnData;
 	DataTools::DataSet tstData;
 	trnData.coreDataSet(trnCoreData);

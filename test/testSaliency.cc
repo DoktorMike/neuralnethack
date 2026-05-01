@@ -106,8 +106,8 @@ void parseConf(string fname, Config& config) {
 void parseData(Config& config, DataSet& trnData, DataSet& tstData) {
 	ifstream trnStream;
 	ifstream tstStream;
-	CoreDataSet* trnCoreData = new CoreDataSet();
-	CoreDataSet* tstCoreData = new CoreDataSet();
+	auto trnCoreData = std::make_shared<CoreDataSet>();
+	auto tstCoreData = std::make_shared<CoreDataSet>();
 
 	trnStream.open(config.fileName().c_str(), ios::in);
 	if (!trnStream) {
@@ -117,7 +117,7 @@ void parseData(Config& config, DataSet& trnData, DataSet& tstData) {
 	Parser::readDataFile(trnStream, config.idColumn(), config.inputColumns(),
 	                     config.outputColumns(), config.rowRange(), *trnCoreData);
 	trnStream.close();
-	trnData.coreDataSet(*trnCoreData);
+	trnData.coreDataSet(trnCoreData);
 
 	tstStream.open(config.fileNameT().c_str(), ios::in);
 	if (!tstStream) {
@@ -127,7 +127,7 @@ void parseData(Config& config, DataSet& trnData, DataSet& tstData) {
 	Parser::readDataFile(tstStream, config.idColumnT(), config.inputColumnsT(),
 	                     config.outputColumnsT(), config.rowRangeT(), *tstCoreData);
 	tstStream.close();
-	tstData.coreDataSet(*tstCoreData);
+	tstData.coreDataSet(tstCoreData);
 }
 
 void parseCmdLine(Config& config, int argc, char* argv[]) {
@@ -158,9 +158,5 @@ int main(int argc, char* argv[]) {
 	}
 
 	int retval = testSimpleSaliency();
-
-	delete &(trnData.coreDataSet());
-	delete &(tstData.coreDataSet());
-
 	return retval;
 }

@@ -55,15 +55,13 @@ int main() {
 	const uint nMembers = 5;
 	const uint epochs = 3000;
 
-	// CoreDataSet must outlive the DataSet (DataSet stores a raw pointer
-	// into it), so build both here and let main own them.
-	CoreDataSet core;
+	auto core = std::make_shared<CoreDataSet>();
 	double xor_in[][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 	double xor_out[][1] = {{0}, {1}, {1}, {0}};
 	for (int i = 0; i < 4; ++i) {
 		std::vector<double> in(xor_in[i], xor_in[i] + 2);
 		std::vector<double> out(xor_out[i], xor_out[i] + 1);
-		core.addPattern(Pattern(std::to_string(i), in, out));
+		core->addPattern(Pattern(std::to_string(i), in, out));
 	}
 	DataSet data;
 	data.coreDataSet(core);

@@ -21,6 +21,7 @@ void Parser::readDataFile(istream& in, const int idCol, vector<uint> inCols, vec
 	vector<string> row;
 	string line;
 
+	const bool takeAll = rowRange.empty() || rowRange.front() == 0;
 	vector<uint>::iterator validRow = rowRange.begin();
 	uint rowCount = 0;
 	while (!getline(in, line, '\n').eof()) {
@@ -28,8 +29,11 @@ void Parser::readDataFile(istream& in, const int idCol, vector<uint> inCols, vec
 			cerr << "Stream failed." << endl;
 			break;
 		}
-		if (++rowCount == *validRow || rowRange.front() == 0) {
-			if (*validRow != 0) validRow++;
+		++rowCount;
+		const bool match =
+		    takeAll || (validRow != rowRange.end() && rowCount == *validRow);
+		if (match) {
+			if (!takeAll && validRow != rowRange.end()) ++validRow;
 			row.clear();
 			istringstream iss(line);
 			copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(row));

@@ -102,10 +102,10 @@ static bool testWeightsAssignment() {
 // ---------------------------------------------------------------------------
 
 static DataSet buildDummyDataSet() {
-	CoreDataSet core;
+	auto core = std::make_shared<CoreDataSet>();
 	std::vector<double> in = {0.5, 0.8};
 	std::vector<double> out = {1.0};
-	core.addPattern(Pattern("p0", in, out));
+	core->addPattern(Pattern("p0", in, out));
 	DataSet data;
 	data.coreDataSet(core);
 	return data;

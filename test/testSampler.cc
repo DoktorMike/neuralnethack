@@ -37,9 +37,9 @@ void parseConfAndData(const string fname, Config& config, DataTools::CoreDataSet
 
 int main(const int argc, const char* argv[]) {
 	Config config;
-	DataTools::CoreDataSet trnCoreData;
-	DataTools::CoreDataSet tstCoreData;
-	parseConfAndData("./config.toml", config, trnCoreData, tstCoreData);
+	auto trnCoreData = std::make_shared<DataTools::CoreDataSet>();
+	auto tstCoreData = std::make_shared<DataTools::CoreDataSet>();
+	parseConfAndData("./config.toml", config, *trnCoreData, *tstCoreData);
 	DataTools::DataSet trnData;
 	DataTools::DataSet tstData;
 	trnData.coreDataSet(trnCoreData);

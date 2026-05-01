@@ -140,11 +140,7 @@ Config FeatureSelector::run(Config& config, double (*f)(Ensemble&, DataSet&)) {
 		if (best.inputColumns().size() < maxFeatures) {
 			stop = true;
 		}
-		// cerr<<"Delete sampler"<<endl;
-		// cerr.flush();
 		delete sampler;
-		trnData.killCoreData();
-		tstData.killCoreData();
 	}
 	os.close();
 	return best;
@@ -173,44 +169,30 @@ vector<uint> FeatureSelector::removeFeatures(std::vector<double>& effects,
 }
 
 void FeatureSelector::parseData(Config& config, DataSet& trnData, DataSet& tstData) {
-	// cerr<<"Allocating core data"<<endl;
-	// cerr.flush();
 	ifstream trnStream;
 	ifstream tstStream;
-	CoreDataSet* trnCoreData = new CoreDataSet();
-	CoreDataSet* tstCoreData = new CoreDataSet();
+	auto trnCoreData = std::make_shared<CoreDataSet>();
+	auto tstCoreData = std::make_shared<CoreDataSet>();
 
-	// cerr<<"Open training stream"<<endl;
-	// cerr.flush();
 	trnStream.open(config.fileName().c_str(), ios::in);
-	// cerr<<"Opening file: "<<config.fileName().c_str()<<endl;
-	// cerr.flush();
 	if (!trnStream || trnStream.bad() || trnStream.fail() || trnStream.eof()) {
 		cerr << "Could not open data file: " << config.fileName() << endl;
 		abort();
 	}
-	// cerr<<"Parsing training stream"<<endl;
-	// cerr.flush();
 	Parser::readDataFile(trnStream, config.idColumn(), config.inputColumns(),
 	                     config.outputColumns(), config.rowRange(), *trnCoreData);
 	trnStream.close();
-	trnData.killCoreData();
-	trnData.coreDataSet(*trnCoreData);
+	trnData.coreDataSet(trnCoreData);
 
-	// cerr<<"Open testing stream"<<endl;
-	// cerr.flush();
 	tstStream.open(config.fileNameT().c_str(), ios::in);
 	if (!tstStream) {
 		cerr << "Could not open data file: " << config.fileNameT() << endl;
 		abort();
 	}
-	// cerr<<"Parsing testing stream"<<endl;
-	// cerr.flush();
 	Parser::readDataFile(tstStream, config.idColumnT(), config.inputColumnsT(),
 	                     config.outputColumnsT(), config.rowRangeT(), *tstCoreData);
 	tstStream.close();
-	tstData.killCoreData();
-	tstData.coreDataSet(*tstCoreData);
+	tstData.coreDataSet(tstCoreData);
 
 	Normaliser norm;
 	cout << "Normalizing data" << endl;

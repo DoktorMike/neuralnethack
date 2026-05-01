@@ -169,24 +169,6 @@ void evaluateModel(Ensemble& committee, DataTools::DataSet& data) {
 	cout << "WmwFast: " << roc.calcAucWmwFast(output, target) << "\n";
 }
 
-void testCoreDataSetAndDataSet(DataTools::CoreDataSet& data) {
-	cout << "Creating a DataSet from CoreDataSet." << endl;
-	vector<uint> indices;
-	// indices.push_back(0);
-	indices.push_back(1);
-	indices.push_back(2);
-	// indices.push_back(3);
-	// indices.push_back(4);
-	DataTools::DataSet dset;
-	dset.coreDataSet(data);
-	dset.indices(indices);
-	dset.print(cout);
-
-	cout << "Creating a copy of the DataSet." << endl;
-	DataTools::DataSet dset2(dset);
-	dset2.print(cout);
-}
-
 void testMlp(MultiLayerPerceptron::Mlp* mlp, DataTools::DataSet& dset) {
 	for (uint i = 0; i < dset.size(); ++i) {
 		DataTools::Pattern& p = dset.pattern(i);
@@ -305,9 +287,9 @@ int main(int argc, char* argv[]) {
 
 	// testMlpCopy();
 	Config config;
-	DataTools::CoreDataSet trnCoreData;
-	DataTools::CoreDataSet tstCoreData;
-	parseConfAndData(fname, config, trnCoreData, tstCoreData);
+	auto trnCoreData = std::make_shared<DataTools::CoreDataSet>();
+	auto tstCoreData = std::make_shared<DataTools::CoreDataSet>();
+	parseConfAndData(fname, config, *trnCoreData, *tstCoreData);
 	DataTools::DataSet trnData;
 	DataTools::DataSet tstData;
 	trnData.coreDataSet(trnCoreData);

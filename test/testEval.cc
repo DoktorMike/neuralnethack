@@ -24,13 +24,16 @@ using namespace NeuralNetHack;
 static double xor_in[][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 static double xor_out[][1] = {{0}, {1}, {1}, {0}};
 
-static void buildXorDataSet(CoreDataSet& core, DataSet& data) {
+static DataSet buildXorDataSet() {
+	auto core = std::make_shared<CoreDataSet>();
 	for (int i = 0; i < 4; ++i) {
 		std::vector<double> in(xor_in[i], xor_in[i] + 2);
 		std::vector<double> out(xor_out[i], xor_out[i] + 1);
-		core.addPattern(Pattern(std::to_string(i), in, out));
+		core->addPattern(Pattern(std::to_string(i), in, out));
 	}
+	DataSet data;
 	data.coreDataSet(core);
+	return data;
 }
 
 static Mlp trainXorMlp(DataSet& data) {
@@ -352,9 +355,7 @@ static bool testEnsembleAuc() {
 	srand(42);
 	srand48(42);
 
-	CoreDataSet core;
-	DataSet data;
-	buildXorDataSet(core, data);
+	DataSet data = buildXorDataSet();
 	Mlp mlp = trainXorMlp(data);
 
 	// Build an Ensemble with the trained MLP
@@ -381,9 +382,7 @@ static bool testEnsembleSummedSquare() {
 	srand(42);
 	srand48(42);
 
-	CoreDataSet core;
-	DataSet data;
-	buildXorDataSet(core, data);
+	DataSet data = buildXorDataSet();
 	Mlp mlp = trainXorMlp(data);
 
 	Ensemble ensemble(mlp, 1.0);
@@ -408,9 +407,7 @@ static bool testEnsembleCrossEntropy() {
 	srand(42);
 	srand48(42);
 
-	CoreDataSet core;
-	DataSet data;
-	buildXorDataSet(core, data);
+	DataSet data = buildXorDataSet();
 
 	// Use logsig output for cross-entropy compatibility
 	std::vector<uint> arch = {2, 4, 1};

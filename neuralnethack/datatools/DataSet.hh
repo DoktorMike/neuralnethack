@@ -3,101 +3,64 @@
 
 #include "CoreDataSet.hh"
 
-#include <vector>
 #include <iostream>
+#include <memory>
+#include <vector>
 
 namespace DataTools {
-/**A class functioning as layer between a user and the actual CoreDataSet.
- * The entries in this class will only contain indices to the actual data.
- * Thus we can have several different DataSet(s) without copying the
- * actual data.
- * \sa CoreData, Pattern
+/**A view layer over a CoreDataSet. Each DataSet holds a `shared_ptr` to the
+ * underlying CoreDataSet plus its own index vector, so multiple views (train
+ * splits, bootstrap samples, etc.) can share the same underlying patterns
+ * without copying them.
+ *
+ * Lifetime is automatic: the CoreDataSet is destroyed when the last DataSet
+ * referencing it goes out of scope.
+ *
+ * \sa CoreDataSet, Pattern
  */
 class DataSet {
   public:
-	/**Basic constructor. */
 	DataSet();
-
-	/**Copy constructor.
-	 * \param dataSet the data set to copy from.
-	 */
 	DataSet(const DataSet& dataSet);
-
-	/**Basic destructor. */
+	DataSet(DataSet&&) noexcept = default;
 	~DataSet();
-
-	/**Assignment operator.
-	 * \param dataSet the data set to assign from.
-	 */
 	DataSet& operator=(const DataSet& dataSet);
+	DataSet& operator=(DataSet&&) noexcept = default;
 
-	/**Return the indices mapping this DataSet to the CoreDataSet.
-	 * \return the indices.
-	 */
+	/**Return the indices mapping this DataSet to the CoreDataSet. */
 	std::vector<uint>& indices();
 
-	/**Set the indices mapping this DataSet to the CoreDataSet. Note
-	 * that the size of the vector i cannot be larger than the size of
-	 * the CoreDataSet. Also i may not contain an index greater than
-	 * the size of the CoreDataSet -1.
-	 * \param i the indices to use.
-	 */
+	/**Set the indices mapping this DataSet to the CoreDataSet. */
 	void indices(std::vector<uint>& i);
 
-	/**Return the pattern at index.
-	 * \param index the index of the pattern to return.
-	 * \return the indexed pattern.
-	 */
+	/**Return the pattern at index. */
 	Pattern& pattern(uint index);
 
-	/**Return the CoreDataSet this DataSet operates on.
-	 * \return the CoreDataSet.
-	 */
+	/**Reference to the underlying CoreDataSet. */
 	CoreDataSet& coreDataSet();
 
-	/**Set the CoreDataSet this DataSet should operate on. This also
-	 * reinitialiises theIndices vector to the size of the
-	 * CoreDataSet, with elements 0 up to size-1.
-	 * \param cds the CoreDataSet to set.
+	/**Bind this DataSet to a CoreDataSet. Resets indices to {0, 1, ..., N-1}.
+	 *
+	 * Pass a `std::shared_ptr<CoreDataSet>` so ownership is unambiguous and
+	 * the data outlives every DataSet that views it. Use
+	 * `std::make_shared<CoreDataSet>()` to construct one.
 	 */
-	void coreDataSet(CoreDataSet& cds);
+	void coreDataSet(std::shared_ptr<CoreDataSet> cds);
 
-	/**Fetch the number of inputs a pattern uses.
-	 * \return the number of inputs.
+	/**Return the shared_ptr to the underlying CoreDataSet. Useful for
+	 * building another DataSet view onto the same data.
 	 */
+	std::shared_ptr<CoreDataSet> sharedCoreDataSet() const;
+
 	uint nInput() const;
-
-	/**Fetch the number of outputs a pattern uses.
-	 * \return the number of outputs.
-	 */
 	uint nOutput() const;
-
-	/**Return the number of patterns residing in this data set.
-	 * \return the total number of patterns.
-	 */
 	uint size() const;
-
-	/**Print the data set to output stream.
-	 * \param os the output stream to print to.
-	 */
 	void print(std::ostream& os) const;
 
-	/**Free the CoreDataSet memory.
-	 * \return true if a deletion was made and false otherwise.
-	 */
-	bool killCoreData();
-
   private:
-	/**Holds the indices. Each and every one of the indices refers to
-	 * a particular Pattern in CoreDataSet.
-	 */
 	std::vector<uint> theIndices;
-
-	/**The index iterator. */
 	std::vector<uint>::iterator itp;
-
-	/**The CoreDataSet the indices operate on. */
-	CoreDataSet* theCoreDataSet;
+	std::shared_ptr<CoreDataSet> theCoreDataSet;
 };
 } // namespace DataTools
 #endif

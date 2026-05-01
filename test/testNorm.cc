@@ -15,13 +15,14 @@ using namespace MultiLayerPerceptron;
 using namespace DataTools;
 
 // Build XOR dataset
-DataSet makeXorData(CoreDataSet& core) {
+DataSet makeXorData() {
+	auto core = std::make_shared<CoreDataSet>();
 	double xor_in[][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 	double xor_out[][1] = {{0}, {1}, {1}, {0}};
 	for (int i = 0; i < 4; ++i) {
 		std::vector<double> in(xor_in[i], xor_in[i] + 2);
 		std::vector<double> out(xor_out[i], xor_out[i] + 1);
-		core.addPattern(Pattern(std::to_string(i), in, out));
+		core->addPattern(Pattern(std::to_string(i), in, out));
 	}
 	DataSet data;
 	data.coreDataSet(core);
@@ -70,8 +71,7 @@ bool testWithNorm(NormType nt, const std::string& label) {
 	srand(42);
 	srand48(42);
 
-	CoreDataSet core;
-	DataSet data = makeXorData(core);
+	DataSet data = makeXorData();
 
 	std::vector<uint> arch = {2, 8, 1};
 	std::vector<std::string> types = {"relu", "logsig"};

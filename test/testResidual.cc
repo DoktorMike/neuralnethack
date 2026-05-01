@@ -59,13 +59,13 @@ static void testResidualXor() {
 	srand(7);
 	srand48(7);
 
-	CoreDataSet core;
+	auto core = std::make_shared<CoreDataSet>();
 	double xor_in[][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 	double xor_out[][1] = {{0}, {1}, {1}, {0}};
 	for (int i = 0; i < 4; ++i) {
 		vector<double> in(xor_in[i], xor_in[i] + 2);
 		vector<double> out(xor_out[i], xor_out[i] + 1);
-		core.addPattern(Pattern(std::to_string(i), in, out));
+		core->addPattern(Pattern(std::to_string(i), in, out));
 	}
 	DataSet data;
 	data.coreDataSet(core);
@@ -98,11 +98,11 @@ static void testGradientCheckBaseline() {
 	srand(13);
 	srand48(13);
 
-	CoreDataSet core;
+	auto core = std::make_shared<CoreDataSet>();
 	for (int i = 0; i < 8; ++i) {
 		vector<double> in = {drand48(), drand48()};
 		vector<double> out = {drand48()};
-		core.addPattern(Pattern(std::to_string(i), in, out));
+		core->addPattern(Pattern(std::to_string(i), in, out));
 	}
 	DataSet data;
 	data.coreDataSet(core);
@@ -156,11 +156,11 @@ static void testGradientCheck() {
 	srand(13);
 	srand48(13);
 
-	CoreDataSet core;
+	auto core = std::make_shared<CoreDataSet>();
 	for (int i = 0; i < 8; ++i) {
 		vector<double> in = {drand48(), drand48()};
 		vector<double> out = {drand48()};
-		core.addPattern(Pattern(std::to_string(i), in, out));
+		core->addPattern(Pattern(std::to_string(i), in, out));
 	}
 	DataSet data;
 	data.coreDataSet(core);

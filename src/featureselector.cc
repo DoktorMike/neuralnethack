@@ -130,8 +130,8 @@ void parseConf(string fname, Config& config) {
 void parseData(Config& config, DataSet& trnData, DataSet& valData, DataSet& tstData) {
 	ifstream trnStream;
 	ifstream tstStream;
-	CoreDataSet* trnCoreData = new CoreDataSet();
-	CoreDataSet* tstCoreData = new CoreDataSet();
+	auto trnCoreData = std::make_shared<CoreDataSet>();
+	auto tstCoreData = std::make_shared<CoreDataSet>();
 
 	trnStream.open(config.fileName().c_str(), ios::in);
 	if (!trnStream) {
@@ -141,7 +141,7 @@ void parseData(Config& config, DataSet& trnData, DataSet& valData, DataSet& tstD
 	Parser::readDataFile(trnStream, config.idColumn(), config.inputColumns(),
 	                     config.outputColumns(), config.rowRange(), *trnCoreData);
 	trnStream.close();
-	trnData.coreDataSet(*trnCoreData);
+	trnData.coreDataSet(trnCoreData);
 
 	tstStream.open(config.fileNameT().c_str(), ios::in);
 	if (!tstStream) {
@@ -151,7 +151,7 @@ void parseData(Config& config, DataSet& trnData, DataSet& valData, DataSet& tstD
 	Parser::readDataFile(tstStream, config.idColumnT(), config.inputColumnsT(),
 	                     config.outputColumnsT(), config.rowRangeT(), *tstCoreData);
 	tstStream.close();
-	tstData.coreDataSet(*tstCoreData);
+	tstData.coreDataSet(tstCoreData);
 
 	// Split trnData into trn and val
 	DataManager dm;
@@ -187,9 +187,6 @@ void featureSelect(Config& config) {
 		saliencies = Saliency::saliencyMagnitude(result.first, valData, false);
 		conf.suffix(origConf.suffix());
 		conf = excludeFeatures(conf, saliencies, n);
-		// Delete the core data
-		delete &(trnData.coreDataSet());
-		delete &(tstData.coreDataSet());
 	}
 	os.close();
 }

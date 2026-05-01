@@ -39,7 +39,7 @@ class Parser {
 	struct selectInserter {
 		selectInserter(std::vector<std::string>& r) : row(r) { vec.reserve(r.size()); }
 		void operator()(uint x) {
-			char* end = new char;
+			char* end = nullptr;
 			vec.push_back(strtod(row[x - 1].c_str(), &end));
 		}
 		std::vector<std::string>& row;

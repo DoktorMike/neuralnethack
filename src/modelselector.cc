@@ -151,8 +151,8 @@ void parseConf(string fname, Config& config) {
 void parseData(Config& config, DataSet& trnData, DataSet& tstData) {
 	ifstream trnStream;
 	ifstream tstStream;
-	CoreDataSet* trnCoreData = new CoreDataSet();
-	CoreDataSet* tstCoreData = new CoreDataSet();
+	auto trnCoreData = std::make_shared<CoreDataSet>();
+	auto tstCoreData = std::make_shared<CoreDataSet>();
 
 	cout << "Parsing and adding data to the training DataSet." << endl << endl;
 	trnStream.open(config.fileName().c_str(), ios::in);
@@ -163,7 +163,7 @@ void parseData(Config& config, DataSet& trnData, DataSet& tstData) {
 	Parser::readDataFile(trnStream, config.idColumn(), config.inputColumns(),
 	                     config.outputColumns(), config.rowRange(), *trnCoreData);
 	trnStream.close();
-	trnData.coreDataSet(*trnCoreData);
+	trnData.coreDataSet(trnCoreData);
 
 	cout << "Parsing and adding data to the testing DataSet." << endl << endl;
 	tstStream.open(config.fileNameT().c_str(), ios::in);
@@ -174,7 +174,7 @@ void parseData(Config& config, DataSet& trnData, DataSet& tstData) {
 	Parser::readDataFile(tstStream, config.idColumnT(), config.inputColumnsT(),
 	                     config.outputColumnsT(), config.rowRangeT(), *tstCoreData);
 	tstStream.close();
-	tstData.coreDataSet(*tstCoreData);
+	tstData.coreDataSet(tstCoreData);
 }
 
 void parseCmdLine(Config& config, int argc, char* argv[]) {
@@ -213,9 +213,6 @@ int main(int argc, char* argv[]) {
 	// Find the best weight elimanation constant and test it.
 	Config bestConfig = findBestModel(trnData, config);
 	trainAndTest(trnData, tstData, norm, bestConfig);
-
-	delete &(trnData.coreDataSet());
-	delete &(tstData.coreDataSet());
 
 	return 0;
 }

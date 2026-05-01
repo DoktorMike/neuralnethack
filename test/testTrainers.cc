@@ -21,13 +21,16 @@ using namespace DataTools;
 static double xor_in[][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 static double xor_out[][1] = {{0}, {1}, {1}, {0}};
 
-static void buildXorDataSet(CoreDataSet& core, DataSet& data) {
+static DataSet buildXorDataSet() {
+	auto core = std::make_shared<CoreDataSet>();
 	for (int i = 0; i < 4; ++i) {
 		std::vector<double> in(xor_in[i], xor_in[i] + 2);
 		std::vector<double> out(xor_out[i], xor_out[i] + 1);
-		core.addPattern(Pattern(std::to_string(i), in, out));
+		core->addPattern(Pattern(std::to_string(i), in, out));
 	}
+	DataSet data;
 	data.coreDataSet(core);
+	return data;
 }
 
 static double evaluateAccuracy(Mlp& mlp, DataSet& data) {
@@ -44,9 +47,7 @@ static double evaluateAccuracy(Mlp& mlp, DataSet& data) {
 static bool testGDSSE() {
 	srand(42);
 	srand48(42);
-	CoreDataSet core;
-	DataSet data;
-	buildXorDataSet(core, data);
+	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
@@ -63,9 +64,7 @@ static bool testGDSSE() {
 static bool testGDCE() {
 	srand(42);
 	srand48(42);
-	CoreDataSet core;
-	DataSet data;
-	buildXorDataSet(core, data);
+	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
@@ -82,9 +81,7 @@ static bool testGDCE() {
 static bool testAdamSSE() {
 	srand(42);
 	srand48(42);
-	CoreDataSet core;
-	DataSet data;
-	buildXorDataSet(core, data);
+	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
@@ -101,9 +98,7 @@ static bool testAdamSSE() {
 static bool testAdamCE() {
 	srand(42);
 	srand48(42);
-	CoreDataSet core;
-	DataSet data;
-	buildXorDataSet(core, data);
+	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
@@ -120,9 +115,7 @@ static bool testAdamCE() {
 static bool testQNSSE() {
 	srand(42);
 	srand48(42);
-	CoreDataSet core;
-	DataSet data;
-	buildXorDataSet(core, data);
+	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);

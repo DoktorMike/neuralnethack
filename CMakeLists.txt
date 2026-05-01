@@ -11,6 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ---------------------------------------------------------------------------
 option(NNH_USE_BLAS "Use BLAS for matrix operations" ON)
 option(NNH_COVERAGE "Build with code coverage instrumentation" OFF)
+option(NNH_ASAN "Build with AddressSanitizer + UBSan" OFF)
 
 # ---------------------------------------------------------------------------
 # Compiler flags
@@ -18,6 +19,13 @@ option(NNH_COVERAGE "Build with code coverage instrumentation" OFF)
 if(NNH_COVERAGE)
     add_compile_options(-Wall -pedantic -O0 -g --coverage -fprofile-arcs -ftest-coverage)
     add_link_options(--coverage)
+elseif(NNH_ASAN)
+    # Sanitizer build: keep optimization low + symbols, no -ffast-math (UBSan
+    # would complain about its assumptions). Catches use-after-free,
+    # leaks, OOB, and signed/unsigned overflow.
+    add_compile_options(-Wall -pedantic -O1 -g
+        -fno-omit-frame-pointer -fsanitize=address,undefined)
+    add_link_options(-fsanitize=address,undefined)
 else()
     add_compile_options(
         -Wall -pedantic -O3
@@ -176,4 +184,12 @@ foreach(test ${TESTS})
         COMMAND ${test}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
     )
+    if(NNH_ASAN)
+        # LSan catches a handful of pre-existing leaks in the Sampler /
+        # DataManager raw-pointer APIs that are out of scope here. Disable
+        # leak detection in the test runs; ASan still catches
+        # use-after-free / OOB / UBSan still catches signed overflow etc.
+        set_tests_properties(${test} PROPERTIES
+            ENVIRONMENT "ASAN_OPTIONS=detect_leaks=0")
+    endif()
 endforeach()
