@@ -96,6 +96,19 @@ int main()
 }
 ```
 
+## Examples
+
+Worked examples live in `examples/` and build as separate executables:
+
+```sh
+cmake --build build --target xor_residual_ensemble
+./build/xor_residual_ensemble
+```
+
+| Example | What it shows |
+|---|---|
+| `xor_residual_ensemble.cc` | Residual MLP (2-4-4-1 with skip 0→1) trained five times from different inits and combined into an `Ensemble` with uniform 1/N weighting. Reports per-member outputs and the ensemble's averaged prediction on each XOR pattern. |
+
 ## Run from a config file
 
 Don't want to write any C++? You don't have to. The `neuralnethack` binary takes a single config file and does the whole thing: parses the data, normalises it, trains an ensemble (with model selection if you ask for one), evaluates on the test set, and writes everything to disk.

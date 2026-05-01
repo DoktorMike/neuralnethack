@@ -153,6 +153,15 @@ endforeach()
 set_target_properties(neuralnethack_bin PROPERTIES OUTPUT_NAME neuralnethack)
 
 # ---------------------------------------------------------------------------
+# Examples
+# ---------------------------------------------------------------------------
+set(EXAMPLES xor_residual_ensemble)
+foreach(ex ${EXAMPLES})
+    add_executable(${ex} examples/${ex}.cc)
+    target_link_libraries(${ex} PRIVATE neuralnethack)
+endforeach()
+
+# ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 enable_testing()
