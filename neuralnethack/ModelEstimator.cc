@@ -1,8 +1,5 @@
 #include "ModelEstimator.hh"
 #include "evaltools/Roc.hh"
-#include "PrintUtils.hh"
-
-#include <sstream>
 
 using namespace NeuralNetHack;
 using namespace DataTools;

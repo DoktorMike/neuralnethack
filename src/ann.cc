@@ -1,20 +1,16 @@
 #include <neuralnethack/mlp/Mlp.hh>
-#include <neuralnethack/datatools/DataSet.hh>
 #include <neuralnethack/datatools/Normaliser.hh>
 #include <neuralnethack/Ensemble.hh>
 #include <neuralnethack/parser/NetworkParser.hh>
 
 #include <iostream>
 #include <ostream>
-#include <istream>
 #include <fstream>
 #include <string>
 #include <sstream>
 #include <cstdlib>
 #include <iterator>
 #include <algorithm>
-#include <ext/algorithm>
-#include <functional>
 
 using namespace std;
 using namespace NeuralNetHack;

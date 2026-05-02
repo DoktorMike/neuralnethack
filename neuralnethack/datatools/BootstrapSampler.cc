@@ -1,6 +1,5 @@
 #include "BootstrapSampler.hh"
 
-#include <iostream>
 #include <cassert>
 
 using namespace DataTools;

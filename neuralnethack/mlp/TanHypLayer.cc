@@ -1,6 +1,5 @@
 #include "TanHypLayer.hh"
 
-#include <cmath>
 #include <cassert>
 
 using namespace MultiLayerPerceptron;

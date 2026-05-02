@@ -2,20 +2,9 @@
 #include "Error.hh"
 #include "../matrixtools/MatrixTools.hh"
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#ifdef USE_BLAS
-extern "C" {
-#include <cblas.h>
-}
-#endif
-
 #include <cmath>
 #include <ostream>
 #include <iomanip>
-#include <algorithm>
 
 #define ITMAX 10
 #define CGOLD 0.3819660

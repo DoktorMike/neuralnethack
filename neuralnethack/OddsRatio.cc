@@ -1,9 +1,7 @@
 #include "OddsRatio.hh"
-#include "matrixtools/MatrixTools.hh"
 
 #include <algorithm>
 #include <functional>
-#include <cmath>
 #include <iostream>
 
 using namespace NeuralNetHack;

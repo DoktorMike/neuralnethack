@@ -1,17 +1,13 @@
 #include "neuralnethack/Random.hh"
 #include "neuralnethack/Config.hh"
 #include "neuralnethack/parser/Parser.hh"
-#include "neuralnethack/evaltools/Roc.hh"
-#include "neuralnethack/NeuralNetHack.hh"
 #include "neuralnethack/FeatureSelector.hh"
 #include "neuralnethack/evaltools/EvalTools.hh"
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <iomanip>
 #include <iterator>
-#include <functional>
 #include <cmath>
 
 using NeuralNetHack::Config;

@@ -12,10 +12,7 @@
 #include "mlp/Mlp.hh"
 
 #include <vector>
-#include <cmath>
 #include <iostream>
-#include <iterator>
-#include <algorithm>
 #include <ctime>
 #include <string>
 #include <fstream>

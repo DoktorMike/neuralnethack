@@ -2,7 +2,6 @@
 #include "Saliency.hh"
 
 #include <sstream>
-#include <fstream>
 #include <ostream>
 #include <iterator>
 #include <functional>

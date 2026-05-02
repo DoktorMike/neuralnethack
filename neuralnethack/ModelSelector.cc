@@ -8,12 +8,8 @@
 #include <vector>
 #include <map>
 #include <utility>
-#include <algorithm>
-#include <functional>
-#include <iterator>
 #include <iostream>
 #include <fstream>
-#include <ios>
 #include <iomanip>
 #include <string>
 

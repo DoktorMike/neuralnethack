@@ -1,6 +1,5 @@
 #include "EnsembleBuilder.hh"
 #include "Ensemble.hh"
-#include "PrintUtils.hh"
 #include "Random.hh"
 
 #include <cassert>

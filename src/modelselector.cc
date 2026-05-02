@@ -1,9 +1,9 @@
 #include <neuralnethack/Random.hh>
 #include <neuralnethack/parser/Parser.hh>
 #include <neuralnethack/datatools/Normaliser.hh>
-#include <neuralnethack/datatools/DataManager.hh>
 #include <neuralnethack/datatools/CoreDataSet.hh>
 #include <neuralnethack/evaltools/Roc.hh>
+#include <neuralnethack/evaltools/EvalTools.hh>
 #include <neuralnethack/Factory.hh>
 #include <neuralnethack/PrintUtils.hh>
 #include <neuralnethack/NeuralNetHack.hh>
@@ -11,7 +11,6 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <sstream>
 #include <iterator>
 #include <cstdlib>
 #include <list>

@@ -1,11 +1,8 @@
 #include "matrixtools/MatrixTools.hh"
 #include <numeric>
-#include <ext/numeric>
-#include <functional>
-#include <algorithm>
-#include <iterator>
 #include <vector>
-#include <iostream>
+#include <ctime>
+#include <cstdlib>
 
 using namespace MatrixTools;
 using namespace std;

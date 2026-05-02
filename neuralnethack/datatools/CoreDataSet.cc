@@ -1,8 +1,6 @@
 #include "CoreDataSet.hh"
 
 #include <cassert>
-#include <functional>
-#include <algorithm>
 
 using namespace DataTools;
 using namespace std;

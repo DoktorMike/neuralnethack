@@ -1,5 +1,4 @@
 #include "Saliency.hh"
-#include "matrixtools/MatrixTools.hh"
 
 #include <algorithm>
 #include <functional>

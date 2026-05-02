@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <cassert>
-#include <cmath>
 
 using namespace MultiLayerPerceptron;
 using namespace std;

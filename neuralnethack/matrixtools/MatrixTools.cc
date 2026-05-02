@@ -11,9 +11,7 @@ extern "C" {
 #endif
 
 #include <cassert>
-#include <functional>
 #include <algorithm>
-#include <numeric>
 #include <iostream>
 #include <iterator>
 

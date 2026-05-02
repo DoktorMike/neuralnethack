@@ -1,4 +1,3 @@
-#include "matrixtools/MatrixTools.hh"
 #include "datatools/Normaliser.hh"
 #include "datatools/DataManager.hh"
 #include "datatools/CoreDataSet.hh"
@@ -6,16 +5,11 @@
 // #include "datatools/CrossValidator.hh"
 #include "evaltools/Roc.hh"
 #include "parser/Parser.hh"
-#include "mlp/GradientDescent.hh"
-#include "mlp/QuasiNewton.hh"
-#include "mlp/SummedSquare.hh"
-#include "mlp/CrossEntropy.hh"
 #include "Factory.hh"
 #include "OddsRatio.hh"
 #include "Saliency.hh"
 
 #include <utility>
-#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <cassert>

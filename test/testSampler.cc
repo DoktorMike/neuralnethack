@@ -7,7 +7,6 @@
 #include <cassert>
 #include <fstream>
 #include <memory>
-#include <utility>
 
 using namespace NeuralNetHack;
 using namespace std;

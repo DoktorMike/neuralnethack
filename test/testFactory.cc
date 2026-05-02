@@ -3,8 +3,6 @@
 #include "Random.hh"
 #include "mlp/Weights.hh"
 #include "mlp/Mlp.hh"
-#include "mlp/Trainer.hh"
-#include "mlp/Error.hh"
 #include "datatools/CoreDataSet.hh"
 #include "datatools/DataSet.hh"
 #include "datatools/Pattern.hh"

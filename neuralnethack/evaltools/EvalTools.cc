@@ -4,7 +4,6 @@
 
 #include <cassert>
 #include <cmath>
-#include <iterator>
 
 using namespace EvalTools;
 using namespace NeuralNetHack;

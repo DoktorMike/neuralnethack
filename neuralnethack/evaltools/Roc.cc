@@ -2,7 +2,6 @@
 #include "Evaluator.hh"
 
 #include <algorithm>
-#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <cassert>

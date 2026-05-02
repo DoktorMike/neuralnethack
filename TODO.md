@@ -9,12 +9,6 @@ set's seasonal-naive error for MASE; two competing forecasts for DM; etc).
 Open question: do we actually want the library to grow into a time-series
 direction, or is this a "use libtorch" signal.
 
-### clangd: unused-include sweep
-Across the session clangd has flagged a steady stream of unused includes
-(`MatrixTools.hh`, `algorithm`, `iterator`, etc) in test files and a few lib
-files. None are bugs but they slow rebuilds. Run a single mechanical
-include-cleanup pass with clang-tidy `--checks=misc-unused-includes`.
-
 ## Performance
 - Optimize the code to make it run faster.
 
