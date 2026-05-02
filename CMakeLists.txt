@@ -182,7 +182,7 @@ set_target_properties(neuralnethack_bin PROPERTIES OUTPUT_NAME neuralnethack)
 # ---------------------------------------------------------------------------
 # Examples
 # ---------------------------------------------------------------------------
-set(EXAMPLES xor_residual_ensemble residual_vs_plain residual_ensemble_uncertainty cubic_ensemble_uncertainty multiclass_synthetic multiclass_iris multiclass_wine iris_ensemble_uncertainty)
+set(EXAMPLES xor_residual_ensemble residual_vs_plain residual_ensemble_uncertainty cubic_ensemble_uncertainty multiclass_synthetic multiclass_iris multiclass_wine iris_ensemble_uncertainty spiral_ensemble_uncertainty)
 foreach(ex ${EXAMPLES})
     add_executable(${ex} examples/${ex}.cc)
     target_link_libraries(${ex} PRIVATE neuralnethack)

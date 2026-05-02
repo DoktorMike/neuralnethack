@@ -107,28 +107,43 @@ plot_uncertainty(
 )
 
 # ---------------------------------------------------------------------------
-# iris_ensemble_uncertainty -- 3-class decision surface coloured by mean
-# softmax probabilities (R = setosa, G = versicolour, B = virginica) with
-# intensity scaled by 1 - normalised predictive entropy. Observations
-# overlaid with shape encoding true class.
+# Generic 3-class ensemble uncertainty plot. Renders the decision surface
+# coloured by mean softmax probabilities (R, G, B = classes 0, 1, 2) with
+# intensity scaled by 1 - normalised entropy. The CSVs follow the layout
+# emitted by examples/iris_ensemble_uncertainty and friends.
+#
+# Three views via the Depeweg et al. 2018 decomposition:
+#   total      = H(p̄)              -- conflated total uncertainty
+#   aleatoric  = mean_i H(p_i)     -- ambiguity all members agree on
+#   epistemic  = total - aleatoric -- member disagreement / OOD-ness (BALD)
 # ---------------------------------------------------------------------------
 
-plot_iris_uncertainty <- function(grid_path = "iris_uncertainty_grid.csv",
-                                  obs_path = "iris_uncertainty_obs.csv",
-                                  title = "Iris ensemble uncertainty (petal length, petal width)") {
+plot_3class_uncertainty <- function(entropy_col,
+                                    title,
+                                    grid_path,
+                                    obs_path,
+                                    class_labels = c("class 0", "class 1", "class 2"),
+                                    xlab = "x1", ylab = "x2") {
     if (!file.exists(grid_path) || !file.exists(obs_path)) {
         message("skip: ", grid_path, " or ", obs_path, " not found")
         return(invisible(NULL))
     }
-    grid <- readr::read_csv(grid_path)
-    obs <- readr::read_csv(obs_path)
+    grid <- readr::read_csv(grid_path, show_col_types = FALSE)
+    obs <- readr::read_csv(obs_path, show_col_types = FALSE)
+    if (!entropy_col %in% names(grid)) {
+        message("skip: column '", entropy_col, "' missing in ", grid_path)
+        return(invisible(NULL))
+    }
 
-    # Intensity: 1 = certain (max prob ~ 1, entropy = 0), 0 = uniform
-    # (entropy = log K). For K = 3 classes max entropy is log(3).
+    # Intensity: 1 = certain (entropy = 0), 0 = max entropy = log K.
+    # Total/aleatoric are bounded by log(K). Epistemic is also bounded by
+    # log(K) but in practice rarely fills that range, so it'll look paler
+    # than the total view -- that is faithful, not a normalisation bug.
     K <- 3
+    grid$h <- grid[[entropy_col]]
     grid <- grid |>
         dplyr::mutate(
-            intensity = pmax(0, pmin(1, 1 - entropy / log(K))),
+            intensity = pmax(0, pmin(1, 1 - h / log(K))),
             fill_color = rgb(p0 * intensity, p1 * intensity, p2 * intensity)
         )
 
@@ -142,11 +157,15 @@ plot_iris_uncertainty <- function(grid_path = "iris_uncertainty_grid.csv",
 
     obs <- obs |>
         dplyr::mutate(
-            true_class = factor(true_class, levels = 0:2,
-                labels = c("setosa", "versicolour", "virginica")),
-            misclass = true_class != factor(pred_class, levels = 0:2,
-                labels = c("setosa", "versicolour", "virginica"))
+            true_class = factor(true_class, levels = 0:2, labels = class_labels),
+            misclass = true_class != factor(pred_class, levels = 0:2, labels = class_labels)
         )
+    shape_map <- setNames(c(21, 22, 24), class_labels)
+
+    subtitle <- sprintf(
+        "RGB = mean softmax (R=%s, G=%s, B=%s); intensity = 1 - %s/log(%d)",
+        class_labels[1], class_labels[2], class_labels[3], entropy_col, K
+    )
 
     p <- ggplot() +
         geom_tile(data = grid, aes(x = x1, y = x2, fill = fill_color)) +
@@ -168,16 +187,12 @@ plot_iris_uncertainty <- function(grid_path = "iris_uncertainty_grid.csv",
             aes(x = x1, y = x2),
             shape = 21, color = "red", fill = NA, size = 4, stroke = 0.8
         ) +
-        scale_shape_manual(values = c(setosa = 21, versicolour = 22, virginica = 24)) +
+        scale_shape_manual(values = shape_map) +
         coord_equal(expand = FALSE) +
         labs(
-            title = title,
-            subtitle = sprintf(
-                "RGB = mean softmax (R=setosa, G=versicolour, B=virginica); intensity = 1 - H/log(%d)",
-                K
-            ),
-            x = "petal length (z-norm)", y = "petal width (z-norm)",
-            shape = "true class", caption = "white dashed = training extent; red ring = misclassified"
+            title = title, subtitle = subtitle,
+            x = xlab, y = ylab, shape = "true class",
+            caption = "white dashed = training extent; red ring = misclassified"
         ) +
         theme_minimal() +
         theme(panel.grid = element_blank())
@@ -185,4 +200,36 @@ plot_iris_uncertainty <- function(grid_path = "iris_uncertainty_grid.csv",
     print(p)
 }
 
-plot_iris_uncertainty()
+# Iris (petal length / width).
+plot_3class_uncertainty("entropy_total",
+    "Iris ensemble uncertainty -- total (H of mean softmax)",
+    "iris_uncertainty_grid.csv", "iris_uncertainty_obs.csv",
+    class_labels = c("setosa", "versicolour", "virginica"),
+    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)")
+plot_3class_uncertainty("entropy_aleatoric",
+    "Iris ensemble uncertainty -- aleatoric (mean of per-member H)",
+    "iris_uncertainty_grid.csv", "iris_uncertainty_obs.csv",
+    class_labels = c("setosa", "versicolour", "virginica"),
+    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)")
+plot_3class_uncertainty("entropy_epistemic",
+    "Iris ensemble uncertainty -- epistemic (BALD: total - aleatoric)",
+    "iris_uncertainty_grid.csv", "iris_uncertainty_obs.csv",
+    class_labels = c("setosa", "versicolour", "virginica"),
+    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)")
+
+# 3-arm Archimedean spiral.
+plot_3class_uncertainty("entropy_total",
+    "Spiral ensemble uncertainty -- total (H of mean softmax)",
+    "spiral_uncertainty_grid.csv", "spiral_uncertainty_obs.csv",
+    class_labels = c("arm 0", "arm 1", "arm 2"),
+    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)")
+plot_3class_uncertainty("entropy_aleatoric",
+    "Spiral ensemble uncertainty -- aleatoric (mean of per-member H)",
+    "spiral_uncertainty_grid.csv", "spiral_uncertainty_obs.csv",
+    class_labels = c("arm 0", "arm 1", "arm 2"),
+    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)")
+plot_3class_uncertainty("entropy_epistemic",
+    "Spiral ensemble uncertainty -- epistemic (BALD: total - aleatoric)",
+    "spiral_uncertainty_grid.csv", "spiral_uncertainty_obs.csv",
+    class_labels = c("arm 0", "arm 1", "arm 2"),
+    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)")

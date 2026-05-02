@@ -11,8 +11,20 @@
 // Run:     ./build/iris_ensemble_uncertainty [N_members]
 //
 // Side effects (in cwd):
-//   iris_uncertainty_grid.csv  -- columns: x1,x2,p0,p1,p2,entropy,is_ood
-//   iris_uncertainty_obs.csv   -- columns: x1,x2,true_class,pred_class,set
+//   iris_uncertainty_grid.csv  -- x1,x2,p0,p1,p2,
+//                                 entropy_total, entropy_aleatoric,
+//                                 entropy_epistemic, is_ood
+//   iris_uncertainty_obs.csv   -- x1,x2,true_class,pred_class,set
+//
+// Uncertainty decomposition (Depeweg et al. 2018):
+//   total      = H(p̄)            = entropy of the ensemble-mean softmax.
+//                                  This is what the original plot used.
+//   aleatoric  = mean_i H(p_i)    = average per-member entropy. Captures
+//                                  noise/ambiguity that all members agree on.
+//   epistemic  = total - aleatoric = mutual information between predicted
+//                                  class and member identity (BALD).
+//                                  Captures member disagreement (model
+//                                  uncertainty / OOD-ness).
 //
 // Plot suggestion (Python):
 //   import pandas as pd, numpy as np, matplotlib.pyplot as plt
@@ -50,6 +62,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <vector>
 
 using namespace MultiLayerPerceptron;
@@ -133,15 +146,25 @@ int main(int argc, char** argv) {
 	for (uint i = 0; i < nMembers; ++i)
 		members.push_back(trainMember(trn, baseSeed + i, epochs));
 
+	// Returns (mean softmax, entropy_total, entropy_aleatoric).
+	// Decomposition (Depeweg et al. 2018):
+	//   total      = H(p̄)             -- entropy of ensemble mean
+	//   aleatoric  = E_i[H(p_i)]      -- mean per-member entropy
+	//   epistemic  = total - aleatoric -- mutual information between class
+	//                                     and member identity (BALD)
 	auto ensemblePredict = [&](const std::vector<double>& x) {
 		std::vector<double> mean(K, 0.0);
+		double aleatoric = 0.0;
 		for (auto& m : members) {
 			const auto& p = m->propagate(x);
 			for (uint k = 0; k < K; ++k) mean[k] += p[k];
+			aleatoric += predictiveEntropy(p);
 		}
 		const double inv = 1.0 / nMembers;
 		for (double& v : mean) v *= inv;
-		return mean;
+		aleatoric *= inv;
+		const double total = predictiveEntropy(mean);
+		return std::tuple<std::vector<double>, double, double>{mean, total, aleatoric};
 	};
 
 	// Decision-surface grid. Pad past training extent so OOD regions show.
@@ -154,26 +177,29 @@ int main(int argc, char** argv) {
 	{
 		std::ofstream csv("iris_uncertainty_grid.csv");
 		csv << std::fixed << std::setprecision(6);
-		csv << "x1,x2,p0,p1,p2,entropy,is_ood\n";
+		csv << "x1,x2,p0,p1,p2,entropy_total,entropy_aleatoric,entropy_epistemic,is_ood\n";
 		for (uint iy = 0; iy < G; ++iy) {
 			const double x2 = gy0 + (gy1 - gy0) * iy / (G - 1);
 			for (uint ix = 0; ix < G; ++ix) {
 				const double x1 = gx0 + (gx1 - gx0) * ix / (G - 1);
-				const auto p = ensemblePredict({x1, x2});
-				const double h = predictiveEntropy(p);
+				const auto [p, hTot, hAle] = ensemblePredict({x1, x2});
+				const double hEpi = std::max(0.0, hTot - hAle);
 				const bool ood = (x1 < x1Min || x1 > x1Max || x2 < x2Min || x2 > x2Max);
-				csv << x1 << "," << x2 << "," << p[0] << "," << p[1] << "," << p[2] << "," << h
-				    << "," << (ood ? 1 : 0) << "\n";
+				csv << x1 << "," << x2 << "," << p[0] << "," << p[1] << "," << p[2] << "," << hTot
+				    << "," << hAle << "," << hEpi << "," << (ood ? 1 : 0) << "\n";
 			}
 		}
 	}
 
 	// Observations: emit train + test with predicted vs true class.
+	auto ensembleMean = [&](const std::vector<double>& x) {
+		return std::get<0>(ensemblePredict(x));
+	};
 	auto dumpObs = [&](DataSet& ds, const std::string& tag, std::ofstream& csv) {
 		for (uint i = 0; i < ds.size(); ++i) {
 			const auto& x = ds.pattern(i).input();
 			const auto& t = ds.pattern(i).output();
-			const auto p = ensemblePredict(x);
+			const auto p = ensembleMean(x);
 			csv << x[0] << "," << x[1] << "," << argmax(t) << "," << argmax(p) << "," << tag
 			    << "\n";
 		}
@@ -189,11 +215,11 @@ int main(int argc, char** argv) {
 	// Quick console summary.
 	uint trnCorrect = 0, tstCorrect = 0;
 	for (uint i = 0; i < trn.size(); ++i) {
-		if (argmax(ensemblePredict(trn.pattern(i).input())) == argmax(trn.pattern(i).output()))
+		if (argmax(ensembleMean(trn.pattern(i).input())) == argmax(trn.pattern(i).output()))
 			++trnCorrect;
 	}
 	for (uint i = 0; i < tst.size(); ++i) {
-		if (argmax(ensemblePredict(tst.pattern(i).input())) == argmax(tst.pattern(i).output()))
+		if (argmax(ensembleMean(tst.pattern(i).input())) == argmax(tst.pattern(i).output()))
 			++tstCorrect;
 	}
 	std::cout << "iris uncertainty (n_members=" << nMembers << ", 2 features):\n"
