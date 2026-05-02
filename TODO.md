@@ -6,4 +6,3 @@
 
 ## Other
 - Template the Matrix library.
-- Softmax in output layer of MLP.

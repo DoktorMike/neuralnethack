@@ -7,10 +7,28 @@
 #include "ELULayer.hh"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 
 using namespace MultiLayerPerceptron;
 using namespace std;
+
+namespace {
+// Numerically stable in-place softmax over n contiguous values.
+inline void softmaxRow(double* __restrict__ p, uint n) {
+	double m = p[0];
+	for (uint i = 1; i < n; ++i)
+		if (p[i] > m) m = p[i];
+	double s = 0.0;
+	for (uint i = 0; i < n; ++i) {
+		p[i] = std::exp(p[i] - m);
+		s += p[i];
+	}
+	const double inv = 1.0 / s;
+	for (uint i = 0; i < n; ++i)
+		p[i] *= inv;
+}
+} // namespace
 
 Mlp::Mlp(const vector<uint>& a, const vector<string>& t, bool s)
     : theArch(a), theTypes(t), theSoftmax(s) {
@@ -141,6 +159,10 @@ const vector<double>& Mlp::propagate(const vector<double>& input) {
 		const double* skipPtr = (src >= 0) ? theLayers[src]->outputs().data() : nullptr;
 		inOut = &(theLayers[i]->propagate(*inOut, skipPtr));
 	}
+	if (theSoftmax) {
+		auto& out = theLayers.back()->outputs();
+		softmaxRow(out.data(), theLayers.back()->nNeurons());
+	}
 	return *inOut;
 }
 
@@ -152,6 +174,12 @@ const double* Mlp::propagateBatch(const double* input, uint B) {
 		const double* skipPtr = (src >= 0) ? theLayers[src]->batchOutputs().data() : nullptr;
 		layerInput = theLayers[i]->propagateBatch(layerInput, B, n_in, skipPtr);
 		n_in = theLayers[i]->nNeurons();
+	}
+	if (theSoftmax) {
+		const uint nO = theLayers.back()->nNeurons();
+		double* out = theLayers.back()->batchOutputs().data();
+		for (uint b = 0; b < B; ++b)
+			softmaxRow(out + b * nO, nO);
 	}
 	return layerInput;
 }

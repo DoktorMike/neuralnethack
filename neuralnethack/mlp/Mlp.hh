@@ -13,9 +13,7 @@ struct MlpModel {
 	bool softmax;
 };
 
-/**A Class representing a multilayer perceptron.
- * \todo Implement softmax output.
- */
+/**A Class representing a multilayer perceptron. */
 class Mlp {
   public:
 	/**Base constructor.
@@ -72,6 +70,15 @@ class Mlp {
 	 * \return true if softmax is on, false otherwise.
 	 */
 	bool softmax();
+
+	/**Enable or disable softmax on the output layer. When enabled,
+	 * propagate()/propagateBatch() apply a row-wise softmax to the
+	 * last layer's outputs after its activation. Pair with a linear
+	 * output layer + cross-entropy for standard multiclass
+	 * classification (the (target - output) shortcut in CrossEntropy
+	 * gives the correct dL/dz).
+	 */
+	void softmax(bool s);
 
 	/**Return the number of layers in this MLP.
 	 * \return the number of layers.
@@ -208,6 +215,10 @@ inline std::vector<std::string>& Mlp::types() {
 
 inline bool Mlp::softmax() {
 	return theSoftmax;
+}
+
+inline void Mlp::softmax(bool s) {
+	theSoftmax = s;
 }
 
 inline uint Mlp::numLayers() const {

@@ -51,7 +51,7 @@ unique_ptr<Sampler> buildModelSelectionSampler(const Config& config, DataSet& da
 } // namespace
 
 unique_ptr<Mlp> Factory::createMlp(const Config& config) {
-	auto mlp = make_unique<Mlp>(config.architecture(), config.actFcn(), false);
+	auto mlp = make_unique<Mlp>(config.architecture(), config.actFcn(), config.softmax());
 	for (const auto& sc : config.skipConnections())
 		mlp->skipFrom(static_cast<uint>(sc.first), sc.second);
 	return mlp;

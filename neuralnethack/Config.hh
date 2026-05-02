@@ -90,6 +90,10 @@ class Config {
 	const std::vector<std::pair<int, int>>& skipConnections() const { return theSkipConnections; }
 	std::vector<std::pair<int, int>>& skipConnections() { return theSkipConnections; }
 
+	/**Apply softmax to the output layer. Pair with cross-entropy loss. */
+	bool softmax() const { return theSoftmax; }
+	void softmax(bool s) { theSoftmax = s; }
+
 	const std::string& minMethod() const { return theMinMethod; }
 	void minMethod(const std::string& theMinMethod) { this->theMinMethod = theMinMethod; }
 
@@ -250,6 +254,8 @@ class Config {
 	std::string theErrFcn;
 	/**Residual skip connections, target/source pairs. */
 	std::vector<std::pair<int, int>> theSkipConnections;
+	/**Apply softmax to the output layer. */
+	bool theSoftmax = false;
 	/**The minimisation algorithm. */
 	std::string theMinMethod;
 	/**The maximum number of epochs to train. */

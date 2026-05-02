@@ -182,7 +182,7 @@ set_target_properties(neuralnethack_bin PROPERTIES OUTPUT_NAME neuralnethack)
 # ---------------------------------------------------------------------------
 # Examples
 # ---------------------------------------------------------------------------
-set(EXAMPLES xor_residual_ensemble residual_vs_plain residual_ensemble_uncertainty cubic_ensemble_uncertainty)
+set(EXAMPLES xor_residual_ensemble residual_vs_plain residual_ensemble_uncertainty cubic_ensemble_uncertainty multiclass_synthetic multiclass_iris multiclass_wine)
 foreach(ex ${EXAMPLES})
     add_executable(${ex} examples/${ex}.cc)
     target_link_libraries(${ex} PRIVATE neuralnethack)
@@ -194,7 +194,7 @@ add_custom_target(nnh_examples DEPENDS ${EXAMPLES})
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)

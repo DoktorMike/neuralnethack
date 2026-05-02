@@ -279,7 +279,9 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 			int source = static_cast<int>(asInt(pair.arr[1], path, lineno));
 			sc.emplace_back(target, source);
 		}
-	} else if (path == "training.method")
+	} else if (path == "network.softmax")
+		config.softmax(asBool(v, path, lineno));
+	else if (path == "training.method")
 		config.minMethod(asString(v, path, lineno));
 	else if (path == "training.max_epochs")
 		config.maxEpochs(static_cast<uint>(asInt(v, path, lineno)));
