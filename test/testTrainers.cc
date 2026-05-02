@@ -1,3 +1,4 @@
+#include "Random.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/Adam.hh"
 #include "mlp/GradientDescent.hh"
@@ -46,7 +47,7 @@ static double evaluateAccuracy(Mlp& mlp, DataSet& data) {
 
 static bool testGDSSE() {
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -63,7 +64,7 @@ static bool testGDSSE() {
 
 static bool testGDCE() {
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -80,7 +81,7 @@ static bool testGDCE() {
 
 static bool testAdamSSE() {
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -97,7 +98,7 @@ static bool testAdamSSE() {
 
 static bool testAdamCE() {
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
@@ -114,7 +115,7 @@ static bool testAdamCE() {
 
 static bool testQNSSE() {
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
 	std::vector<uint> arch = {2, 4, 1};
 	std::vector<std::string> types = {"relu", "logsig"};

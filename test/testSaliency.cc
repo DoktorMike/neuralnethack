@@ -7,6 +7,7 @@
 #include "datatools/DataSet.hh"
 #include "datatools/Normaliser.hh"
 #include "evaltools/EvalTools.hh"
+#include "Random.hh"
 #include "mlp/Trainer.hh"
 #include "mlp/Mlp.hh"
 
@@ -139,7 +140,7 @@ int main(int argc, char* argv[]) {
 	ofstream os;
 
 	parseData(config, trnData, tstData);
-	srand48(config.seed() == 0 ? time(0)
+	nnh::rand::seed(config.seed() == 0 ? time(0)
 	                           : config.seed()); // This is the ONLY place one may set the seed!
 
 	if (config.normalization() == "Z") {

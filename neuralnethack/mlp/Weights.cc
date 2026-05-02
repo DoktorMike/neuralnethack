@@ -1,4 +1,5 @@
 #include "Weights.hh"
+#include "../Random.hh"
 
 #include <iostream>
 #include <cassert>
@@ -19,7 +20,7 @@ Weights::Weights(vector<uint>& a) : arch(a) {
 
 	theWeights.resize(num);
 	for (int i = 0; i < num; i++)
-		theWeights[i] = 0.5 - drand48();
+		theWeights[i] = 0.5 - nnh::rand::uniform();
 }
 
 Weights::Weights(const Weights& w) {

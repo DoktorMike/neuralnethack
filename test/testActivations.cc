@@ -1,3 +1,4 @@
+#include "Random.hh"
 #include "mlp/Mlp.hh"
 #include <iostream>
 #include <vector>
@@ -20,7 +21,7 @@ int main() {
 
 		// Set deterministic weights
 		srand(42);
-		srand48(42);
+		nnh::rand::seed(42);
 
 		std::vector<std::string> types = {act, "logsig"};
 		Mlp mlp(arch, types, false);

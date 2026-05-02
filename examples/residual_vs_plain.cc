@@ -24,6 +24,7 @@
 #include "datatools/CoreDataSet.hh"
 #include "datatools/DataSet.hh"
 #include "datatools/Pattern.hh"
+#include "Random.hh"
 #include "mlp/Adam.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/SummedSquare.hh"
@@ -63,7 +64,7 @@ DataSet makeSyntheticData(uint n, uint seed) {
 
 std::unique_ptr<Mlp> makeNet(bool residual, uint seed) {
 	srand(seed);
-	srand48(seed);
+	nnh::rand::seed(seed);
 	// 12 width-16 hidden layers + 1 output. Tanh saturates, so a plain
 	// 12-layer net's gradient vanishes long before reaching layer 0.
 	std::vector<uint> arch = {1, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 1};

@@ -1,3 +1,4 @@
+#include "Random.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/Adam.hh"
 #include "mlp/SummedSquare.hh"
@@ -353,7 +354,7 @@ static bool testEnsembleAuc() {
 	std::cout << "Test: ErrorMeasures::auc with trained XOR ensemble ... ";
 
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 
 	DataSet data = buildXorDataSet();
 	Mlp mlp = trainXorMlp(data);
@@ -380,7 +381,7 @@ static bool testEnsembleSummedSquare() {
 	std::cout << "Test: ErrorMeasures::summedSquare with trained XOR ensemble ... ";
 
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 
 	DataSet data = buildXorDataSet();
 	Mlp mlp = trainXorMlp(data);
@@ -405,7 +406,7 @@ static bool testEnsembleCrossEntropy() {
 	std::cout << "Test: ErrorMeasures::crossEntropy with trained XOR ensemble ... ";
 
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 
 	DataSet data = buildXorDataSet();
 

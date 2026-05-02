@@ -1,3 +1,4 @@
+#include "Random.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/Adam.hh"
 #include "mlp/SummedSquare.hh"
@@ -17,7 +18,7 @@ using namespace DataTools;
 
 int main() {
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 
 	// -- Build the XOR dataset --
 	auto core = std::make_shared<CoreDataSet>();

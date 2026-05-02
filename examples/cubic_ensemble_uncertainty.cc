@@ -21,6 +21,7 @@
 #include "datatools/CoreDataSet.hh"
 #include "datatools/DataSet.hh"
 #include "datatools/Pattern.hh"
+#include "Random.hh"
 #include "mlp/Adam.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/SummedSquare.hh"
@@ -71,7 +72,7 @@ DataSet makeTrainingData(uint n, uint seed) {
 
 std::unique_ptr<Mlp> trainMember(DataSet& data, uint seed, uint epochs) {
 	srand(seed);
-	srand48(seed);
+	nnh::rand::seed(seed);
 	// Same architecture as residual_ensemble_uncertainty: 5 hidden ReLU
 	// layers of width 16 with two residual blocks. Linear output handles
 	// the wide ±64 target range without saturation.
@@ -115,13 +116,15 @@ int main(int argc, char* argv[]) {
 	          << kTrainMax << "]\n";
 	std::cout << "Evaluating on x in [" << kEvalMin << ", " << kEvalMax << "]\n\n";
 
-	Ensemble ensemble;
-	for (uint i = 0; i < nMembers; ++i) {
-		std::cout << "  member " << i << "..." << std::flush;
-		auto mlp = trainMember(data, baseSeed + i, epochs);
-		std::cout << " done\n";
-		ensemble.addMlp(std::move(mlp));
+	std::vector<std::unique_ptr<Mlp>> trained(nMembers);
+#pragma omp parallel for schedule(dynamic, 1)
+	for (int i = 0; i < static_cast<int>(nMembers); ++i) {
+		trained[i] = trainMember(data, baseSeed + i, epochs);
+#pragma omp critical
+		std::cout << "  member " << i << " done\n";
 	}
+	Ensemble ensemble;
+	for (auto& mlp : trained) ensemble.addMlp(std::move(mlp));
 
 	std::ofstream csv("cubic_ensemble_uncertainty.csv");
 	csv << std::fixed << std::setprecision(6);

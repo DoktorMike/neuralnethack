@@ -1,5 +1,6 @@
 #include "Factory.hh"
 #include "Config.hh"
+#include "Random.hh"
 #include "mlp/Weights.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/Trainer.hh"
@@ -215,7 +216,7 @@ static bool testFactoryCreateErrorKullback() {
 // ---------------------------------------------------------------------------
 
 int main() {
-	srand48(42);
+	nnh::rand::seed(42);
 
 	bool allPassed = true;
 

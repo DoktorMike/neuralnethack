@@ -1,3 +1,4 @@
+#include "Random.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/Adam.hh"
 #include "mlp/SummedSquare.hh"
@@ -57,7 +58,7 @@ static void testForwardIdentity() {
 // arch = [2, 4, 4, 1], skip layer 0 -> layer 1 (both have 4 neurons).
 static void testResidualXor() {
 	srand(7);
-	srand48(7);
+	nnh::rand::seed(7);
 
 	auto core = std::make_shared<CoreDataSet>();
 	double xor_in[][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
@@ -96,7 +97,7 @@ static void testResidualXor() {
 // the test scaffolding is correct before we point fingers at skip plumbing.
 static void testGradientCheckBaseline() {
 	srand(13);
-	srand48(13);
+	nnh::rand::seed(13);
 
 	auto core = std::make_shared<CoreDataSet>();
 	for (int i = 0; i < 8; ++i) {
@@ -157,7 +158,7 @@ static void testGradientCheckBaseline() {
 // numerical finite-difference gradient on a small skip-network.
 static void testGradientCheck() {
 	srand(13);
-	srand48(13);
+	nnh::rand::seed(13);
 
 	auto core = std::make_shared<CoreDataSet>();
 	for (int i = 0; i < 8; ++i) {

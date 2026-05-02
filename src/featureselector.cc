@@ -1,3 +1,4 @@
+#include "neuralnethack/Random.hh"
 #include "neuralnethack/parser/Parser.hh"
 #include "neuralnethack/datatools/Normaliser.hh"
 #include "neuralnethack/datatools/DataManager.hh"
@@ -204,7 +205,7 @@ int main(int argc, char* argv[]) {
 		parseCmdLine(config, argc, argv);
 	}
 
-	srand48(config.seed() == 0 ? time(0)
+	nnh::rand::seed(config.seed() == 0 ? time(0)
 	                           : config.seed()); // This is the ONLY place one may set the seed!
 
 	featureSelect(config);

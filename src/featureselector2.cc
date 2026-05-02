@@ -1,3 +1,4 @@
+#include "neuralnethack/Random.hh"
 #include "neuralnethack/Config.hh"
 #include "neuralnethack/parser/Parser.hh"
 #include "neuralnethack/evaltools/Roc.hh"
@@ -68,7 +69,7 @@ int main(int argc, char* argv[]) {
 		exit(0);
 	}
 
-	srand48(config.seed() == 0 ? time(0)
+	nnh::rand::seed(config.seed() == 0 ? time(0)
 	                           : config.seed()); // This is the ONLY place one may set the seed!
 
 	FeatureSelector fs(minF, maxF, maxR);

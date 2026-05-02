@@ -1,3 +1,4 @@
+#include <Random.hh>
 #include <evaltools/Gof.hh>
 
 #include <vector>
@@ -39,7 +40,7 @@ static void buildBadFit(vector<double>& output, vector<uint>& target) {
 }
 
 int main() {
-	srand48(time(0));
+	nnh::rand::seed(time(0));
 
 	vector<double> output;
 	vector<uint> target;

@@ -13,6 +13,7 @@
 #include "datatools/CoreDataSet.hh"
 #include "datatools/DataSet.hh"
 #include "datatools/Pattern.hh"
+#include "Random.hh"
 #include "mlp/Adam.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/SummedSquare.hh"
@@ -31,7 +32,7 @@ namespace {
 
 std::unique_ptr<Mlp> trainResidualXor(DataSet& data, uint seed, uint epochs) {
 	srand(seed);
-	srand48(seed);
+	nnh::rand::seed(seed);
 
 	// 2-4-4-1 with two width-4 hidden layers. Skip from layer 0 to layer 1
 	// so the second hidden layer's pre-activation gets the first hidden
@@ -74,11 +75,13 @@ int main(int argc, char* argv[]) {
 	DataSet data;
 	data.coreDataSet(core);
 
-	Ensemble ensemble;
-	for (uint i = 0; i < nMembers; ++i) {
-		auto mlp = trainResidualXor(data, /*seed=*/100 + i, epochs);
-		ensemble.addMlp(std::move(mlp)); // uniform 1/N weighting
+	std::vector<std::unique_ptr<Mlp>> trained(nMembers);
+#pragma omp parallel for schedule(dynamic, 1)
+	for (int i = 0; i < static_cast<int>(nMembers); ++i) {
+		trained[i] = trainResidualXor(data, /*seed=*/100 + i, epochs);
 	}
+	Ensemble ensemble;
+	for (auto& mlp : trained) ensemble.addMlp(std::move(mlp));
 
 	std::cout << std::fixed << std::setprecision(4);
 	std::cout << "Residual XOR ensemble (" << nMembers << " members, "

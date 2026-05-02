@@ -220,7 +220,7 @@ vector<double>& Layer::propagate(const vector<double>& input, const double* prea
 	if (theTraining && theDropoutRate > 0.0) {
 		const double scale = 1.0 / (1.0 - theDropoutRate);
 		for (uint i = 0; i < ncurr; ++i) {
-			theDropoutMask[i] = (drand48() >= theDropoutRate) ? scale : 0.0;
+			theDropoutMask[i] = (nnh::rand::uniform() >= theDropoutRate) ? scale : 0.0;
 			out[i] *= theDropoutMask[i];
 		}
 	}
@@ -353,7 +353,7 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 		const uint total = B * ncurr;
 		theBatchDropoutMask.resize(total);
 		for (uint i = 0; i < total; ++i) {
-			theBatchDropoutMask[i] = (drand48() >= theDropoutRate) ? scale : 0.0;
+			theBatchDropoutMask[i] = (nnh::rand::uniform() >= theDropoutRate) ? scale : 0.0;
 			out[i] *= theBatchDropoutMask[i];
 		}
 	}

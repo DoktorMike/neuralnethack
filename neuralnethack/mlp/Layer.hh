@@ -1,6 +1,7 @@
 #ifndef __Layer_hh__
 #define __Layer_hh__
 
+#include "../Random.hh"
 #include "MultiLayerPerceptron.hh"
 
 #include <memory>
@@ -395,7 +396,7 @@ class Layer {
 
 	/**The functor for initialising the weights. */
 	template <class T> struct newRand {
-		void operator()(T& a) { a = 0.5 - drand48(); }
+		void operator()(T& a) { a = 0.5 - nnh::rand::uniform(); }
 	};
 };
 

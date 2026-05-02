@@ -35,6 +35,8 @@ make clean    # remove build directories
 
 Requires GCC 13+ or Clang 17+ (C++23). BLAS is auto-detected (install `libopenblas-dev` or similar for best performance). To disable: `cmake -B build -DNNH_USE_BLAS=OFF`.
 
+OpenMP is also auto-detected and used to train ensemble members in parallel; control with `OMP_NUM_THREADS` at run time, or disable at configure time with `cmake -B build -DNNH_OPENMP=OFF`.
+
 ## Quick start: learning XOR
 
 ```cpp

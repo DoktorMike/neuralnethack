@@ -1,4 +1,5 @@
 #include "Ensemble.hh"
+#include "Random.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/Serialization.hh"
 #include <iostream>
@@ -21,7 +22,7 @@ using namespace NeuralNetHack;
 
 int main() {
 	srand(42);
-	srand48(42);
+	nnh::rand::seed(42);
 
 	bool pass = true;
 

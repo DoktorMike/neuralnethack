@@ -12,6 +12,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(NNH_USE_BLAS "Use BLAS for matrix operations" ON)
 option(NNH_COVERAGE "Build with code coverage instrumentation" OFF)
 option(NNH_ASAN "Build with AddressSanitizer + UBSan" OFF)
+option(NNH_OPENMP "Enable OpenMP for ensemble-level parallelism" ON)
 
 # ---------------------------------------------------------------------------
 # Compiler flags
@@ -33,6 +34,20 @@ else()
         -funroll-loops -ftree-vectorize -fno-math-errno
     )
     add_compile_definitions(NDEBUG)
+endif()
+
+# ---------------------------------------------------------------------------
+# OpenMP detection
+# ---------------------------------------------------------------------------
+set(USE_OPENMP 0)
+if(NNH_OPENMP AND NOT NNH_ASAN)
+    find_package(OpenMP QUIET)
+    if(OpenMP_CXX_FOUND)
+        set(USE_OPENMP 1)
+        message(STATUS "OpenMP support enabled (${OpenMP_CXX_LIB_NAMES})")
+    else()
+        message(STATUS "OpenMP not found -- disabled")
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -114,6 +129,7 @@ set(LIB_SOURCES
     neuralnethack/parser/NetworkParser.cc
     # top-level
     neuralnethack/NeuralNetHack.cc
+    neuralnethack/Random.cc
     neuralnethack/Config.cc
     neuralnethack/Factory.cc
     neuralnethack/Ensemble.cc
@@ -138,6 +154,9 @@ target_include_directories(neuralnethack
 
 if(USE_BLAS)
     target_link_libraries(neuralnethack PUBLIC ${BLAS_LIBRARIES})
+endif()
+if(USE_OPENMP)
+    target_link_libraries(neuralnethack PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 #include "DataManager.hh"
+#include "../Random.hh"
 
 #include <algorithm>
 #include <cassert>
@@ -6,14 +7,12 @@
 #include <iostream>
 #include <iterator>
 #include <numeric>
-#include <random>
 
 using namespace DataTools;
 using namespace std;
 
-static std::mt19937& rng() {
-	static std::mt19937 gen(std::random_device{}());
-	return gen;
+static auto& rng() {
+	return nnh::rand::generator();
 }
 
 DataManager::DataManager() : indices(vector<uint>(0)), isRandom(true) {}
@@ -135,7 +134,7 @@ void DataManager::buildIndicesWithReplacement(uint n) {
 	indices.clear();
 
 	for (uint i = 0; i < n; ++i) {
-		uint index = (uint)nearbyint((n - 1) * drand48());
+		uint index = (uint)nearbyint((n - 1) * nnh::rand::uniform());
 		indices.push_back(index);
 	}
 }
@@ -145,7 +144,7 @@ void DataManager::buildIndicesWithReplacement(vector<uint>& orig) {
 
 	uint n = orig.size();
 	for (uint i = 0; i < n; ++i) {
-		uint index = (uint)nearbyint((n - 1) * drand48());
+		uint index = (uint)nearbyint((n - 1) * nnh::rand::uniform());
 		indices.push_back(orig.at(index));
 	}
 }
