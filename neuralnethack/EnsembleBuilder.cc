@@ -57,7 +57,7 @@ namespace {
 // Insert "_NNN" before the last "." in `base`, or append if no extension.
 // Index is 1-based and zero-padded to 3 digits for sortable file names.
 std::string makeMemberPath(const std::string& base, int oneBasedIndex) {
-	char idx[8];
+	char idx[16];
 	std::snprintf(idx, sizeof(idx), "_%03d", oneBasedIndex);
 	const auto dot = base.find_last_of('.');
 	const auto slash = base.find_last_of('/');
