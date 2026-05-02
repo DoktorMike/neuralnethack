@@ -2,13 +2,6 @@
 
 ## Open follow-ups
 
-### Residual connections — step 2 (A-plus)
-Step 1 (pre-activation sum merge from an earlier layer in the linear chain)
-shipped. Step 2 is per-layer configurable primary input, which lets a layer
-sit off the linear chain entirely. Closes the DAG case from the original
-discussion (`A → {B, C}`, with `B` parallel to the chain and merging back
-at `E`). Builds on the skip plumbing from step 1.
-
 ### Time series evaluation (phase 2 of the metrics work)
 MASE, Theil's U, Diebold-Mariano, Ljung-Box on residuals. Belongs in its own
 `TimeSeriesMetrics` class because most of these need extra context (training
