@@ -91,8 +91,16 @@ std::unique_ptr<Mlp> trainMember(DataSet& data, uint seed, uint epochs) {
 
 } // namespace
 
-int main() {
-	const uint nMembers = 7;
+int main(int argc, char* argv[]) {
+	uint nMembers = 7;
+	if (argc > 1) {
+		int v = std::atoi(argv[1]);
+		if (v < 1) {
+			std::cerr << "Usage: " << argv[0] << " [n_members]\n";
+			return 1;
+		}
+		nMembers = static_cast<uint>(v);
+	}
 	const uint nSamples = 1000;
 	const uint epochs = 2000;
 	const uint nEvalPoints = 241; // dx = 0.05 across [-6, 6]

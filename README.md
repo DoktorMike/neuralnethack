@@ -160,8 +160,11 @@ Worked examples live in `examples/` and build as separate executables:
 
 ```sh
 cmake --build build --target xor_residual_ensemble
-./build/xor_residual_ensemble
+./build/xor_residual_ensemble        # default ensemble size
+./build/xor_residual_ensemble 11     # custom ensemble size
 ```
+
+The three ensemble examples (`xor_residual_ensemble`, `residual_ensemble_uncertainty`, `cubic_ensemble_uncertainty`) all take an optional positional argument: the number of ensemble members. Defaults are 5, 7, and 7 respectively.
 
 | Example | What it shows |
 |---|---|

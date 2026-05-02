@@ -51,8 +51,16 @@ std::unique_ptr<Mlp> trainResidualXor(DataSet& data, uint seed, uint epochs) {
 
 } // namespace
 
-int main() {
-	const uint nMembers = 5;
+int main(int argc, char* argv[]) {
+	uint nMembers = 5;
+	if (argc > 1) {
+		int v = std::atoi(argv[1]);
+		if (v < 1) {
+			std::cerr << "Usage: " << argv[0] << " [n_members]\n";
+			return 1;
+		}
+		nMembers = static_cast<uint>(v);
+	}
 	const uint epochs = 3000;
 
 	auto core = std::make_shared<CoreDataSet>();
