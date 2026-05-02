@@ -6,21 +6,23 @@
 ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-A fast, lightweight C++23 library for training and evaluating ensembles of multi-layer perceptrons. Zero external dependencies beyond an optional BLAS library. Designed for research, teaching, and embedding in larger systems.
+This is the MLP and ensemble-of-MLPs library I've kept maintained since 2004. It's small, fast, and stays out of your way: a C++23 core, an optional BLAS dependency, and nothing else. I reach for it on tabular problems where libtorch is overkill and I actually want to see what the optimizer is doing. If that sounds like your kind of thing, read on.
 
 ## Features
 
 - **Activations**: Sigmoid, TanH, Linear, ReLU, Leaky ReLU, ELU
-- **Topology**: sequential MLP with optional residual (skip) connections — pre-activation sum merge between same-width layers
+- **Topology**: sequential MLP with optional residual (skip) connections, merged pre-activation between same-width layers
+- **Output heads**: linear or sigmoid output, plus optional softmax for multi-class classification
 - **Optimizers**: SGD with momentum, Adam/AdamW, L-BFGS
-- **Loss functions**: Cross-entropy, Summed square error
-- **Normalization**: Batch normalization, Layer normalization
-- **Regularization**: Dropout (inverted), weight elimination
-- **Ensembles**: Weighted ensemble of MLPs with bootstrap/cross-split/hold-out sampling
-- **Model selection**: Grid search over regularization with cross-validation
-- **Feature selection**: Backward elimination via saliency/clamping
-- **Evaluation**: ROC/AUC, Hosmer-Lemeshow goodness of fit, confusion matrix (binary + multi-class) with accuracy / precision / recall / F1 / MCC / balanced accuracy / macro variants, regression metrics (MAE, MAPE, sMAPE, RMSE, R²)
-- **Serialization**: Binary save/load for models and ensembles
+- **Loss functions**: cross-entropy, summed square error
+- **Normalization**: batch normalization, layer normalization
+- **Regularization**: dropout (inverted), weight elimination
+- **Ensembles**: weighted ensemble of MLPs with bootstrap, cross-split, or hold-out sampling, trained in parallel via OpenMP
+- **Model selection**: grid search over regularization with cross-validation
+- **Feature selection**: backward elimination via saliency / clamping
+- **Evaluation**: ROC/AUC, Hosmer-Lemeshow goodness of fit, confusion matrix (binary and multi-class) with accuracy / precision / recall / F1 / MCC / balanced accuracy / macro variants, regression metrics (MAE, MAPE, sMAPE, RMSE, R²)
+- **Diagnostics**: per-trainer learning-curve files (train and validation error per epoch), gnuplot-friendly
+- **Serialization**: binary save/load for models and ensembles
 - **Performance**: BLAS-accelerated batch GEMM training, devirtualized activations, SIMD-friendly loops
 
 ## Build
@@ -33,9 +35,9 @@ make format   # apply clang-format to all source files
 make clean    # remove build directories
 ```
 
-Requires GCC 13+ or Clang 17+ (C++23). BLAS is auto-detected (install `libopenblas-dev` or similar for best performance). To disable: `cmake -B build -DNNH_USE_BLAS=OFF`.
+You'll need GCC 13+ or Clang 17+ for C++23. BLAS is auto-detected (install `libopenblas-dev` or similar for best performance), and you can switch it off with `cmake -B build -DNNH_USE_BLAS=OFF` if you really want to.
 
-OpenMP is also auto-detected and used to train ensemble members in parallel; control with `OMP_NUM_THREADS` at run time, or disable at configure time with `cmake -B build -DNNH_OPENMP=OFF`.
+OpenMP is also auto-detected and used to train ensemble members in parallel. Control with `OMP_NUM_THREADS` at run time, or disable at configure time with `cmake -B build -DNNH_OPENMP=OFF`.
 
 ## Quick start: learning XOR
 
@@ -58,7 +60,7 @@ using namespace DataTools;
 
 int main()
 {
-    // -- Build the XOR dataset --
+    // Build the XOR dataset
     auto core = std::make_shared<CoreDataSet>();
     double xor_in[][2]  = {{0,0}, {0,1}, {1,0}, {1,1}};
     double xor_out[][1] = {{0},   {1},   {1},   {0}};
@@ -70,29 +72,29 @@ int main()
     DataSet data;
     data.coreDataSet(core);
 
-    // -- Create a 2-4-1 network (ReLU hidden, sigmoid output) --
+    // 2-4-1 network with ReLU hidden and sigmoid output
     std::vector<uint> arch = {2, 4, 1};
     std::vector<std::string> types = {"relu", "logsig"};
     Mlp mlp(arch, types, false);
 
-    // -- Optional: enable BatchNorm and dropout --
+    // Optional: enable BatchNorm and a bit of dropout
     mlp.normType(NormType::BatchNorm);
     mlp.dropoutRate(0.1);
 
-    // -- Train with Adam for 2000 epochs --
+    // Train with Adam for 2000 epochs
     SummedSquare error(mlp, data);
     Adam trainer(mlp, data, error, 0.001, 4 /*batch*/, 0.01 /*lr*/);
     trainer.numEpochs(2000);
     trainer.train(std::cout);
 
-    // -- Evaluate --
+    // Evaluate
     for (int i = 0; i < 4; ++i) {
         const auto& out = mlp.propagate(data.pattern(i).input());
         std::cout << xor_in[i][0] << " XOR " << xor_in[i][1]
                   << " = " << out[0] << std::endl;
     }
 
-    // -- Save and reload --
+    // Save and reload
     saveMlpBinary(mlp, "xor.nnh");
     auto loaded = loadMlpBinary("xor.nnh");
     std::cout << "Loaded: " << loaded->propagate(data.pattern(1).input())[0] << std::endl;
@@ -108,16 +110,16 @@ z = W · y_prev + b + y_skip       // skip added before activation
 y = act(z)
 ```
 
-Pre-activation (rather than post-activation) so the existing activation derivative formulas — which all express f'(z) in terms of f(z) — keep working without extra bookkeeping.
+Pre-activation rather than post-activation, because the existing activation-derivative formulas all express f'(z) in terms of f(z). Putting the skip in pre-activation means that bookkeeping keeps working without any extra plumbing.
 
 Two hard constraints:
 
 - **Source must come earlier in the chain.** A layer can only skip from a layer with a smaller index. `skipFrom()` aborts otherwise.
-- **Source and target must have the same width.** The merge is element-wise.
+- **Source and target must have the same width.** The merge is element-wise, so the shapes have to line up.
 
 ### Layer indexing
 
-This is the part that trips people up. Indices count up from the first hidden layer; the input vector is *not* a layer. For an architecture `[n_in, n_h1, n_h2, n_h3, n_out]`:
+This is the part that trips people up. Indices count up from the first hidden layer. The input vector is *not* a layer. So for an architecture `[n_in, n_h1, n_h2, n_h3, n_out]`:
 
 ```
 arch:    [n_in,    n_h1,    n_h2,    n_h3,    n_out]
@@ -125,7 +127,7 @@ arch:    [n_in,    n_h1,    n_h2,    n_h3,    n_out]
                   layer 0  layer 1  layer 2  layer 3 (output)
 ```
 
-So in `arch = [2, 4, 4, 1]` (input + two width-4 hidden + width-1 output), layers 0 and 1 are both width 4 and can be wired together with a skip.
+Which means in `arch = [2, 4, 4, 1]` (input plus two width-4 hidden plus width-1 output), layers 0 and 1 are both width 4 and can be wired together with a skip.
 
 ### From C++
 
@@ -152,9 +154,33 @@ error_fcn = "kullback"
 skip_connections = [[1, 0]]   # layer 1 receives skip from layer 0
 ```
 
-One skip source per target layer (later entries for the same target overwrite earlier ones). Multiple targets can share the same source.
+One skip source per target layer (later entries for the same target overwrite earlier ones). Multiple targets are free to share the same source.
 
-For a full worked example with an ensemble of residual MLPs, see `examples/xor_residual_ensemble.cc` (next section).
+For a full worked example with an ensemble of residual MLPs, see `examples/xor_residual_ensemble.cc`.
+
+## Multi-class classification (softmax)
+
+For K-way classification, use a linear output layer of width K and turn softmax on. Pair it with the cross-entropy loss and the (target - output) shortcut at the output layer gives you exactly the right gradient (no derivative on softmax to apply explicitly, the math cancels).
+
+From C++:
+
+```cpp
+std::vector<uint> arch = {4, 8, 3};                  // 4-feature input, 3 classes
+std::vector<std::string> types = {"tansig", "purelin"};
+Mlp mlp(arch, types, /*softmax=*/true);
+```
+
+From a TOML config:
+
+```toml
+[network]
+size = [4, 8, 3]
+activations = ["tansig", "purelin"]
+softmax = true
+error_fcn = "kullback"
+```
+
+Targets should be one-hot encoded (one column per class in the data file, `out_cols = "6-8"` for example). Worked examples in `examples/multiclass_iris.cc`, `examples/multiclass_wine.cc`, and `examples/multiclass_synthetic.cc`.
 
 ## Examples
 
@@ -166,14 +192,19 @@ cmake --build build --target xor_residual_ensemble
 ./build/xor_residual_ensemble 11     # custom ensemble size
 ```
 
-The three ensemble examples (`xor_residual_ensemble`, `residual_ensemble_uncertainty`, `cubic_ensemble_uncertainty`) all take an optional positional argument: the number of ensemble members. Defaults are 5, 7, and 7 respectively.
+The ensemble examples take an optional positional argument: the number of ensemble members.
 
 | Example | What it shows |
 |---|---|
 | `xor_residual_ensemble.cc` | Residual MLP (2-4-4-1 with skip 0→1) trained five times from different inits and combined into an `Ensemble` with uniform 1/N weighting. Reports per-member outputs and the ensemble's averaged prediction on each XOR pattern. |
-| `residual_vs_plain.cc` | 12-layer tanh MLP on a synthetic regression task, trained twice with identical init: with and without 5 residual blocks. Shows the residual variant converges to roughly half the MSE of the plain one because tanh's saturating activation makes gradients vanish across 12 layers without the skip identity path. Writes per-checkpoint loss curves to `residual_vs_plain.csv`. |
-| `residual_ensemble_uncertainty.cc` | Ensemble of 7 residual MLPs trained on `x ∈ [-3, 3]` and evaluated on `x ∈ [-6, 6]`. Inside the training range the members agree (std ≈ 0.01); outside it they extrapolate to wildly different functions (std ≈ 0.5, 30× wider). The growing spread between members visualises epistemic uncertainty. CSV columns: `x, truth, is_ood, m0..m6, mean, std`. Plot: truth + each member (light) + mean (bold) + mean ± std band, with vertical lines at x = ±3 to mark the training boundary. |
-| `cubic_ensemble_uncertainty.cc` | Same uncertainty story on the canonical Amini *Deep Evidential Regression* cubic benchmark: `y = x^3 + N(0, 3)` trained on `x ∈ [-4, 4]` and evaluated on `x ∈ [-6, 6]`. ReLU members extrapolate piecewise-linearly into OOD where the truth is super-linear, so the mean prediction undershoots the cubic dramatically and the spread between members balloons (std ≈ 11-15 vs <1 inside). |
+| `residual_vs_plain.cc` | A 12-layer tanh MLP on a synthetic regression task, trained twice with identical init: with and without 5 residual blocks. The residual variant converges to roughly half the MSE of the plain one, because tanh's saturating activation makes gradients vanish across 12 layers without the skip identity path. Loss curves go to `residual_vs_plain.csv`. |
+| `residual_ensemble_uncertainty.cc` | Ensemble of 7 residual MLPs trained on `x ∈ [-3, 3]` and evaluated on `x ∈ [-6, 6]`. Inside the training range the members agree (std ≈ 0.01); outside it they extrapolate to wildly different functions (std ≈ 0.5, 30× wider). The growing spread is epistemic uncertainty, made visible. |
+| `cubic_ensemble_uncertainty.cc` | Same uncertainty story on the canonical Amini *Deep Evidential Regression* cubic benchmark: `y = x^3 + N(0, 3)` trained on `x ∈ [-4, 4]` and evaluated on `x ∈ [-6, 6]`. ReLU members extrapolate piecewise-linearly into OOD where the truth is super-linear, so the mean prediction undershoots dramatically and the spread balloons. |
+| `multiclass_synthetic.cc` | Tiny softmax demo on a synthetic 3-region planar split. No data files, no fuss. Prints train/test accuracy. |
+| `multiclass_iris.cc` | Softmax MLP on the UCI Iris dataset (3 classes, 4 features). Loads `test/iris/iris.{trn,tst}.tab`, Z-normalises, trains, reports accuracy. |
+| `multiclass_wine.cc` | Same for the UCI Wine dataset (3 classes, 13 features). |
+| `iris_ensemble_uncertainty.cc` | Ensemble of softmax MLPs on the petal-length / petal-width pair, with the full Depeweg et al. 2018 entropy decomposition: total, aleatoric, and epistemic per grid point. Plot via `scripts/plotexamplesresultdata.r`. |
+| `spiral_ensemble_uncertainty.cc` | Three-arm Archimedean spiral, same decomposition. Useful as a sanity check that the network is doing what you think it's doing. |
 
 ## Run from a config file
 
@@ -190,13 +221,21 @@ cd test/pima-indians-diabetes
 ../../build/neuralnethack config-pima.toml
 ```
 
-Every output file is suffixed with whatever you put in the `Suffix` field, so you can run a few experiments side by side without clobbering each other:
+For multi-class classification, similar configs ship with the iris and wine datasets:
 
-- `result.<suffix>.txt` -- train/test AUC (cross-entropy for multi-class)
-- `networks.<suffix>.xml` -- the trained ensemble, ready to reload
-- `outputlist.<suffix>.txt` -- per-pattern model outputs (toggle with `SaveOutputList`)
-- `saliencies.<suffix>.txt` -- input saliencies, handy for feature selection
-- `myconfig.debug` -- the parsed config, so you can sanity-check what was actually used
+```sh
+cd test/iris   && ../../build/neuralnethack config-iris.toml
+cd test/wine   && ../../build/neuralnethack config-wine.toml
+```
+
+Every output file is suffixed with whatever you put in the `suffix` field, so you can run a few experiments side by side without clobbering each other:
+
+- `result.<suffix>.txt`: train/test AUC (binary) or accuracy (multi-class).
+- `networks.<suffix>.xml`: the trained ensemble, ready to reload.
+- `outputlist.<suffix>.txt`: per-pattern model outputs (toggle with `save_output_list`).
+- `saliencies.<suffix>.txt`: input saliencies, handy for feature selection.
+- `myconfig.debug`: the parsed config, so you can sanity-check what was actually used.
+- `<curve>_NNN.dat` (when `output.learning_curve_file` is set): per-member learning curves, one row per epoch with `epoch  trainErr  valErr`. The validation error comes from each member's out-of-bag split.
 
 The other CLI tools (`ann`, `modelselector`, `featureselector`, `saliency`, `auc`) all read the same config format. Pick the one that matches what you're after.
 
@@ -228,6 +267,7 @@ row_range = "0"
 size = [8, 4, 1]
 activations = ["relu", "logsig"]   # one per non-input layer
 error_fcn = "kullback"             # "sumsqr" or "kullback"
+softmax = false                    # true for multi-class with linear output
 # Optional residual connections: each entry is [target_layer, source_layer]
 # (0-indexed, source < target, both layers must have matching width).
 # skip_connections = [[2, 0]]
@@ -265,6 +305,7 @@ fraction = 0.2
 [output]
 save_session = true
 save_output_list = true
+# learning_curve_file = "curve.dat"   # optional, per-member files <stem>_NNN.<ext>
 ```
 
 See `test/pima-indians-diabetes/config-pima.toml` for a fully commented version with every field.
@@ -277,8 +318,8 @@ Configs from version 2.x and earlier used a space-separated `{Identifier} {Value
 scripts/migrate-config.py old-config.txt -o new-config.toml
 ```
 
-It handles the field rename, splits the positional tuples (`GDParam`, `AdamParam`, `EnsParam`, `MSParam`, `WeightElim`, `Vary`) into named keys, and drops the result into the right section. Eyeball the output before running it for real.
+It handles the field rename, splits the positional tuples (`GDParam`, `AdamParam`, `EnsParam`, `MSParam`, `WeightElim`, `Vary`) into named keys, and drops the result into the right section. Eyeball the output before running it for real, since the legacy format had a few oddities.
 
 ## License
 
-MIT -- Copyright (c) 2004-2026 Michael Green
+MIT, Copyright (c) 2004-2026 Michael Green
