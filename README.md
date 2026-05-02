@@ -47,8 +47,9 @@ Requires GCC 13+ or Clang 17+ (C++23). BLAS is auto-detected (install `libopenbl
 #include "datatools/Pattern.hh"
 
 #include <iostream>
-#include <vector>
+#include <memory>
 #include <string>
+#include <vector>
 
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
@@ -56,13 +57,13 @@ using namespace DataTools;
 int main()
 {
     // -- Build the XOR dataset --
-    CoreDataSet core;
+    auto core = std::make_shared<CoreDataSet>();
     double xor_in[][2]  = {{0,0}, {0,1}, {1,0}, {1,1}};
     double xor_out[][1] = {{0},   {1},   {1},   {0}};
     for (int i = 0; i < 4; ++i) {
         std::vector<double> in(xor_in[i], xor_in[i] + 2);
         std::vector<double> out(xor_out[i], xor_out[i] + 1);
-        core.addPattern(Pattern(std::to_string(i), in, out));
+        core->addPattern(Pattern(std::to_string(i), in, out));
     }
     DataSet data;
     data.coreDataSet(core);
@@ -75,6 +76,9 @@ int main()
     // -- Optional: enable BatchNorm and dropout --
     mlp.normType(NormType::BatchNorm);
     mlp.dropoutRate(0.1);
+
+    // -- Optional: residual (skip) connection -- requires same-width layers
+    // mlp.skipFrom(/*target=*/1, /*source=*/0);
 
     // -- Train with Adam for 2000 epochs --
     SummedSquare error(mlp, data);
