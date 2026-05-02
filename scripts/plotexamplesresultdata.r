@@ -105,3 +105,84 @@ plot_uncertainty(
     "cubic_ensemble_uncertainty.csv",
     "Residual ensemble: Amini cubic y = x^3 (noise sd = 3)"
 )
+
+# ---------------------------------------------------------------------------
+# iris_ensemble_uncertainty -- 3-class decision surface coloured by mean
+# softmax probabilities (R = setosa, G = versicolour, B = virginica) with
+# intensity scaled by 1 - normalised predictive entropy. Observations
+# overlaid with shape encoding true class.
+# ---------------------------------------------------------------------------
+
+plot_iris_uncertainty <- function(grid_path = "iris_uncertainty_grid.csv",
+                                  obs_path = "iris_uncertainty_obs.csv",
+                                  title = "Iris ensemble uncertainty (petal length, petal width)") {
+    if (!file.exists(grid_path) || !file.exists(obs_path)) {
+        message("skip: ", grid_path, " or ", obs_path, " not found")
+        return(invisible(NULL))
+    }
+    grid <- readr::read_csv(grid_path)
+    obs <- readr::read_csv(obs_path)
+
+    # Intensity: 1 = certain (max prob ~ 1, entropy = 0), 0 = uniform
+    # (entropy = log K). For K = 3 classes max entropy is log(3).
+    K <- 3
+    grid <- grid |>
+        dplyr::mutate(
+            intensity = pmax(0, pmin(1, 1 - entropy / log(K))),
+            fill_color = rgb(p0 * intensity, p1 * intensity, p2 * intensity)
+        )
+
+    # Training extent (from non-OOD grid points, equivalently the obs
+    # range). Used to draw the in-distribution boundary.
+    trn <- obs |> dplyr::filter(set == "trn")
+    train_box <- list(
+        x1_min = min(trn$x1), x1_max = max(trn$x1),
+        x2_min = min(trn$x2), x2_max = max(trn$x2)
+    )
+
+    obs <- obs |>
+        dplyr::mutate(
+            true_class = factor(true_class, levels = 0:2,
+                labels = c("setosa", "versicolour", "virginica")),
+            misclass = true_class != factor(pred_class, levels = 0:2,
+                labels = c("setosa", "versicolour", "virginica"))
+        )
+
+    p <- ggplot() +
+        geom_tile(data = grid, aes(x = x1, y = x2, fill = fill_color)) +
+        scale_fill_identity() +
+        # Training extent rectangle.
+        annotate("rect",
+            xmin = train_box$x1_min, xmax = train_box$x1_max,
+            ymin = train_box$x2_min, ymax = train_box$x2_max,
+            fill = NA, color = "white", linetype = "dashed", linewidth = 0.4
+        ) +
+        # Observations: shape by true class, white border to read against
+        # any background colour. Misclassified points get a red ring.
+        geom_point(
+            data = obs, aes(x = x1, y = x2, shape = true_class),
+            color = "white", fill = "black", size = 2, stroke = 0.6
+        ) +
+        geom_point(
+            data = obs |> dplyr::filter(misclass),
+            aes(x = x1, y = x2),
+            shape = 21, color = "red", fill = NA, size = 4, stroke = 0.8
+        ) +
+        scale_shape_manual(values = c(setosa = 21, versicolour = 22, virginica = 24)) +
+        coord_equal(expand = FALSE) +
+        labs(
+            title = title,
+            subtitle = sprintf(
+                "RGB = mean softmax (R=setosa, G=versicolour, B=virginica); intensity = 1 - H/log(%d)",
+                K
+            ),
+            x = "petal length (z-norm)", y = "petal width (z-norm)",
+            shape = "true class", caption = "white dashed = training extent; red ring = misclassified"
+        ) +
+        theme_minimal() +
+        theme(panel.grid = element_blank())
+
+    print(p)
+}
+
+plot_iris_uncertainty()
