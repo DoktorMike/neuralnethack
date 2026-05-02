@@ -163,7 +163,7 @@ set_target_properties(neuralnethack_bin PROPERTIES OUTPUT_NAME neuralnethack)
 # ---------------------------------------------------------------------------
 # Examples
 # ---------------------------------------------------------------------------
-set(EXAMPLES xor_residual_ensemble)
+set(EXAMPLES xor_residual_ensemble residual_vs_plain)
 foreach(ex ${EXAMPLES})
     add_executable(${ex} examples/${ex}.cc)
     target_link_libraries(${ex} PRIVATE neuralnethack)

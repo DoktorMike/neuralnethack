@@ -166,6 +166,7 @@ cmake --build build --target xor_residual_ensemble
 | Example | What it shows |
 |---|---|
 | `xor_residual_ensemble.cc` | Residual MLP (2-4-4-1 with skip 0→1) trained five times from different inits and combined into an `Ensemble` with uniform 1/N weighting. Reports per-member outputs and the ensemble's averaged prediction on each XOR pattern. |
+| `residual_vs_plain.cc` | 12-layer tanh MLP on a synthetic regression task, trained twice with identical init: with and without 5 residual blocks. Shows the residual variant converges to roughly half the MSE of the plain one because tanh's saturating activation makes gradients vanish across 12 layers without the skip identity path. Writes per-checkpoint loss curves to `residual_vs_plain.csv`. |
 
 ## Run from a config file
 
