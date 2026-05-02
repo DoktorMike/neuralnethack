@@ -205,31 +205,39 @@ plot_3class_uncertainty("entropy_total",
     "Iris ensemble uncertainty -- total (H of mean softmax)",
     "iris_uncertainty_grid.csv", "iris_uncertainty_obs.csv",
     class_labels = c("setosa", "versicolour", "virginica"),
-    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)")
+    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)"
+)
 plot_3class_uncertainty("entropy_aleatoric",
     "Iris ensemble uncertainty -- aleatoric (mean of per-member H)",
     "iris_uncertainty_grid.csv", "iris_uncertainty_obs.csv",
     class_labels = c("setosa", "versicolour", "virginica"),
-    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)")
+    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)"
+)
 plot_3class_uncertainty("entropy_epistemic",
     "Iris ensemble uncertainty -- epistemic (BALD: total - aleatoric)",
     "iris_uncertainty_grid.csv", "iris_uncertainty_obs.csv",
     class_labels = c("setosa", "versicolour", "virginica"),
-    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)")
+    xlab = "petal length (z-norm)", ylab = "petal width (z-norm)"
+)
 
 # 3-arm Archimedean spiral.
 plot_3class_uncertainty("entropy_total",
     "Spiral ensemble uncertainty -- total (H of mean softmax)",
     "spiral_uncertainty_grid.csv", "spiral_uncertainty_obs.csv",
     class_labels = c("arm 0", "arm 1", "arm 2"),
-    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)")
+    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)"
+)
+
 plot_3class_uncertainty("entropy_aleatoric",
     "Spiral ensemble uncertainty -- aleatoric (mean of per-member H)",
     "spiral_uncertainty_grid.csv", "spiral_uncertainty_obs.csv",
     class_labels = c("arm 0", "arm 1", "arm 2"),
-    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)")
+    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)"
+)
+
 plot_3class_uncertainty("entropy_epistemic",
     "Spiral ensemble uncertainty -- epistemic (BALD: total - aleatoric)",
     "spiral_uncertainty_grid.csv", "spiral_uncertainty_obs.csv",
     class_labels = c("arm 0", "arm 1", "arm 2"),
-    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)")
+    xlab = "x1 (z-norm)", ylab = "x2 (z-norm)"
+)

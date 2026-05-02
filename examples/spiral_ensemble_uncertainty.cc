@@ -126,10 +126,15 @@ int main(int argc, char** argv) {
 		x2Max = std::max(x2Max, in[1]);
 	}
 
+	std::cout << "Training " << nMembers << " ensemble members ("
+	          << "arch=2-32-32-32-3, residual skip 0->2, " << epochs << " epochs)..."
+	          << std::endl;
 	std::vector<std::unique_ptr<Mlp>> members;
 	members.reserve(nMembers);
-	for (uint i = 0; i < nMembers; ++i)
+	for (uint i = 0; i < nMembers; ++i) {
+		std::cout << "  member " << (i + 1) << " of " << nMembers << std::endl;
 		members.push_back(trainMember(trn, baseSeed + i, epochs));
+	}
 
 	auto ensemblePredict = [&](const std::vector<double>& x) {
 		std::vector<double> mean(K, 0.0);
