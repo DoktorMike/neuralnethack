@@ -1,17 +1,5 @@
 # TODO
 
-## Open follow-ups
-
-### Time series evaluation (phase 2 of the metrics work)
-MASE, Theil's U, Diebold-Mariano, Ljung-Box on residuals. Belongs in its own
-`TimeSeriesMetrics` class because most of these need extra context (training
-set's seasonal-naive error for MASE; two competing forecasts for DM; etc).
-Open question: do we actually want the library to grow into a time-series
-direction, or is this a "use libtorch" signal.
-
-## Performance
-- Optimize the code to make it run faster.
-
 ## Statistics
 - Write a gnuplot-able learning curve to a file.
 - Calculate a P-value for the ROC curve.
