@@ -2,14 +2,6 @@
 
 ## Worth doing (fits mission, cheap)
 
-### Conformal prediction (split conformal)
-The headline addition. Distribution-free prediction sets / intervals with
-coverage guarantees. Hold out a calibration set, compute residuals (regression)
-or non-conformity scores (classification), take the (1-α) quantile, adjust
-predictions. ~100 LOC. Plugs straight into the existing ensemble framework
-and aligns with the uncertainty-as-first-class theme already established by
-the iris / spiral uncertainty examples. Most tabular libraries don't have it.
-
 ### Early stopping on validation loss
 Learning-curve infra is in place. Add a "stop if val hasn't improved in N
 epochs" check inside the trainer loop. ~30 LOC. Every practitioner expects
@@ -33,6 +25,17 @@ decomposition (calibrated total uncertainty is what users actually want).
   comparison; only worth it if a concrete user asks.
 
 ## Nice but more work
+
+### Conformal prediction follow-ups
+Split conformal v1 shipped (`evaltools/Conformal`): per-dim regression
+residual quantiles + LAC non-conformity for classification. Outstanding:
+- APS (adaptive prediction sets) for classification — smaller sets in easy
+  regions, ~30 LOC on top of LAC.
+- Class-conditional (Mondrian) conformal — separate quantile per class for
+  imbalanced problems. Pairs with class weights.
+- Worked example wired into one of the synthetic datasets (cubic / residual
+  for regression, iris / spiral for classification) showing empirical
+  coverage at α = 0.1 and a plot of intervals / set sizes.
 
 ### Quantile regression / pinball loss
 Explicit per-pattern prediction intervals as an alternative to ensemble-based
