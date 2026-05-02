@@ -14,7 +14,7 @@ class DummySampler : public Sampler {
 	using Sampler::operator=;
 	DummySampler& operator=(const DummySampler& me);
 
-	std::pair<DataSet, DataSet>* next();
+	std::pair<DataSet, DataSet> next();
 	bool hasNext() const;
 	uint howMany() const;
 	void reset();

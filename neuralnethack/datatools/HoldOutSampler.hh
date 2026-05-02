@@ -14,7 +14,7 @@ class HoldOutSampler : public Sampler {
 	using Sampler::operator=;
 	HoldOutSampler& operator=(const HoldOutSampler& ho);
 
-	std::pair<DataSet, DataSet>* next();
+	std::pair<DataSet, DataSet> next();
 	bool hasNext() const;
 	uint howMany() const;
 

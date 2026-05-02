@@ -22,7 +22,7 @@ class CrossSplitSampler : public Sampler {
 	CrossSplitSampler& operator=(const CrossSplitSampler& cv);
 
 	/**\todo Fix the k=1 issue. Abort or empty validation set?*/
-	std::pair<DataSet, DataSet>* next();
+	std::pair<DataSet, DataSet> next();
 	bool hasNext() const;
 	uint howMany() const;
 	void reset();

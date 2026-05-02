@@ -14,7 +14,7 @@ class BootstrapSampler : public Sampler {
 	using Sampler::operator=;
 	BootstrapSampler& operator=(const BootstrapSampler& me);
 
-	std::pair<DataSet, DataSet>* next();
+	std::pair<DataSet, DataSet> next();
 	bool hasNext() const;
 	uint howMany() const;
 	void reset();

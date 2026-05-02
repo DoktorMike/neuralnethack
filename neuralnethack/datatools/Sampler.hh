@@ -13,12 +13,8 @@ class Sampler {
 	/**Basic destructor. */
 	virtual ~Sampler();
 
-	/**Return the next trainig and validation sample.
-	 * Note that it's the users responsability to destroy the pointer
-	 * returned.
-	 * \return a pair of training and validation DataSet.
-	 */
-	virtual std::pair<DataSet, DataSet>* next() = 0;
+	/**Return the next training/validation sample by value. */
+	virtual std::pair<DataSet, DataSet> next() = 0;
 
 	/**Check if there is another sample left.
 	 * \return true when there is at least one more sample in the que, false otherwise.

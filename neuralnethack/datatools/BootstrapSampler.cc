@@ -24,10 +24,9 @@ BootstrapSampler& BootstrapSampler::operator=(const BootstrapSampler& bs) {
 	return *this;
 }
 
-pair<DataSet, DataSet>* BootstrapSampler::next() {
+pair<DataSet, DataSet> BootstrapSampler::next() {
 	++index;
 	return theDataManager->split(*theData);
-	// return new pair<DataSet, DataSet>(tmp.first, tmp.second);
 }
 
 void BootstrapSampler::reset() {

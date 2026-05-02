@@ -151,12 +151,10 @@ void parseData(Config& config, DataSet& trnData, DataSet& valData, DataSet& tstD
 	tstStream.close();
 	tstData.coreDataSet(tstCoreData);
 
-	// Split trnData into trn and val
 	DataManager dm;
-	pair<DataSet, DataSet>* data = dm.split(trnData, 0.75);
-	trnData = data->first;
-	valData = data->second;
-	delete data;
+	auto data = dm.split(trnData, 0.75);
+	trnData = std::move(data.first);
+	valData = std::move(data.second);
 }
 
 void featureSelect(Config& config) {

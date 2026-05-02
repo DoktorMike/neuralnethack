@@ -24,12 +24,11 @@ DummySampler& DummySampler::operator=(const DummySampler& bs) {
 	return *this;
 }
 
-pair<DataSet, DataSet>* DummySampler::next() {
+pair<DataSet, DataSet> DummySampler::next() {
 	++index;
-	// Make an empty copy of training data
 	DataSet valData = *theData;
 	valData.indices().clear();
-	return new pair<DataSet, DataSet>(*theData, valData);
+	return {*theData, std::move(valData)};
 }
 
 void DummySampler::reset() {

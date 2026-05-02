@@ -88,60 +88,51 @@ void testDataManager(DataTools::DataSet& data, Config& config) {
 	// os.open("crapafter",ios::out); dataSets.front().print(os); os.close();
 
 	cout << "Testing splitting of data using number of training data.\n";
-	pair<DataTools::DataSet, DataTools::DataSet>* trnVal =
-	    manager.split(data, config.msParamNumTrainingData());
-	trnVal->first.print(cout);
+	auto trnVal = manager.split(data, config.msParamNumTrainingData());
+	trnVal.first.print(cout);
 	cout << endl;
-	trnVal->second.print(cout);
+	trnVal.second.print(cout);
 	cout << endl;
-	delete trnVal;
 
 	cout << "Testing splitting the first of the two previous.\n";
-	trnVal = manager.split(trnVal->first, config.msParamNumTrainingData());
-	trnVal->first.print(cout);
+	trnVal = manager.split(trnVal.first, config.msParamNumTrainingData());
+	trnVal.first.print(cout);
 	cout << endl;
-	trnVal->second.print(cout);
+	trnVal.second.print(cout);
 	cout << endl;
-	delete trnVal;
 
 	cout << "Testing splitting of data using bootstrapping.\n";
 	trnVal = manager.split(data);
-	trnVal->first.print(cout);
+	trnVal.first.print(cout);
 	cout << endl;
-	trnVal->second.print(cout);
+	trnVal.second.print(cout);
 	cout << endl;
-	delete trnVal;
 
 	cout << "Testing splitting the first of the previous.\n";
-	trnVal = manager.split(trnVal->first);
-	trnVal->first.print(cout);
+	trnVal = manager.split(trnVal.first);
+	trnVal.first.print(cout);
 	cout << endl;
-	trnVal->second.print(cout);
+	trnVal.second.print(cout);
 	cout << endl;
-	delete trnVal;
 
 	cout << "Testing splitting of data using number K.\n";
-	vector<DataTools::DataSet>* datasets = manager.split(data, config.msParamK());
-	vector<DataTools::DataSet>::iterator it = datasets->begin();
-	do {
-		it->print(cout);
+	auto datasets = manager.split(data, config.msParamK());
+	for (auto& d : datasets) {
+		d.print(cout);
 		cout << "\n\n";
-	} while (++it != datasets->end());
+	}
 
 	cout << "Testing splitting the first of the previous.\n";
-	DataTools::DataSet first = datasets->front();
-	delete datasets;
+	DataTools::DataSet first = datasets.front();
 	datasets = manager.split(first, config.msParamK());
-	it = datasets->begin();
-	do {
-		it->print(cout);
+	for (auto& d : datasets) {
+		d.print(cout);
 		cout << endl << endl;
-	} while (++it != datasets->end());
+	}
 
 	cout << "Testing joining of data.\n";
-	DataTools::DataSet d = manager.join(*datasets);
+	DataTools::DataSet d = manager.join(datasets);
 	d.print(cout);
-	delete datasets;
 }
 
 void buildOutputTarget(Ensemble& committee, DataTools::DataSet& dset, vector<double>& output,

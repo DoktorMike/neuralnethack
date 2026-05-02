@@ -4,9 +4,10 @@
 #include <parser/Parser.hh>
 #include <Config.hh>
 
-#include <utility>
-#include <fstream>
 #include <cassert>
+#include <fstream>
+#include <memory>
+#include <utility>
 
 using namespace NeuralNetHack;
 using namespace std;
@@ -35,7 +36,25 @@ void parseConfAndData(const string fname, Config& config, DataTools::CoreDataSet
 	tstStream.close();
 }
 
-int main(const int argc, const char* argv[]) {
+template <class S> static bool drainSampler(S& sampler, uint expected) {
+	uint cntr = 0;
+	while (sampler.hasNext()) {
+		++cntr;
+		auto trnVal = sampler.next();
+		(void)trnVal;
+	}
+	if (cntr != expected) return false;
+	cntr = 0;
+	sampler.reset();
+	while (sampler.hasNext()) {
+		++cntr;
+		auto trnVal = sampler.next();
+		(void)trnVal;
+	}
+	return cntr == expected;
+}
+
+int main() {
 	Config config;
 	auto trnCoreData = std::make_shared<DataTools::CoreDataSet>();
 	auto tstCoreData = std::make_shared<DataTools::CoreDataSet>();
@@ -44,75 +63,17 @@ int main(const int argc, const char* argv[]) {
 	DataTools::DataSet tstData;
 	trnData.coreDataSet(trnCoreData);
 	tstData.coreDataSet(tstCoreData);
-	uint cntr = 0;
+
 	bool ok = true;
 
-	// Testing the CrossSplitSampler sampling.
-	DataTools::Sampler* sampler = new DataTools::CrossSplitSampler(trnData, 3, 5);
-	while (sampler->hasNext()) {
-		cntr++;
-		std::pair<DataTools::DataSet, DataTools::DataSet>* trnVal = sampler->next();
-		/*
-		cout<<"Printing Training set "<<cntr<<endl;
-		trnVal->first.print(cout);
-		cout<<"Printing Validation set "<<cntr++<<endl;
-		trnVal->second.print(cout);
-		*/
-		delete trnVal;
-	}
-	if (cntr != 15) ok = false;
-	cntr = 0;
-	sampler->reset();
-	while (sampler->hasNext()) {
-		cntr++;
-		std::pair<DataTools::DataSet, DataTools::DataSet>* trnVal = sampler->next();
-		delete trnVal;
-	}
-	if (cntr != 15) ok = false;
-	cntr = 0;
+	DataTools::CrossSplitSampler cs(trnData, 3, 5);
+	if (!drainSampler(cs, 15)) ok = false;
 
-	delete sampler;
+	DataTools::HoldOutSampler ho(trnData, 0.2, 15);
+	if (!drainSampler(ho, 15)) ok = false;
 
-	// Testing the HoldOutSampler sampling.
-	sampler = new DataTools::HoldOutSampler(trnData, 0.2, 15);
-	while (sampler->hasNext()) {
-		cntr++;
-		std::pair<DataTools::DataSet, DataTools::DataSet>* trnVal = sampler->next();
-		/*
-		cout<<"Printing Training set "<<cntr<<endl;
-		trnVal->first.print(cout);
-		cout<<"Printing Validation set "<<cntr<<endl;
-		trnVal->second.print(cout);
-		*/
-		delete trnVal;
-	}
-	if (cntr != 15) ok = false;
-	cntr = 0;
-	sampler->reset();
-	while (sampler->hasNext()) {
-		cntr++;
-		std::pair<DataTools::DataSet, DataTools::DataSet>* trnVal = sampler->next();
-		delete trnVal;
-	}
-	if (cntr != 15) ok = false;
-	cntr = 0;
+	DataTools::BootstrapSampler bs(trnData, 15);
+	if (!drainSampler(bs, 15)) ok = false;
 
-	delete sampler;
-
-	// Testing the BootstrapSampler sampling.
-	auto bs = std::make_unique<DataTools::BootstrapSampler>(trnData, 15);
-	while (bs->hasNext()) {
-		cntr++;
-		std::unique_ptr<std::pair<DataTools::DataSet, DataTools::DataSet>> trnVal(bs->next());
-	}
-	if (cntr != 15) ok = false;
-	cntr = 0;
-	bs->reset();
-	while (bs->hasNext()) {
-		cntr++;
-		std::unique_ptr<std::pair<DataTools::DataSet, DataTools::DataSet>> trnVal(bs->next());
-	}
-	if (cntr != 15) ok = false;
-
-	return (ok == true) ? 0 : -1;
+	return ok ? 0 : -1;
 }

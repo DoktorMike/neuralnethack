@@ -2,13 +2,6 @@
 
 ## Open follow-ups
 
-### DataManager::split still returns raw owning pointers
-`DataTools::DataManager::split(DataSet&)` returns `pair<DataSet, DataSet>*`
-and `split(DataSet&, uint k)` returns `vector<DataSet>*`. Every call site is
-now wrapping these in `unique_ptr` at the boundary, so there's no leak risk,
-but the API is the last raw-owning-pointer interface in the codebase. Convert
-to value or `unique_ptr` returns and drop the wrapper noise at the call sites.
-
 ### Residual connections — step 2 (A-plus)
 Step 1 (pre-activation sum merge from an earlier layer in the linear chain)
 shipped. Step 2 is per-layer configurable primary input, which lets a layer

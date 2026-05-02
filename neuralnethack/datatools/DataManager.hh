@@ -42,32 +42,19 @@ class DataManager {
 	 */
 	void random(bool rnd);
 
-	/**Split the DataSet into two disjuctive parts.
-	 * The split is often referred to as training and validation.
+	/**Split the DataSet into two disjuctive parts (training, validation).
 	 * \param ds the DataSet to split.
-	 * \param ratio the ratio between training and testing.
-	 * \return a pair of DataSet where first is training and second is validation.
+	 * \param ratio the fraction of patterns going to training.
 	 */
-	std::pair<DataSet, DataSet>* split(DataSet& ds, double ratio);
+	std::pair<DataSet, DataSet> split(DataSet& ds, double ratio);
 
-	/**Split the DataSet into k disjunctive parts. The reason for returning a
-	 * real vector instead of a reference is that DataSet is a rather
-	 * lightweight structure.
-	 * \param ds the DataSet to split.
-	 * \param k the number of splits.
-	 * \return a vector of the k created DataSet(s).
-	 */
-	std::vector<DataSet>* split(DataSet& ds, uint k);
+	/**Split the DataSet into k disjunctive parts. */
+	std::vector<DataSet> split(DataSet& ds, uint k);
 
-	/**Split the DataSet into two disjunctive parts by bootstrapping it.
-	 * The splitting is done by bootstrapping the DataSet which means
-	 * that the DataSet will be sampled with replacement n times where
-	 * n is the size of the DataSet. The elements that were never
-	 * sampled is left for the validation set.
-	 * \param ds the DataSet to split.
-	 * \return a pair of DataSet where first is training and second is validation.
+	/**Bootstrap split: sample-with-replacement training set, the unsampled
+	 * patterns go to validation.
 	 */
-	std::pair<DataSet, DataSet>* split(DataSet& ds);
+	std::pair<DataSet, DataSet> split(DataSet& ds);
 
 	/**Concatenate all DataSet(s) in the vector to one DataSet.
 	 * \param splits the DataSet(s) to concatenate.

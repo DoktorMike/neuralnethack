@@ -78,19 +78,17 @@ Config FeatureSelector::run(Config& config, double (*f)(Ensemble&, DataSet&)) {
 			// cerr<<"Finding optimal model"<<endl;
 			// cerr.flush();
 			//  Find optimal parameters for ensemble
-			pair<DataSet, DataSet>* sample = sampler->next();
-			DataSet trn = sample->first, val = sample->second;
-			pair<Config, double> msres = ms.findBestModel(sample->first, best);
+			auto sample = sampler->next();
+			DataSet trn = sample.first, val = sample.second;
+			pair<Config, double> msres = ms.findBestModel(sample.first, best);
 			// cerr<<"Building optimal model"<<endl;
 			// cerr.flush();
 			//  Build optimal ensemble
-			auto eb = Factory::createEnsembleBuilder(msres.first, sample->first);
+			auto eb = Factory::createEnsembleBuilder(msres.first, sample.first);
 			std::unique_ptr<Ensemble> e(eb->buildEnsemble());
-			// Calculate performance for current sample
-			double auc = (*f)(*e, sample->second);
+			double auc = (*f)(*e, sample.second);
 			storeClampingEffect(*e, val, auc, effects, f);
 			meanAuc += auc;
-			delete sample;
 		}
 		// cerr<<"Store and print performance"<<endl;
 		// cerr.flush();

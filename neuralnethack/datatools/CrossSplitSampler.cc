@@ -16,7 +16,7 @@ CrossSplitSampler::CrossSplitSampler(DataSet& data, const uint numRuns, const ui
 		cerr << "Warning: Can't do cross validation on 1 part. Resetting to 2." << endl;
 		k = 2;
 	}
-	theSplits.reset(theDataManager->split(data, k));
+	theSplits = std::make_unique<std::vector<DataSet>>(theDataManager->split(data, k));
 }
 
 CrossSplitSampler::CrossSplitSampler(const CrossSplitSampler& cv) : Sampler(*(cv.theData)) {
@@ -36,32 +36,29 @@ CrossSplitSampler& CrossSplitSampler::operator=(const CrossSplitSampler& cv) {
 	return *this;
 }
 
-pair<DataSet, DataSet>* CrossSplitSampler::next() {
-	// cout<<"BEFORE: runCntr: "<<runCntr<<" index: "<<index<<endl;
+pair<DataSet, DataSet> CrossSplitSampler::next() {
 	if (index >= k) {
 		if (++runCntr >= n) {
-			return 0;
+			return {};
 		} else {
-			// cout<<"Resetting"<<endl;
 			uint tmp = runCntr;
 			this->reset();
 			runCntr = tmp;
 		}
 	}
 	index++;
-	// cout<<"AFTER: runCntr: "<<runCntr<<" index: "<<index<<endl;
 	DataSet valData = theSplits->front();
 	theSplits->erase(theSplits->begin());
 	DataSet trnData = theDataManager->join(*theSplits);
 	theSplits->push_back(valData);
-	return new pair<DataSet, DataSet>(trnData, valData);
+	return {std::move(trnData), std::move(valData)};
 }
 
 void CrossSplitSampler::reset() {
 	index = 0;
 	runCntr = 0;
 	theDataManager = std::make_unique<DataManager>();
-	theSplits.reset(theDataManager->split(*theData, k));
+	theSplits = std::make_unique<std::vector<DataSet>>(theDataManager->split(*theData, k));
 }
 
 bool CrossSplitSampler::hasNext() const {

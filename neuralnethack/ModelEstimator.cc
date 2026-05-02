@@ -61,16 +61,15 @@ pair<double, double>* ModelEstimator::runAndEstimateModel(double (*errorFunc)(En
 	uint cntr = 1;
 	while (theSampler->hasNext()) {
 		cout << "Estimation run " << cntr++ << " of " << theSampler->howMany() << endl;
-		pair<DataSet, DataSet>* dataSets = theSampler->next();
-		DataSet& trnData = dataSets->first;
-		DataSet& valData = dataSets->second;
+		auto dataSets = theSampler->next();
+		DataSet& trnData = dataSets.first;
+		DataSet& valData = dataSets.second;
 		theEnsembleBuilder->sampler()->data(&trnData);
 		theEnsembleBuilder->sampler()->reset();
 		Ensemble* ensemble = theEnsembleBuilder->buildEnsemble();
 		theSessions.push_back(Session(std::unique_ptr<Ensemble>(ensemble),
 		                              std::make_unique<DataSet>(trnData),
 		                              std::make_unique<DataSet>(valData)));
-		delete dataSets;
 	}
 	return estimateModel(errorFunc);
 }

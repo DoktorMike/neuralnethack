@@ -62,15 +62,14 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 	cout << "Building ensemble of size " << theSampler->howMany() << endl;
 	while (theSampler->hasNext()) {
 		cout << "Building MLP " << cntr++ << " of " << theSampler->howMany() << endl;
-		pair<DataSet, DataSet>* dataSets = theSampler->next();
-		DataSet& trnData = dataSets->first;
-		DataSet& valData = dataSets->second;
+		auto dataSets = theSampler->next();
+		DataSet& trnData = dataSets.first;
+		DataSet& valData = dataSets.second;
 		auto newMlp = theTrainer->trainNew(trnData, cout);
 		ensemble->addMlp(*newMlp); // This copies the mlp.
 		theSessions.push_back(Session(std::make_unique<Ensemble>(*newMlp, 1),
 		                              std::make_unique<DataSet>(trnData),
 		                              std::make_unique<DataSet>(valData)));
-		delete dataSets;
 	}
 
 	return ensemble;

@@ -25,10 +25,9 @@ HoldOutSampler& HoldOutSampler::operator=(const HoldOutSampler& ho) {
 	return *this;
 }
 
-pair<DataSet, DataSet>* HoldOutSampler::next() {
+pair<DataSet, DataSet> HoldOutSampler::next() {
 	++index;
 	return theDataManager->split(*theData, ratio);
-	// return new pair<DataSet, DataSet>(tmp.first, tmp.second);
 }
 
 void HoldOutSampler::reset() {

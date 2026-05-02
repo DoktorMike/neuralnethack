@@ -1,12 +1,12 @@
 #include "DataManager.hh"
 
 #include <algorithm>
-#include <cmath>
 #include <cassert>
+#include <cmath>
+#include <iostream>
+#include <iterator>
 #include <numeric>
 #include <random>
-#include <fstream>
-#include <iterator>
 
 using namespace DataTools;
 using namespace std;
@@ -40,7 +40,7 @@ void DataManager::random(bool rnd) {
 	isRandom = rnd;
 }
 
-pair<DataSet, DataSet>* DataManager::split(DataSet& ds, double ratio) {
+pair<DataSet, DataSet> DataManager::split(DataSet& ds, double ratio) {
 	assert(ratio < 1.0 && ratio > 0.0);
 	uint n = ds.size();
 	uint nTraining = (uint)nearbyint(ratio * n);
@@ -50,46 +50,43 @@ pair<DataSet, DataSet>* DataManager::split(DataSet& ds, double ratio) {
 	indices = ds.indices();
 	if (isRandom) shuffle(indices.begin(), indices.end(), rng());
 
-	// Tell the dataSets which data points to use.
 	training.indices().assign(indices.begin(), indices.begin() + nTraining);
 	validation.indices().assign(indices.begin() + nTraining, indices.end());
 
-	return new pair<DataSet, DataSet>(training, validation);
+	return {std::move(training), std::move(validation)};
 }
 
-vector<DataSet>* DataManager::split(DataSet& ds, uint k) {
+vector<DataSet> DataManager::split(DataSet& ds, uint k) {
 	uint n = ds.size();
 	uint nInEachPart = n / k;
 	uint nLeft = n % k;
-	vector<DataSet>* splits = new vector<DataSet>(k);
-	assert(k > 0 && k <= n); // Probably should do better error reporting here. :-)
+	assert(k > 0 && k <= n);
 	if (k < 2) {
 		cerr << "Warning: DataManager::split(): split with k<2." << endl;
-		splits->clear();
-		splits->push_back(ds);
-		return splits;
+		return {ds};
 	}
+	vector<DataSet> splits(k);
 
 	indices = ds.indices();
 	if (isRandom) shuffle(indices.begin(), indices.end(), rng());
 
-	vector<uint> tmpIndices(0);
-	vector<uint>::iterator indexIterator = indices.begin();
-	for (uint i = 0; i < splits->size(); ++i, indexIterator += nInEachPart) {
+	vector<uint> tmpIndices;
+	auto indexIterator = indices.begin();
+	for (uint i = 0; i < splits.size(); ++i, indexIterator += nInEachPart) {
 		tmpIndices.assign(indexIterator, indexIterator + nInEachPart);
 		DataSet d(ds);
 		d.indices(tmpIndices);
-		splits->at(i) = d;
+		splits[i] = std::move(d);
 	}
 
-	vector<DataSet>::iterator splitIterator = splits->begin();
+	auto splitIterator = splits.begin();
 	for (uint i = 0; i < nLeft; ++i, ++splitIterator, ++indexIterator)
 		splitIterator->indices().push_back(*indexIterator);
 
 	return splits;
 }
 
-pair<DataSet, DataSet>* DataManager::split(DataSet& ds) {
+pair<DataSet, DataSet> DataManager::split(DataSet& ds) {
 	uint n = ds.size();
 	DataSet trn(ds);
 	DataSet val(ds);
@@ -99,7 +96,6 @@ pair<DataSet, DataSet>* DataManager::split(DataSet& ds) {
 	if (isRandom) shuffle(indices.begin(), indices.end(), rng());
 	trn.indices(indices);
 
-	// It's ok to sort here since we don't really disrupt the trnSet.
 	sort(origInd.begin(), origInd.end());
 	sort(indices.begin(), indices.end());
 	vector<uint> valInd(n);
@@ -109,7 +105,7 @@ pair<DataSet, DataSet>* DataManager::split(DataSet& ds) {
 	if (isRandom) shuffle(valInd.begin(), valInd.end(), rng());
 	val.indices(valInd);
 
-	return new pair<DataSet, DataSet>(trn, val);
+	return {std::move(trn), std::move(val)};
 }
 
 DataSet DataManager::join(vector<DataSet>& splits) {
