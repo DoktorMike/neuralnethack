@@ -1,6 +1,7 @@
 #include "EnsembleBuilder.hh"
 #include "Ensemble.hh"
 #include "PrintUtils.hh"
+#include "Random.hh"
 
 #include <cassert>
 #include <ostream>
@@ -36,6 +37,14 @@ void EnsembleBuilder::sampler(std::unique_ptr<Sampler> s) {
 	theSampler = std::move(s);
 }
 
+void EnsembleBuilder::trainerFactory(TrainerFactory f) {
+	theTrainerFactory = std::move(f);
+}
+
+void EnsembleBuilder::baseSeed(uint64_t s) {
+	theBaseSeed = s;
+}
+
 vector<Session>& EnsembleBuilder::sessions() {
 	return theSessions;
 }
@@ -58,20 +67,43 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 	Ensemble* ensemble = new Ensemble();
 	theSessions.clear();
 
-	uint cntr = 1;
-	cout << "Building ensemble of size " << theSampler->howMany() << endl;
-	while (theSampler->hasNext()) {
-		cout << "Building MLP " << cntr++ << " of " << theSampler->howMany() << endl;
-		auto dataSets = theSampler->next();
-		DataSet& trnData = dataSets.first;
-		DataSet& valData = dataSets.second;
-		auto newMlp = theTrainer->trainNew(trnData, cout);
-		ensemble->addMlp(*newMlp); // This copies the mlp.
-		theSessions.push_back(Session(std::make_unique<Ensemble>(*newMlp, 1),
-		                              std::make_unique<DataSet>(trnData),
-		                              std::make_unique<DataSet>(valData)));
+	// Drain the sampler upfront so the parallel loop has indexable input.
+	std::vector<std::pair<DataSet, DataSet>> samples;
+	while (theSampler->hasNext()) samples.push_back(theSampler->next());
+	const int N = static_cast<int>(samples.size());
+
+	cout << "Building ensemble of size " << N << endl;
+
+	std::vector<std::unique_ptr<MultiLayerPerceptron::Mlp>> trained(N);
+	std::vector<Session> sessions(N);
+
+	if (theTrainerFactory) {
+		// Parallel path: each iteration owns a fresh trainer + Mlp + Error.
+#pragma omp parallel for schedule(dynamic, 1)
+		for (int i = 0; i < N; ++i) {
+			nnh::rand::seed(theBaseSeed + static_cast<uint64_t>(i));
+			auto trainer = theTrainerFactory(samples[i].first);
+			ostringstream local;
+			trained[i] = trainer->trainNew(samples[i].first, local);
+			sessions[i] = Session(std::make_unique<Ensemble>(*trained[i], 1),
+			                      std::make_unique<DataSet>(samples[i].first),
+			                      std::make_unique<DataSet>(samples[i].second));
+#pragma omp critical
+			cout << "Built MLP " << (i + 1) << " of " << N << endl;
+		}
+	} else {
+		// Serial fallback for callers that haven't supplied a factory.
+		for (int i = 0; i < N; ++i) {
+			cout << "Building MLP " << (i + 1) << " of " << N << endl;
+			trained[i] = theTrainer->trainNew(samples[i].first, cout);
+			sessions[i] = Session(std::make_unique<Ensemble>(*trained[i], 1),
+			                      std::make_unique<DataSet>(samples[i].first),
+			                      std::make_unique<DataSet>(samples[i].second));
+		}
 	}
 
+	for (int i = 0; i < N; ++i) ensemble->addMlp(*trained[i]);
+	theSessions = std::move(sessions);
 	return ensemble;
 }
 

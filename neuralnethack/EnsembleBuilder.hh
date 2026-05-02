@@ -7,6 +7,8 @@
 #include "datatools/DataManager.hh"
 #include "datatools/Sampler.hh"
 
+#include <cstdint>
+#include <functional>
 #include <memory>
 
 namespace NeuralNetHack {
@@ -74,6 +76,27 @@ class EnsembleBuilder {
 	/**Take ownership of a Sampler. */
 	void sampler(std::unique_ptr<DataTools::Sampler> s);
 
+	/**Set a factory that returns a fresh, fully-owned Trainer for each
+	 * ensemble member. When set, `buildEnsemble` parallelises member
+	 * training; without a factory it falls back to serial training using
+	 * the single shared Trainer set via `trainer()`.
+	 *
+	 * The factory receives the per-member training DataSet. Required if
+	 * you want OpenMP-parallel ensemble training, since a single Trainer
+	 * holds mutable state (Mlp weights, Adam moments, ...) that would
+	 * race across threads.
+	 */
+	using TrainerFactory =
+	    std::function<std::unique_ptr<MultiLayerPerceptron::Trainer>(DataTools::DataSet&)>;
+	void trainerFactory(TrainerFactory f);
+
+	/**Base seed for per-member RNG seeding inside parallel buildEnsemble.
+	 * Each iteration seeds its worker's thread-local RNG with
+	 * baseSeed + member_index, so weight init is deterministic and
+	 * diverse across members regardless of thread scheduling.
+	 */
+	void baseSeed(uint64_t s);
+
 	/**Accessor for the Session vector.
 	 * \return the Session vector.
 	 */
@@ -107,6 +130,12 @@ class EnsembleBuilder {
 
 	/**Owned Sampler. */
 	std::unique_ptr<DataTools::Sampler> theSampler;
+
+	/**Optional factory for building a fresh Trainer per member. */
+	TrainerFactory theTrainerFactory;
+
+	/**Base seed for per-member RNG seeding under parallel training. */
+	uint64_t theBaseSeed{1};
 
 	/**A vector of Estimations. */
 	std::vector<Session> theSessions;

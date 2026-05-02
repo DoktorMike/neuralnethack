@@ -99,6 +99,11 @@ unique_ptr<EnsembleBuilder> Factory::createEnsembleBuilder(const Config& config,
 	auto eb = make_unique<EnsembleBuilder>();
 	eb->trainer(createTrainer(config, data));
 	eb->sampler(buildEnsembleSampler(config, data));
+	// Closure: each parallel worker builds its own trainer (and the
+	// transitive Error / Mlp) from the same Config. Captures Config by
+	// value so the lambda is safe regardless of the caller's lifetime.
+	eb->trainerFactory([config](DataSet& d) { return Factory::createTrainer(config, d); });
+	eb->baseSeed(config.seed() == 0 ? 1 : static_cast<uint64_t>(config.seed()));
 	return eb;
 }
 
