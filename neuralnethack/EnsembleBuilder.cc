@@ -46,6 +46,27 @@ void EnsembleBuilder::baseSeed(uint64_t s) {
 	theBaseSeed = s;
 }
 
+void EnsembleBuilder::learningCurvePathBase(const std::string& base) {
+	theLearningCurvePathBase = base;
+}
+const std::string& EnsembleBuilder::learningCurvePathBase() const {
+	return theLearningCurvePathBase;
+}
+
+namespace {
+// Insert "_NNN" before the last "." in `base`, or append if no extension.
+// Index is 1-based and zero-padded to 3 digits for sortable file names.
+std::string makeMemberPath(const std::string& base, int oneBasedIndex) {
+	char idx[8];
+	std::snprintf(idx, sizeof(idx), "_%03d", oneBasedIndex);
+	const auto dot = base.find_last_of('.');
+	const auto slash = base.find_last_of('/');
+	if (dot != std::string::npos && (slash == std::string::npos || dot > slash))
+		return base.substr(0, dot) + idx + base.substr(dot);
+	return base + idx;
+}
+} // namespace
+
 vector<Session>& EnsembleBuilder::sessions() {
 	return theSessions;
 }
@@ -89,6 +110,10 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 		for (int i = 0; i < N; ++i) {
 			nnh::rand::seed(theBaseSeed + static_cast<uint64_t>(i));
 			auto trainer = theTrainerFactory(samples[i].first);
+			if (!theLearningCurvePathBase.empty()) {
+				trainer->learningCurveFile(makeMemberPath(theLearningCurvePathBase, i + 1));
+				trainer->validationData(&samples[i].second);
+			}
 			ostringstream local;
 			trained[i] = trainer->trainNew(samples[i].first, local);
 			sessions[i] = Session(std::make_unique<Ensemble>(*trained[i], 1),
@@ -101,6 +126,10 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 		// Serial fallback for callers that haven't supplied a factory.
 		for (int i = 0; i < N; ++i) {
 			cout << "Building MLP " << (i + 1) << " of " << N << endl;
+			if (!theLearningCurvePathBase.empty()) {
+				theTrainer->learningCurveFile(makeMemberPath(theLearningCurvePathBase, i + 1));
+				theTrainer->validationData(&samples[i].second);
+			}
 			trained[i] = theTrainer->trainNew(samples[i].first, cout);
 			sessions[i] = Session(std::make_unique<Ensemble>(*trained[i], 1),
 			                      std::make_unique<DataSet>(samples[i].first),

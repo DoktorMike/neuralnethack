@@ -40,3 +40,6 @@ runs = 5
 parts = 1
 split = "rnd"
 vary_weights = false
+
+[output]
+learning_curve_file = "learning_curve.iris.dat"

@@ -104,6 +104,8 @@ unique_ptr<EnsembleBuilder> Factory::createEnsembleBuilder(const Config& config,
 	// value so the lambda is safe regardless of the caller's lifetime.
 	eb->trainerFactory([config](DataSet& d) { return Factory::createTrainer(config, d); });
 	eb->baseSeed(config.seed() == 0 ? 1 : static_cast<uint64_t>(config.seed()));
+	if (!config.learningCurveFile().empty())
+		eb->learningCurvePathBase(config.learningCurveFile());
 	return eb;
 }
 

@@ -209,6 +209,13 @@ class Config {
 		this->theSaveOutputList = theSaveOutputList;
 	}
 
+	/**Optional path for ensemble learning-curve files. Each member's
+	 * trainer writes `<stem>_<NNN>.<ext>`; out-of-bag split is used as
+	 * validation. Empty disables.
+	 */
+	const std::string& learningCurveFile() const { return theLearningCurveFile; }
+	void learningCurveFile(const std::string& s) { theLearningCurveFile = s; }
+
 	const uint& seed() const { return theSeed; }
 	void seed(const uint& theSeed) { this->theSeed = theSeed; }
 
@@ -323,6 +330,8 @@ class Config {
 	std::map<std::string, std::vector<double>> theVary;
 	/**Toggle wheather to save all networks in the session. */
 	bool theSaveSession;
+	/**Optional learning-curve file base path. */
+	std::string theLearningCurveFile;
 	/**The amount of information to print. */
 	uint theInfo;
 	/**Toggle whether to save all outputs from the model on each data

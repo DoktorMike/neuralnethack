@@ -343,6 +343,8 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 		config.saveOutputList(asBool(v, path, lineno));
 	else if (path == "output.info")
 		config.info(static_cast<uint>(asInt(v, path, lineno)));
+	else if (path == "output.learning_curve_file")
+		config.learningCurveFile(asString(v, path, lineno));
 	else
 		fail("unknown key '" + path + "'", lineno);
 }

@@ -97,6 +97,17 @@ class EnsembleBuilder {
 	 */
 	void baseSeed(uint64_t s);
 
+	/**Base path for per-member learning-curve files. When set, each
+	 * ensemble member's trainer writes a gnuplot-friendly file named
+	 * `<stem>_<NNN>.<ext>` (NNN = zero-padded member index, 1-based).
+	 * The member's out-of-bag DataSet (samples[i].second) is wired up
+	 * as validation so the file gets a `valErr` column too. Empty
+	 * disables. Setter on its own does nothing without a sampler that
+	 * yields meaningful out-of-bag splits (Bootstrap, CrossSplit, ...).
+	 */
+	void learningCurvePathBase(const std::string& base);
+	const std::string& learningCurvePathBase() const;
+
 	/**Accessor for the Session vector.
 	 * \return the Session vector.
 	 */
@@ -136,6 +147,9 @@ class EnsembleBuilder {
 
 	/**Base seed for per-member RNG seeding under parallel training. */
 	uint64_t theBaseSeed{1};
+
+	/**Base path for per-member learning-curve files (empty = disabled). */
+	std::string theLearningCurvePathBase;
 
 	/**A vector of Estimations. */
 	std::vector<Session> theSessions;
