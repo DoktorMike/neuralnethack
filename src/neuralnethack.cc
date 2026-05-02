@@ -106,21 +106,22 @@ void doStuffMultipleClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& 
 		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
 	} else if (config.msParamN() > 0) { // Validation
 		auto me = Factory::createModelEstimator(config, trn);
-		std::unique_ptr<pair<double, double>> auc(me->runAndEstimateModel(&ErrorMeasures::auc));
-		double trnAuc = auc->first;
-		double valAuc = auc->second;
+		std::unique_ptr<pair<double, double>> acc(
+		    me->runAndEstimateModel(&ErrorMeasures::accuracy));
+		double trnAcc = acc->first;
+		double valAcc = acc->second;
 		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Val" << endl;
-		os << setw(3) << "AUC" << setw(14) << trnAuc << setw(14) << valAuc << endl;
+		os << setw(3) << "ACC" << setw(14) << trnAcc << setw(14) << valAcc << endl;
 		sessions = me->sessions();
 		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, false);
 		if (config.saveSession() == true) saveSession(sessions, norm, best, false);
 	} else { // Training and testing
 		auto eb = Factory::createEnsembleBuilder(best, trn);
 		std::unique_ptr<Ensemble> ensemble(eb->buildEnsemble());
-		double trnAuc = ErrorMeasures::auc(*ensemble, trn);
-		double tstAuc = ErrorMeasures::auc(*ensemble, tst);
+		double trnAcc = ErrorMeasures::accuracy(*ensemble, trn);
+		double tstAcc = ErrorMeasures::accuracy(*ensemble, tst);
 		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
-		os << setw(3) << "AUC" << setw(14) << trnAuc << setw(14) << tstAuc << endl;
+		os << setw(3) << "ACC" << setw(14) << trnAcc << setw(14) << tstAcc << endl;
 		sessions = eb->sessions();
 		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
 		if (config.saveSession() == true) saveSession(sessions, norm, best, true);

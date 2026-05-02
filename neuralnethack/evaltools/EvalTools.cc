@@ -82,6 +82,28 @@ double ErrorMeasures::auc(Ensemble& committee, DataSet& data) {
 	// return roc.calcAucTrapezoidal(output, target);
 }
 
+double ErrorMeasures::accuracy(Ensemble& committee, DataSet& data) {
+	uint correct = 0;
+	for (uint i = 0; i < data.size(); ++i) {
+		Pattern& p = data.pattern(i);
+		vector<double> out = committee.propagate(p.input());
+		const vector<double>& tgt = p.output();
+		if (out.size() == 1) {
+			const uint pred = (out[0] >= 0.5) ? 1u : 0u;
+			const uint t = (tgt.front() >= 0.5) ? 1u : 0u;
+			if (pred == t) ++correct;
+		} else {
+			uint argP = 0, argT = 0;
+			for (uint j = 1; j < out.size(); ++j) {
+				if (out[j] > out[argP]) argP = j;
+				if (tgt[j] > tgt[argT]) argT = j;
+			}
+			if (argP == argT) ++correct;
+		}
+	}
+	return static_cast<double>(correct) / data.size();
+}
+
 double ErrorMeasures::gof(Ensemble& committee, DataSet& data) {
 	using EvalTools::Gof;
 	vector<double> output;

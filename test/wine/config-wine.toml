@@ -1,0 +1,42 @@
+# Wine (3-class) example. Run from this directory:
+#   ../../build/neuralnethack config-wine.toml
+# Result is written to result.wine.txt
+
+suffix = "wine"
+seed = 1
+normalization = "Z"
+problem_type = "class"
+
+[data.train]
+file = "./wine.trn.tab"
+id_col = 1
+in_cols = "2-14"
+out_cols = "15-17"
+row_range = "0"
+
+[data.test]
+file = "./wine.tst.tab"
+id_col = 1
+in_cols = "2-14"
+out_cols = "15-17"
+row_range = "0"
+
+[network]
+size = [13, 16, 3]
+activations = ["tansig", "purelin"]
+softmax = true
+error_fcn = "kullback"
+
+[training]
+method = "adam"
+max_epochs = 500
+
+[training.adam]
+learning_rate = 0.01
+
+[ensemble]
+method = "bagg"
+runs = 5
+parts = 1
+split = "rnd"
+vary_weights = false

@@ -1,0 +1,42 @@
+# Iris (3-class) example. Run from this directory:
+#   ../../build/neuralnethack config-iris.toml
+# Result is written to result.iris.txt
+
+suffix = "iris"
+seed = 1
+normalization = "Z"
+problem_type = "class"
+
+[data.train]
+file = "./iris.trn.tab"
+id_col = 1
+in_cols = "2-5"
+out_cols = "6-8"
+row_range = "0"
+
+[data.test]
+file = "./iris.tst.tab"
+id_col = 1
+in_cols = "2-5"
+out_cols = "6-8"
+row_range = "0"
+
+[network]
+size = [4, 8, 3]
+activations = ["tansig", "purelin"]
+softmax = true
+error_fcn = "kullback"
+
+[training]
+method = "adam"
+max_epochs = 500
+
+[training.adam]
+learning_rate = 0.01
+
+[ensemble]
+method = "bagg"
+runs = 5
+parts = 1
+split = "rnd"
+vary_weights = false

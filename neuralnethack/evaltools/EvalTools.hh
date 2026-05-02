@@ -69,6 +69,16 @@ double summedSquare(const std::vector<double>& output, const std::vector<double>
  */
 double auc(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
 
+/**Classification accuracy: fraction of patterns whose predicted class
+ * matches the target. Single-output is binary (threshold 0.5);
+ * multi-output is multiclass via argmax over both vectors. Use this
+ * instead of auc() when the architecture has more than one output.
+ * \param committee the ensemble of Mlp to estimate the error for.
+ * \param data the DataSet to use for error measure.
+ * \return accuracy in [0, 1].
+ */
+double accuracy(NeuralNetHack::Ensemble& committee, DataTools::DataSet& data);
+
 /**Measures the Hosmer Lemeshow goodness of fit statistics.
  * \f[\chi ^2 = \sum_{j=1}^{G}\frac{(o_j - n_j \bar{\pi}_j)^2}{ n_j \bar{\pi}_j (1 - \bar{\pi}_j)
  * }\f] Where \f$o_j\f$ is the number of observed positives in bin j, and

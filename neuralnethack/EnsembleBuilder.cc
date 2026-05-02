@@ -3,6 +3,8 @@
 #include "Random.hh"
 
 #include <cassert>
+#include <cstdlib>
+#include <iostream>
 #include <ostream>
 #include <vector>
 #include <sstream>
@@ -61,7 +63,12 @@ Ensemble* EnsembleBuilder::getEnsemble() {
 }
 
 Ensemble* EnsembleBuilder::buildEnsemble() {
-	assert(isValid());
+	if (!isValid()) {
+		std::cerr << "EnsembleBuilder: trainer or sampler not set. "
+		          << "Config is likely missing the [ensemble] section "
+		          << "(method/runs/parts/split)." << std::endl;
+		std::abort();
+	}
 
 	Ensemble* ensemble = new Ensemble();
 	theSessions.clear();
