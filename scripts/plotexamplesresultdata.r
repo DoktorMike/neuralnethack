@@ -100,6 +100,7 @@ plot_uncertainty(
     "residual_ensemble_uncertainty.csv",
     "Residual ensemble: y = x + 0.3 sin(5x)"
 )
+
 plot_uncertainty(
     "cubic_ensemble_uncertainty.csv",
     "Residual ensemble: Amini cubic y = x^3 (noise sd = 3)"
