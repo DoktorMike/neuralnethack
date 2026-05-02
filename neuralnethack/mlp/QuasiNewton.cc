@@ -84,6 +84,7 @@ void QuasiNewton::train(ostream& os) {
 		}
 		storeHistory();
 
+		recordLearningPoint(theNumEpochs - cntr, err);
 		if (cntr % 20 == 0)
 			os << setw(width) << theNumEpochs - cntr << setw(width) << err << setw(width) << alpha
 			   << endl;

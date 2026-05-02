@@ -64,6 +64,7 @@ void Adam::train(ostream& os) {
 			nrounds = 0;
 			prevErr = err;
 			err = theError->outputError(*theMlp, *theData);
+			recordLearningPoint(theNumEpochs - cntr, err);
 			if (cntr % 100 == 0)
 				os << setw(w) << theNumEpochs - cntr << setw(w) << err << setw(w) << theLearningRate
 				   << endl;

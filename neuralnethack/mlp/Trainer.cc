@@ -1,6 +1,7 @@
 #include "Trainer.hh"
 
 #include <cmath>
+#include <iostream>
 #include <ostream>
 #include <algorithm>
 
@@ -64,6 +65,49 @@ void Trainer::batchSize(uint bs) {
 	theBatchSize = bs;
 }
 
+DataSet* Trainer::validationData() const {
+	return theValData;
+}
+void Trainer::validationData(DataSet* v) {
+	theValData = v;
+}
+
+const std::string& Trainer::learningCurveFile() const {
+	return theLearningCurvePath;
+}
+void Trainer::learningCurveFile(const std::string& path) {
+	theLearningCurvePath = path;
+	theLearningCurveStream.reset();
+}
+
+void Trainer::recordLearningPoint(uint epoch, double trainErr) {
+	if (theLearningCurvePath.empty()) return;
+	if (!theLearningCurveStream) {
+		theLearningCurveStream = std::make_unique<std::ofstream>(theLearningCurvePath);
+		if (!theLearningCurveStream || !*theLearningCurveStream) {
+			std::cerr << "Trainer: cannot open learning-curve file '" << theLearningCurvePath
+			          << "'" << std::endl;
+			theLearningCurvePath.clear();
+			theLearningCurveStream.reset();
+			return;
+		}
+		*theLearningCurveStream << "# epoch  trainErr";
+		if (theValData) *theLearningCurveStream << "  valErr";
+		*theLearningCurveStream << "\n";
+	}
+	*theLearningCurveStream << epoch << "  " << trainErr;
+	if (theValData) {
+		// outputError(Mlp&, DataSet&) repoints the Error at the val data;
+		// restore to training pointers afterwards so gradient() stays correct.
+		const double valErr = theError->outputError(*theMlp, *theValData);
+		theError->mlp(*theMlp);
+		theError->dset(*theData);
+		*theLearningCurveStream << "  " << valErr;
+	}
+	*theLearningCurveStream << "\n";
+	theLearningCurveStream->flush();
+}
+
 bool Trainer::hasConverged(double ecurr, double eprev) const {
 	double change = fabs(eprev - ecurr);
 	double tol = CONVERGENCE_TOLERANCE * ecurr;
@@ -116,6 +160,11 @@ Trainer& Trainer::operator=(const Trainer& trainer) {
 		theNumEpochs = trainer.theNumEpochs;
 		theTrainingError = trainer.theTrainingError;
 		theBatchSize = trainer.theBatchSize;
+		theValData = trainer.theValData;
+		// Do not copy the learning-curve path/stream: clones must not
+		// share an output file (they would race or clobber each other).
+		theLearningCurvePath.clear();
+		theLearningCurveStream.reset();
 	}
 	return *this;
 }

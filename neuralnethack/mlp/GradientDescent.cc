@@ -74,6 +74,7 @@ void GradientDescent::train(ostream& os) {
 			nrounds = 0;
 			prevErr = err;
 			err = theError->outputError(*theMlp, *theData);
+			recordLearningPoint(theNumEpochs - cntr, err);
 			updateLearningRate(err, prevErr);
 			if (cntr % 100 == 0)
 				os << setw(w) << theNumEpochs - cntr << setw(w) << err << setw(w) << theLearningRate

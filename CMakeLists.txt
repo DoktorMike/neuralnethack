@@ -194,7 +194,7 @@ add_custom_target(nnh_examples DEPENDS ${EXAMPLES})
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)

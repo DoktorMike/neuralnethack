@@ -4,6 +4,7 @@
 #include "Error.hh"
 #include "../datatools/DataSet.hh"
 
+#include <fstream>
 #include <memory>
 #include <string>
 #include <ostream>
@@ -72,6 +73,21 @@ class Trainer {
 	 * \param bs the batch size.
 	 */
 	void batchSize(uint bs);
+
+	/**Optional validation DataSet used for the learning-curve file.
+	 * Setting this on its own does nothing; pair with learningCurveFile.
+	 */
+	void validationData(DataTools::DataSet* v);
+	DataTools::DataSet* validationData() const;
+
+	/**When set, the trainer writes a gnuplot-friendly learning-curve
+	 * file as it trains: one row per recorded epoch, columns
+	 * `epoch  trainErr` (and `valErr` when validationData is also set).
+	 * Pass an empty string to disable. Cloned trainers do not inherit
+	 * the path so they don't all clobber the same file.
+	 */
+	void learningCurveFile(const std::string& path);
+	const std::string& learningCurveFile() const;
 
 	/**Tells wether this trainer has everything it needs in order to
 	 * perform training.
@@ -143,6 +159,15 @@ class Trainer {
 	 */
 	bool hasConverged(double ecurr, double eprev) const;
 
+	/**Append one row to the learning-curve file. No-op if no path is
+	 * set. Lazy-opens the file on first call (truncating any existing
+	 * content) and writes a `# epoch  trainErr [valErr]` header. If
+	 * validationData is set, also computes and emits the val error
+	 * (restoring the Error's internal mlp/dset pointers afterwards so
+	 * subsequent gradient() calls still target the training data).
+	 */
+	void recordLearningPoint(uint epoch, double trainErr);
+
 	/**The Mlp this Trainer is using. */
 	Mlp* theMlp;
 
@@ -165,6 +190,15 @@ class Trainer {
 
 	/**The number of patterns to use every epoch. */
 	uint theBatchSize;
+
+	/**Optional non-owning pointer to a validation DataSet. */
+	DataTools::DataSet* theValData = nullptr;
+
+	/**Path for the learning-curve file. Empty = disabled. */
+	std::string theLearningCurvePath;
+
+	/**Lazy-opened stream for the learning-curve file. */
+	std::unique_ptr<std::ofstream> theLearningCurveStream;
 
   private:
 };
