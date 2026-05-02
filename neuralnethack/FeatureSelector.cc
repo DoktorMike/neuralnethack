@@ -66,7 +66,7 @@ Config FeatureSelector::run(Config& config, double (*f)(Ensemble&, DataSet&)) {
 		parseData(best, trnData, tstData);
 		// cerr<<"Create sampler"<<endl;
 		// cerr.flush();
-		Sampler* sampler = Factory::createSampler(best, trnData);
+		auto sampler = Factory::createSampler(best, trnData);
 		// cerr<<"Create effects"<<endl;
 		// cerr.flush();
 		vector<double> effects(
@@ -84,18 +84,13 @@ Config FeatureSelector::run(Config& config, double (*f)(Ensemble&, DataSet&)) {
 			// cerr<<"Building optimal model"<<endl;
 			// cerr.flush();
 			//  Build optimal ensemble
-			EnsembleBuilder* eb = Factory::createEnsembleBuilder(msres.first, sample->first);
-			Ensemble* e = eb->buildEnsemble();
+			auto eb = Factory::createEnsembleBuilder(msres.first, sample->first);
+			std::unique_ptr<Ensemble> e(eb->buildEnsemble());
 			// Calculate performance for current sample
 			double auc = (*f)(*e, sample->second);
-			// cerr<<"AUC: "<<auc<<endl;
 			storeClampingEffect(*e, val, auc, effects, f);
 			meanAuc += auc;
-
-			// Kill off some memory
 			delete sample;
-			delete eb;
-			delete e;
 		}
 		// cerr<<"Store and print performance"<<endl;
 		// cerr.flush();
@@ -140,7 +135,6 @@ Config FeatureSelector::run(Config& config, double (*f)(Ensemble&, DataSet&)) {
 		if (best.inputColumns().size() < maxFeatures) {
 			stop = true;
 		}
-		delete sampler;
 	}
 	os.close();
 	return best;

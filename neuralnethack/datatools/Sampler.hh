@@ -4,6 +4,9 @@
 #include "DataSet.hh"
 #include "DataManager.hh"
 
+#include <memory>
+#include <vector>
+
 namespace DataTools {
 class Sampler {
   public:
@@ -69,14 +72,14 @@ class Sampler {
 	 */
 	virtual Sampler& operator=(const Sampler& eb);
 
-	/**Pointer to the DataManager. */
-	DataManager* theDataManager;
+	/**Owned DataManager. */
+	std::unique_ptr<DataManager> theDataManager;
 
-	/**Pointer to the Data. */
+	/**Pointer to the Data (non-owning). */
 	DataSet* theData;
 
-	/**A vector of the splits. */
-	std::vector<DataSet>* theSplits;
+	/**Owned vector of splits. */
+	std::unique_ptr<std::vector<DataSet>> theSplits;
 
   private:
 };

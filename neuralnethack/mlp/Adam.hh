@@ -13,6 +13,11 @@ class Adam : public Trainer {
   public:
 	Adam(Mlp& mlp, DataTools::DataSet& data, Error& error, double te, uint bs, double lr = 0.001,
 	     double beta1 = 0.9, double beta2 = 0.999, double eps = 1e-8, double weightDecay = 0.0);
+
+	/**Owning constructor: takes ownership of the Error. */
+	Adam(std::unique_ptr<Error> error, DataTools::DataSet& data, double te, uint bs,
+	     double lr = 0.001, double beta1 = 0.9, double beta2 = 0.999, double eps = 1e-8,
+	     double weightDecay = 0.0);
 	~Adam();
 
 	void train(std::ostream& os) override;

@@ -23,17 +23,17 @@ using std::vector;
 // PUBLIC
 
 Trainer* EnsembleBuilder::trainer() const {
-	return theTrainer;
+	return theTrainer.get();
 }
-void EnsembleBuilder::trainer(Trainer* t) {
-	theTrainer = t;
+void EnsembleBuilder::trainer(std::unique_ptr<Trainer> t) {
+	theTrainer = std::move(t);
 }
 
 Sampler* EnsembleBuilder::sampler() const {
-	return theSampler;
+	return theSampler.get();
 }
-void EnsembleBuilder::sampler(Sampler* s) {
-	theSampler = s;
+void EnsembleBuilder::sampler(std::unique_ptr<Sampler> s) {
+	theSampler = std::move(s);
 }
 
 vector<Session>& EnsembleBuilder::sessions() {
@@ -77,24 +77,9 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 }
 
 // PROTECTED
-EnsembleBuilder::EnsembleBuilder() : theTrainer(0), theSampler(0), theSessions(0) {}
+EnsembleBuilder::EnsembleBuilder() : theTrainer(nullptr), theSampler(nullptr), theSessions() {}
 
-EnsembleBuilder::EnsembleBuilder(const EnsembleBuilder& eb) {
-	*this = eb;
-}
-
-EnsembleBuilder::~EnsembleBuilder() {
-	theSessions.clear();
-}
-
-EnsembleBuilder& EnsembleBuilder::operator=(const EnsembleBuilder& eb) {
-	if (this != &eb) {
-		theTrainer = eb.theTrainer;
-		theSampler = eb.theSampler;
-		theSessions = eb.theSessions;
-	}
-	return *this;
-}
+EnsembleBuilder::~EnsembleBuilder() = default;
 
 bool EnsembleBuilder::isValid() const {
 	return theTrainer && theTrainer->isValid() && theSampler;

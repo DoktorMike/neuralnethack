@@ -16,7 +16,7 @@ CrossSplitSampler::CrossSplitSampler(DataSet& data, const uint numRuns, const ui
 		cerr << "Warning: Can't do cross validation on 1 part. Resetting to 2." << endl;
 		k = 2;
 	}
-	theSplits = theDataManager->split(data, k);
+	theSplits.reset(theDataManager->split(data, k));
 }
 
 CrossSplitSampler::CrossSplitSampler(const CrossSplitSampler& cv) : Sampler(*(cv.theData)) {
@@ -60,13 +60,8 @@ pair<DataSet, DataSet>* CrossSplitSampler::next() {
 void CrossSplitSampler::reset() {
 	index = 0;
 	runCntr = 0;
-	if (theDataManager != 0) delete theDataManager;
-	if (theSplits != 0) {
-		theSplits->clear();
-		delete theSplits;
-	}
-	theDataManager = new DataManager();
-	theSplits = theDataManager->split(*theData, k);
+	theDataManager = std::make_unique<DataManager>();
+	theSplits.reset(theDataManager->split(*theData, k));
 }
 
 bool CrossSplitSampler::hasNext() const {

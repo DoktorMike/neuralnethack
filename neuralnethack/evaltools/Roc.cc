@@ -20,23 +20,19 @@ using std::pair;
 using std::setprecision;
 using std::vector;
 
-Roc::Roc() : theRoc(0), theAuc(0) {
-	theEval = new Evaluator();
-}
+Roc::Roc() : theRoc(), theAuc(0), theEval(std::make_unique<Evaluator>()) {}
 
-Roc::Roc(const Roc& roc) {
-	*this = roc;
-}
+Roc::Roc(const Roc& roc)
+    : theRoc(roc.theRoc), theAuc(roc.theAuc),
+      theEval(std::make_unique<Evaluator>(*roc.theEval)) {}
 
-Roc::~Roc() {
-	delete theEval;
-}
+Roc::~Roc() = default;
 
 Roc& Roc::operator=(const Roc& roc) {
 	if (this != &roc) {
 		theRoc = roc.theRoc;
 		theAuc = roc.theAuc;
-		theEval = new Evaluator(*(roc.theEval));
+		theEval = std::make_unique<Evaluator>(*roc.theEval);
 	}
 	return *this;
 }

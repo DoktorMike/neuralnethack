@@ -70,11 +70,10 @@ pair<Config, double> ModelSelector::findBestModel(DataSet& trnData, Config& conf
 /* Return the cross-validated error for a specific model */
 pair<double, double>* ModelSelector::trainAndValidateModel(DataSet& trnData, const Config& config) {
 
-	ModelEstimator* me = 0;
 	pair<double, double>* auc = 0;
 
 	if (config.msParamN() > 0) {
-		me = Factory::createModelEstimator(config, trnData);
+		auto me = Factory::createModelEstimator(config, trnData);
 		auc = me->runAndEstimateModel(&ErrorMeasures::auc);
 		// Use 632 rule if bootstrap was used.
 		if (config.msParamDataSelection() == "boot") {
@@ -84,7 +83,6 @@ pair<double, double>* ModelSelector::trainAndValidateModel(DataSet& trnData, con
 		cerr << "Can't do model selection without MSParam set" << endl;
 		abort();
 	}
-	delete me;
 	return auc;
 }
 

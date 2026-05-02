@@ -3,6 +3,7 @@
 
 #include "EvalTools.hh"
 
+#include <memory>
 #include <vector>
 #include <utility>
 #include <ostream>
@@ -121,7 +122,7 @@ class Roc {
 	double theAuc;
 
 	/**The evaluator. */
-	Evaluator* theEval;
+	std::unique_ptr<Evaluator> theEval;
 };
 
 // INLINES

@@ -55,42 +55,24 @@ class Session {
  */
 class EnsembleBuilder {
   public:
-	/**Basic constructor. */
 	EnsembleBuilder();
-
-	/**Copy constructor.
-	 * \param eb the EnsembleBuilder to copy from.
-	 */
-	EnsembleBuilder(const EnsembleBuilder& eb);
-
-	/**Assignment operator.
-	 * \param eb the EnsembleBuilder to assign from.
-	 * \return the EnsembleBuilder assigned to.
-	 */
-	virtual EnsembleBuilder& operator=(const EnsembleBuilder& eb);
-
-	/**Basic destructor. */
+	EnsembleBuilder(const EnsembleBuilder&) = delete;
+	EnsembleBuilder& operator=(const EnsembleBuilder&) = delete;
+	EnsembleBuilder(EnsembleBuilder&&) noexcept = default;
+	EnsembleBuilder& operator=(EnsembleBuilder&&) noexcept = default;
 	virtual ~EnsembleBuilder();
 
-	/**Accessor for the Trainer pointer.
-	 * \return the pointer to the Trainer.
-	 */
+	/**Accessor for the Trainer (read-only). */
 	MultiLayerPerceptron::Trainer* trainer() const;
 
-	/**Mutator for the Trainer pointer.
-	 * \param t the pointer to the Trainer to set.
-	 */
-	void trainer(MultiLayerPerceptron::Trainer* t);
+	/**Take ownership of a Trainer. */
+	void trainer(std::unique_ptr<MultiLayerPerceptron::Trainer> t);
 
-	/**Accessor for the Sampler pointer.
-	 * \return the pointer to the Sampler.
-	 */
+	/**Accessor for the Sampler (read-only). */
 	DataTools::Sampler* sampler() const;
 
-	/**Mutator for the Sampler pointer.
-	 * \param s the pointer to the Sampler to set.
-	 */
-	void sampler(DataTools::Sampler* s);
+	/**Take ownership of a Sampler. */
+	void sampler(std::unique_ptr<DataTools::Sampler> s);
 
 	/**Accessor for the Session vector.
 	 * \return the Session vector.
@@ -120,11 +102,11 @@ class EnsembleBuilder {
 	 */
 	bool isValid() const;
 
-	/**Pointer to the Trainer. */
-	MultiLayerPerceptron::Trainer* theTrainer;
+	/**Owned Trainer. */
+	std::unique_ptr<MultiLayerPerceptron::Trainer> theTrainer;
 
-	/**Pointer to the Sampler. */
-	DataTools::Sampler* theSampler;
+	/**Owned Sampler. */
+	std::unique_ptr<DataTools::Sampler> theSampler;
 
 	/**A vector of Estimations. */
 	std::vector<Session> theSessions;

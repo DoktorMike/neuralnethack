@@ -31,6 +31,12 @@ class GradientDescent : public Trainer {
 	GradientDescent(Mlp& mlp, DataTools::DataSet& data, Error& error, double te, uint bs, double lr,
 	                double dlr, double m);
 
+	/**Owning constructor: takes ownership of the Error (and via the Error,
+	 * the Mlp). Lifetimes are bundled into the trainer.
+	 */
+	GradientDescent(std::unique_ptr<Error> error, DataTools::DataSet& data, double te, uint bs,
+	                double lr, double dlr, double m);
+
 	/**Basic destructor. */
 	~GradientDescent();
 

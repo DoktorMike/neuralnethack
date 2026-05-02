@@ -47,11 +47,10 @@ void printStats(string err, double trnStats, double valStats, double tstStats) {
 /* Return the cross-validated error for a specific model */
 pair<double, double>* trainAndValidateModel(DataSet& trnData, const Config& config) {
 
-	ModelEstimator* me = 0;
 	pair<double, double>* auc = 0;
 
 	if (config.msParamN() > 0) {
-		me = Factory::createModelEstimator(config, trnData);
+		auto me = Factory::createModelEstimator(config, trnData);
 		auc = me->runAndEstimateModel(&ErrorMeasures::auc);
 		// Use 632 rule if bootstrap was used.
 		if (config.msParamDataSelection() == "boot") {
@@ -61,7 +60,6 @@ pair<double, double>* trainAndValidateModel(DataSet& trnData, const Config& conf
 		cerr << "Can't do model selection without MSParam set" << endl;
 		abort();
 	}
-	delete me;
 	return auc;
 }
 
@@ -95,8 +93,8 @@ Config findBestModel(DataSet& trnData, const Config& config) {
 }
 
 void trainAndTest(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Config& config) {
-	EnsembleBuilder* eb = Factory::createEnsembleBuilder(config, trnData);
-	Ensemble* committee = eb->buildEnsemble();
+	auto eb = Factory::createEnsembleBuilder(config, trnData);
+	std::unique_ptr<Ensemble> committee(eb->buildEnsemble());
 	double trn = ErrorMeasures::auc(*committee, trnData);
 	double tst = ErrorMeasures::auc(*committee, tstData);
 	printStats("AUC", trn, 0, tst);
@@ -107,7 +105,6 @@ void trainAndTest(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Co
 	tst = ErrorMeasures::gof(*committee, tstData);
 	printStats("GOF", trn, 0, tst);
 	vector<Session>* sessions = &(eb->sessions());
-	delete committee;
 
 	if (config.saveOutputList() == true) {
 		ofstream os;
@@ -131,8 +128,6 @@ void trainAndTest(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Co
 		PrintUtils::printXML(os, *sessions, norm, config);
 		os.close();
 	}
-
-	delete eb;
 }
 
 void parseConf(string fname, Config& config) {

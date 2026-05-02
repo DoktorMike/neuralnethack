@@ -28,6 +28,9 @@ class QuasiNewton : public Trainer {
 	 */
 	QuasiNewton(Mlp& mlp, DataTools::DataSet& data, Error& error, double te, uint bs);
 
+	/**Owning constructor: takes ownership of the Error. */
+	QuasiNewton(std::unique_ptr<Error> error, DataTools::DataSet& data, double te, uint bs);
+
 	/**Basic destructor. */
 	~QuasiNewton();
 

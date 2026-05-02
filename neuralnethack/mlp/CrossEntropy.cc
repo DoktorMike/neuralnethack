@@ -22,6 +22,9 @@ using std::vector;
 
 CrossEntropy::CrossEntropy(Mlp& mlp, DataSet& dset) : Error(mlp, dset) {}
 
+CrossEntropy::CrossEntropy(std::unique_ptr<Mlp> mlp, DataSet& dset)
+    : Error(std::move(mlp), dset) {}
+
 CrossEntropy::~CrossEntropy() {}
 
 double CrossEntropy::gradient(Mlp& mlp, DataSet& dset) {

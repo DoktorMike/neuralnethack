@@ -71,23 +71,13 @@ int testSimpleSaliency() {
 
 int testSaliency(DataSet& trnData, DataSet& tstData, Normaliser& norm, const Config& config) {
 
-	Trainer* trainer = 0;
-	Error* error = 0;
-	Mlp* mlp = 0;
-
-	trainer = Factory::createTrainer(config, trnData);
+	auto trainer = Factory::createTrainer(config, trnData);
 	trainer->train(cout);
-	error = trainer->error();
-	mlp = trainer->mlp();
+	Mlp* mlp = trainer->mlp();
 	Ensemble c(*mlp, 1);
 
 	vector<double> saliencies = Saliency::saliency(c, trnData, false);
 	Saliency::print(cout, saliencies);
-
-	delete trainer;
-	delete error;
-	delete mlp;
-
 	return 0;
 }
 

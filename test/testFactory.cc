@@ -124,16 +124,13 @@ static bool testFactoryCreateMlp() {
 	config.momentum(0.9);
 	config.weightElimOn(false);
 
-	Mlp* mlp = Factory::createMlp(config);
-	CHECK(mlp != 0, "createMlp returned null");
+	auto mlp = Factory::createMlp(config);
+	CHECK(mlp != nullptr, "createMlp returned null");
 
-	// Verify propagation works with a 2-input pattern
 	std::vector<double> input = {0.5, 0.8};
 	const std::vector<double>& output = mlp->propagate(input);
 	CHECK(output.size() == 1, "Mlp output size should be 1, got " + std::to_string(output.size()));
 	std::cout << "  PASS: Factory::createMlp works" << std::endl;
-
-	delete mlp;
 	return true;
 }
 
@@ -151,12 +148,10 @@ static bool testFactoryCreateTrainerGD() {
 	config.weightElimOn(false);
 
 	DataSet data = buildDummyDataSet();
-	Trainer* trainer = Factory::createTrainer(config, data);
+	auto trainer = Factory::createTrainer(config, data);
 	CHECK(trainer != 0, "createTrainer(gd) returned null");
 	std::cout << "  PASS: Factory::createTrainer (gd) works" << std::endl;
 
-	delete trainer->error();
-	delete trainer;
 	return true;
 }
 
@@ -176,12 +171,10 @@ static bool testFactoryCreateTrainerAdam() {
 	config.weightElimOn(false);
 
 	DataSet data = buildDummyDataSet();
-	Trainer* trainer = Factory::createTrainer(config, data);
+	auto trainer = Factory::createTrainer(config, data);
 	CHECK(trainer != 0, "createTrainer(adam) returned null");
 	std::cout << "  PASS: Factory::createTrainer (adam) works" << std::endl;
 
-	delete trainer->error();
-	delete trainer;
 	return true;
 }
 
@@ -196,12 +189,10 @@ static bool testFactoryCreateTrainerQN() {
 	config.weightElimOn(false);
 
 	DataSet data = buildDummyDataSet();
-	Trainer* trainer = Factory::createTrainer(config, data);
+	auto trainer = Factory::createTrainer(config, data);
 	CHECK(trainer != 0, "createTrainer(qn) returned null");
 	std::cout << "  PASS: Factory::createTrainer (qn) works" << std::endl;
 
-	delete trainer->error();
-	delete trainer;
 	return true;
 }
 
@@ -213,11 +204,9 @@ static bool testFactoryCreateErrorKullback() {
 	config.weightElimOn(false);
 
 	DataSet data = buildDummyDataSet();
-	Error* error = Factory::createError(config, data);
-	CHECK(error != 0, "createError(kullback) returned null");
+	auto error = Factory::createError(config, data);
+	CHECK(error != nullptr, "createError(kullback) returned null");
 	std::cout << "  PASS: Factory::createError (kullback) works" << std::endl;
-
-	delete error;
 	return true;
 }
 

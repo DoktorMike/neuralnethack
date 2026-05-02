@@ -11,11 +11,11 @@ namespace MultiLayerPerceptron {
  */
 class SummedSquare : public Error {
   public:
-	/**Basic constructor.
-	 * \param mlp the mlp to use.
-	 * \param dset the dataset to use.
-	 */
+	/**Non-owning constructor: caller keeps the Mlp alive. */
 	SummedSquare(MultiLayerPerceptron::Mlp& mlp, DataTools::DataSet& dset);
+
+	/**Owning constructor: this Error takes ownership of the Mlp. */
+	SummedSquare(std::unique_ptr<MultiLayerPerceptron::Mlp> mlp, DataTools::DataSet& dset);
 
 	/**Basic destructor. */
 	~SummedSquare();

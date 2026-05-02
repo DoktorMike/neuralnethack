@@ -100,19 +100,17 @@ int main(const int argc, const char* argv[]) {
 	delete sampler;
 
 	// Testing the BootstrapSampler sampling.
-	sampler = new DataTools::BootstrapSampler(trnData, 15);
-	while (sampler->hasNext()) {
+	auto bs = std::make_unique<DataTools::BootstrapSampler>(trnData, 15);
+	while (bs->hasNext()) {
 		cntr++;
-		std::pair<DataTools::DataSet, DataTools::DataSet>* trnVal = sampler->next();
-		delete trnVal;
+		std::unique_ptr<std::pair<DataTools::DataSet, DataTools::DataSet>> trnVal(bs->next());
 	}
 	if (cntr != 15) ok = false;
 	cntr = 0;
-	sampler->reset();
-	while (sampler->hasNext()) {
+	bs->reset();
+	while (bs->hasNext()) {
 		cntr++;
-		std::pair<DataTools::DataSet, DataTools::DataSet>* trnVal = sampler->next();
-		delete trnVal;
+		std::unique_ptr<std::pair<DataTools::DataSet, DataTools::DataSet>> trnVal(bs->next());
 	}
 	if (cntr != 15) ok = false;
 

@@ -32,8 +32,7 @@ pair<DataSet, DataSet>* BootstrapSampler::next() {
 
 void BootstrapSampler::reset() {
 	index = 0;
-	if (theDataManager != 0) delete theDataManager;
-	theDataManager = new DataManager();
+	theDataManager = std::make_unique<DataManager>();
 }
 
 bool BootstrapSampler::hasNext() const {

@@ -18,6 +18,8 @@ Mlp& Error::mlp() {
 }
 
 void Error::mlp(Mlp& mlp) {
+	// Rebinding to a borrowed Mlp; release any previously-owned one.
+	theOwnedMlp.reset();
 	theMlp = &mlp;
 }
 
@@ -56,11 +58,12 @@ void Error::weightElimW0(double w0) {
 // PROTECTED
 
 Error::Error(Mlp& mlp, DataSet& dset)
-    : theMlp(&mlp), theDset(&dset), theWeightElimOn(false), theWeightElimAlpha(0),
-      theWeightElimW0(0) {
-	std::cout << "Creating Error" << std::endl;
-	std::cout.flush();
-}
+    : theMlp(&mlp), theOwnedMlp(nullptr), theDset(&dset), theWeightElimOn(false),
+      theWeightElimAlpha(0), theWeightElimW0(0) {}
+
+Error::Error(unique_ptr<Mlp> mlp, DataSet& dset)
+    : theMlp(mlp.get()), theOwnedMlp(std::move(mlp)), theDset(&dset), theWeightElimOn(false),
+      theWeightElimAlpha(0), theWeightElimW0(0) {}
 
 double Error::weightElimGrad(double wi) const {
 	double alpha = theWeightElimAlpha;

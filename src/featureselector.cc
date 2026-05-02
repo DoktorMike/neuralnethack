@@ -61,11 +61,9 @@ pair<Ensemble, double> validateFeatures(DataSet& trn, Config& config) {
 		cout << "Finding the best model" << endl;
 		best = ms.findBestModel(trn, config);
 		cout << "Building the ensemble from best model" << endl;
-		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best.first, trn);
-		Ensemble* tmp = eb->buildEnsemble();
+		auto eb = Factory::createEnsembleBuilder(best.first, trn);
+		std::unique_ptr<Ensemble> tmp(eb->buildEnsemble());
 		ensemble = *tmp;
-		delete eb;
-		delete tmp;
 	}
 	return make_pair(ensemble, best.second);
 }

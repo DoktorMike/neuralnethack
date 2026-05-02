@@ -15,6 +15,11 @@ Adam::Adam(Mlp& mlp, DataSet& data, Error& error, double te, uint bs, double lr,
     : Trainer(mlp, data, error, te, bs), theLearningRate(lr), theBeta1(beta1), theBeta2(beta2),
       theEpsilon(eps), theWeightDecay(weightDecay), theTimestep(0) {}
 
+Adam::Adam(unique_ptr<Error> error, DataSet& data, double te, uint bs, double lr, double beta1,
+           double beta2, double eps, double weightDecay)
+    : Trainer(std::move(error), data, te, bs), theLearningRate(lr), theBeta1(beta1),
+      theBeta2(beta2), theEpsilon(eps), theWeightDecay(weightDecay), theTimestep(0) {}
+
 Adam::~Adam() {}
 
 double Adam::learningRate() const {

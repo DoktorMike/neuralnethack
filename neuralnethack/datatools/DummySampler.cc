@@ -34,8 +34,7 @@ pair<DataSet, DataSet>* DummySampler::next() {
 
 void DummySampler::reset() {
 	index = 0;
-	if (theDataManager != 0) delete theDataManager;
-	theDataManager = new DataManager();
+	theDataManager = std::make_unique<DataManager>();
 }
 
 bool DummySampler::hasNext() const {

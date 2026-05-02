@@ -13,8 +13,12 @@ using std::ostream;
 using std::unique_ptr;
 
 Trainer::Trainer(Mlp& mlp, DataSet& data, Error& error, double te, uint bs)
-    : theMlp(&mlp), theData(&data), theError(&error), theNumEpochs(0), theTrainingError(te),
-      theBatchSize(bs) {}
+    : theMlp(&mlp), theData(&data), theError(&error), theOwnedError(nullptr), theNumEpochs(0),
+      theTrainingError(te), theBatchSize(bs) {}
+
+Trainer::Trainer(unique_ptr<Error> error, DataSet& data, double te, uint bs)
+    : theMlp(&error->mlp()), theData(&data), theError(error.get()),
+      theOwnedError(std::move(error)), theNumEpochs(0), theTrainingError(te), theBatchSize(bs) {}
 
 Trainer::~Trainer() {}
 

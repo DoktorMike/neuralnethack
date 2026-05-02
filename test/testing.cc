@@ -189,7 +189,7 @@ void testMlp(MultiLayerPerceptron::Mlp* mlp, DataTools::DataSet& dset) {
 }
 
 void testTrainer(Config& config, DataTools::DataSet& trnData, DataTools::DataSet& tstData) {
-	MultiLayerPerceptron::Trainer* trainer = Factory::createTrainer(config, trnData);
+	auto trainer = Factory::createTrainer(config, trnData);
 	trainer->train(cout);
 	trainer->mlp()->printWeights(cout);
 
@@ -204,13 +204,10 @@ void testTrainer(Config& config, DataTools::DataSet& trnData, DataTools::DataSet
 	cout << "TstAUC: " << tstErrAUC << endl;
 	cout << "TstCE: " << tstErrCE << endl;
 
-	delete trainer->mlp();
-	delete trainer->error();
-	delete trainer;
 }
 
 void testEnsemble(Config& config, DataTools::DataSet& trnData, DataTools::DataSet& tstData) {
-	MultiLayerPerceptron::Trainer* trainer = Factory::createTrainer(config, trnData);
+	auto trainer = Factory::createTrainer(config, trnData);
 	trainer->train(cout);
 	Ensemble c(*(trainer->mlp()), 1);
 	MultiLayerPerceptron::Mlp* cMlp = new MultiLayerPerceptron::Mlp(*(trainer->mlp()));
@@ -218,15 +215,12 @@ void testEnsemble(Config& config, DataTools::DataSet& trnData, DataTools::DataSe
 
 	Ensemble* cCopy = new Ensemble(c);
 
-	delete trainer->mlp();
-	delete trainer->error();
-	delete trainer;
 	delete cCopy;
 	delete cMlp;
 }
 
 void testOddsRatio(Config& config, DataTools::DataSet& trnData, DataTools::DataSet& tstData) {
-	MultiLayerPerceptron::Trainer* trainer = Factory::createTrainer(config, trnData);
+	auto trainer = Factory::createTrainer(config, trnData);
 	trainer->train(cout);
 
 	cout << "Testing OddRatios." << endl;
@@ -241,9 +235,6 @@ void testOddsRatio(Config& config, DataTools::DataSet& trnData, DataTools::DataS
 		cout << "Saliency for input " << it - oddsrat.begin() << ": " << *it << endl;
 	// trainer->mlp()->printWeights(cout);
 
-	delete trainer->mlp();
-	delete trainer->error();
-	delete trainer;
 }
 
 void parseConfAndData(string fname, Config& config, DataTools::CoreDataSet& trnData,

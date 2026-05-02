@@ -118,14 +118,13 @@ class Trainer {
 	virtual std::unique_ptr<Trainer> clone() const = 0;
 
   protected:
-	/**Basic constructor.
-	 * \param mlp the Mlp to train.
-	 * \param data the DataSet to use.
-	 * \param error the Error function to use.
-	 * \param te the maximum training error allowed.
-	 * \param bs the batch size.
-	 */
+	/**Non-owning constructor: caller keeps mlp/error alive. */
 	Trainer(Mlp& mlp, DataTools::DataSet& data, Error& error, double te, uint bs);
+
+	/**Owning constructor: this Trainer takes ownership of the Error
+	 * (and transitively whatever the Error owns, like the Mlp).
+	 */
+	Trainer(std::unique_ptr<Error> error, DataTools::DataSet& data, double te, uint bs);
 
 	/**Copy constructor.
 	 * \param trainer the Trainer object to copy.
@@ -152,6 +151,11 @@ class Trainer {
 
 	/**The error function. */
 	Error* theError;
+
+	/**Optional ownership of the Error. Set when constructed via the
+	 * owning ctor; null when constructed from a reference.
+	 */
+	std::unique_ptr<Error> theOwnedError;
 
 	/**The number of epochs to train for. */
 	uint theNumEpochs;

@@ -4,6 +4,7 @@
 #include "Mlp.hh"
 #include "../datatools/DataSet.hh"
 
+#include <memory>
 #include <vector>
 
 namespace MultiLayerPerceptron {
@@ -98,11 +99,13 @@ class Error {
 	void weightElimW0(double w0);
 
   protected:
-	/**Basic constructor.
-	 * \param mlp the mlp to use.
-	 * \param dset the dataset to use.
-	 */
+	/**Non-owning constructor: caller keeps the Mlp alive. */
 	Error(MultiLayerPerceptron::Mlp& mlp, DataTools::DataSet& dset);
+
+	/**Owning constructor: Error takes ownership of the Mlp via unique_ptr.
+	 * The Mlp is destroyed with the Error.
+	 */
+	Error(std::unique_ptr<MultiLayerPerceptron::Mlp> mlp, DataTools::DataSet& dset);
 
 	/**Calculate the error for this output.
 	 * \param out the output from the MLP.
@@ -165,8 +168,15 @@ class Error {
 	void packBatch(DataTools::DataSet& dset, std::vector<double>& inputMatrix,
 	               std::vector<double>& targetMatrix) const;
 
-	/**The Mlp associated with an Error.*/
+	/**The Mlp associated with an Error. Always points at the active Mlp,
+	 * whether owned (theOwnedMlp set) or borrowed.
+	 */
 	MultiLayerPerceptron::Mlp* theMlp;
+
+	/**Optional ownership of the Mlp. Set when constructed from a
+	 * unique_ptr; null when constructed from a reference.
+	 */
+	std::unique_ptr<MultiLayerPerceptron::Mlp> theOwnedMlp;
 
 	/**The DataSet associated with an Error.*/
 	DataTools::DataSet* theDset;

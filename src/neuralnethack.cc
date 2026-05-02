@@ -22,42 +22,6 @@ using namespace DataTools;
 using namespace EvalTools;
 using namespace std;
 
-/* Return the cross-validation for a specific model */
-ModelEstimator* trainAndValidateModel(DataSet& trnData, const Config& config) {
-	ModelEstimator* me = 0;
-	if (config.msParamN() > 0) {
-		me = Factory::createModelEstimator(config, trnData);
-		pair<double, double>* tmp = me->runAndEstimateModel(&ErrorMeasures::auc);
-		delete tmp;
-	}
-	return me;
-}
-
-/* Return the cross-validation for a specific model */
-EnsembleBuilder* trainAndTestModel(DataSet& trnData, DataSet& tstData, const Config& config) {
-	EnsembleBuilder* eb = 0;
-	if (config.ensParamN() > 0) {
-		eb = Factory::createEnsembleBuilder(config, trnData);
-		Ensemble* ensemble = eb->buildEnsemble();
-		delete ensemble;
-	}
-	return eb;
-}
-
-void trainAndTestSingle(DataSet& trnData, DataSet& tstData, Normaliser& norm,
-                        const Config& config) {
-	Trainer* trainer = Factory::createTrainer(config, trnData);
-	trainer->train(cout);
-	Error* error = trainer->error();
-	Mlp* mlp = trainer->mlp();
-	Ensemble c(*mlp, 1);
-	// double aucTrn = EvalTools::ErrorMeasures::auc(c, trnData);
-	// double aucTst = EvalTools::ErrorMeasures::auc(c, tstData);
-
-	delete trainer;
-	delete error;
-	delete mlp;
-}
 
 void saveOutputList(vector<Session>& sessions, DataSet& trnData, DataSet& tstData, Config& config,
                     bool tst) {
@@ -132,8 +96,8 @@ void doStuffMultipleClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& 
 		pair<Config, double> result = ms.findBestModel(trn, config);
 		best = result.first;
 		cout << "Building the ensemble from best model" << endl;
-		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best, trn);
-		Ensemble* ensemble = eb->buildEnsemble();
+		auto eb = Factory::createEnsembleBuilder(best, trn);
+		std::unique_ptr<Ensemble> ensemble(eb->buildEnsemble());
 		double trnAuc = ErrorMeasures::crossEntropy(*ensemble, trn);
 		double tstAuc = ErrorMeasures::crossEntropy(*ensemble, tst);
 		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
@@ -141,11 +105,9 @@ void doStuffMultipleClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& 
 		sessions = eb->sessions();
 		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
 		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
-		delete eb;
-		delete ensemble;
 	} else if (config.msParamN() > 0) { // Validation
-		ModelEstimator* me = Factory::createModelEstimator(config, trn);
-		pair<double, double>* auc = me->runAndEstimateModel(&ErrorMeasures::auc);
+		auto me = Factory::createModelEstimator(config, trn);
+		std::unique_ptr<pair<double, double>> auc(me->runAndEstimateModel(&ErrorMeasures::auc));
 		double trnAuc = auc->first;
 		double valAuc = auc->second;
 		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Val" << endl;
@@ -153,11 +115,9 @@ void doStuffMultipleClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& 
 		sessions = me->sessions();
 		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, false);
 		if (config.saveSession() == true) saveSession(sessions, norm, best, false);
-		delete auc;
-		delete me;
 	} else { // Training and testing
-		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best, trn);
-		Ensemble* ensemble = eb->buildEnsemble();
+		auto eb = Factory::createEnsembleBuilder(best, trn);
+		std::unique_ptr<Ensemble> ensemble(eb->buildEnsemble());
 		double trnAuc = ErrorMeasures::auc(*ensemble, trn);
 		double tstAuc = ErrorMeasures::auc(*ensemble, tst);
 		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
@@ -165,8 +125,6 @@ void doStuffMultipleClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& 
 		sessions = eb->sessions();
 		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
 		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
-		delete eb;
-		delete ensemble;
 	}
 	os.close();
 	saveSaliencies(sessions, best);
@@ -190,8 +148,8 @@ void doStuffBinaryClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& co
 		pair<Config, double> result = ms.findBestModel(trn, config);
 		best = result.first;
 		cout << "Building the ensemble from best model" << endl;
-		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best, trn);
-		Ensemble* ensemble = eb->buildEnsemble();
+		auto eb = Factory::createEnsembleBuilder(best, trn);
+		std::unique_ptr<Ensemble> ensemble(eb->buildEnsemble());
 		double trnAuc = ErrorMeasures::auc(*ensemble, trn);
 		double tstAuc = ErrorMeasures::auc(*ensemble, tst);
 		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
@@ -199,11 +157,9 @@ void doStuffBinaryClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& co
 		sessions = eb->sessions();
 		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
 		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
-		delete eb;
-		delete ensemble;
 	} else if (config.msParamN() > 0) { // Validation
-		ModelEstimator* me = Factory::createModelEstimator(config, trn);
-		pair<double, double>* auc = me->runAndEstimateModel(&ErrorMeasures::auc);
+		auto me = Factory::createModelEstimator(config, trn);
+		std::unique_ptr<pair<double, double>> auc(me->runAndEstimateModel(&ErrorMeasures::auc));
 		double trnAuc = auc->first;
 		double valAuc = auc->second;
 		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Val" << endl;
@@ -211,11 +167,9 @@ void doStuffBinaryClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& co
 		sessions = me->sessions();
 		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, false);
 		if (config.saveSession() == true) saveSession(sessions, norm, best, false);
-		delete auc;
-		delete me;
 	} else { // Training and testing
-		EnsembleBuilder* eb = Factory::createEnsembleBuilder(best, trn);
-		Ensemble* ensemble = eb->buildEnsemble();
+		auto eb = Factory::createEnsembleBuilder(best, trn);
+		std::unique_ptr<Ensemble> ensemble(eb->buildEnsemble());
 		double trnAuc = ErrorMeasures::auc(*ensemble, trn);
 		double tstAuc = ErrorMeasures::auc(*ensemble, tst);
 		os << setw(3) << " " << setw(14) << "Trn" << setw(14) << "Tst" << endl;
@@ -223,8 +177,6 @@ void doStuffBinaryClass(DataSet& trn, DataSet& tst, Normaliser& norm, Config& co
 		sessions = eb->sessions();
 		if (config.saveOutputList() == true) saveOutputList(sessions, trn, tst, best, true);
 		if (config.saveSession() == true) saveSession(sessions, norm, best, true);
-		delete eb;
-		delete ensemble;
 	}
 	os.close();
 	saveSaliencies(sessions, best);

@@ -16,11 +16,11 @@ namespace MultiLayerPerceptron {
  */
 class CrossEntropy : public Error {
   public:
-	/**Basic constructor.
-	 * \param mlp the mlp to use.
-	 * \param dset the dataset to use.
-	 */
+	/**Non-owning constructor: caller keeps the Mlp alive. */
 	CrossEntropy(MultiLayerPerceptron::Mlp& mlp, DataTools::DataSet& dset);
+
+	/**Owning constructor: this Error takes ownership of the Mlp. */
+	CrossEntropy(std::unique_ptr<MultiLayerPerceptron::Mlp> mlp, DataTools::DataSet& dset);
 
 	/**Basic destructor. */
 	~CrossEntropy();

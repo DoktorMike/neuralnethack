@@ -17,6 +17,11 @@ GradientDescent::GradientDescent(Mlp& mlp, DataSet& data, Error& error, double t
     : Trainer(mlp, data, error, te, bs), theLearningRate(lr), theDecLearningRate(dlr),
       theMomentum(m) {}
 
+GradientDescent::GradientDescent(std::unique_ptr<Error> error, DataSet& data, double te, uint bs,
+                                 double lr, double dlr, double m)
+    : Trainer(std::move(error), data, te, bs), theLearningRate(lr), theDecLearningRate(dlr),
+      theMomentum(m) {}
+
 GradientDescent::~GradientDescent() {}
 
 double GradientDescent::learningRate() const {

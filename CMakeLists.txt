@@ -185,12 +185,8 @@ foreach(test ${TESTS})
         COMMAND ${test}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test
     )
-    if(NNH_ASAN)
-        # LSan catches a handful of pre-existing leaks in the Sampler /
-        # DataManager raw-pointer APIs that are out of scope here. Disable
-        # leak detection in the test runs; ASan still catches
-        # use-after-free / OOB / UBSan still catches signed overflow etc.
-        set_tests_properties(${test} PROPERTIES
-            ENVIRONMENT "ASAN_OPTIONS=detect_leaks=0")
-    endif()
+    # ASan + UBSan + LSan all on under NNH_ASAN; default ENVIRONMENT is fine
+    # since the Factory ownership graph is unique_ptr and the remaining raw
+    # owning pointers (DataManager::split, BootstrapSampler::reset) are
+    # cleaned up at object destruction.
 endforeach()

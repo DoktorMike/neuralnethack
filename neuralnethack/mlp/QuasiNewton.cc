@@ -42,6 +42,9 @@ static float maxarg1, maxarg2;
 QuasiNewton::QuasiNewton(Mlp& mlp, DataSet& data, Error& error, double te, uint bs)
     : Trainer(mlp, data, error, te, bs), nWeights(0), historyCount(0), historyStart(0) {}
 
+QuasiNewton::QuasiNewton(std::unique_ptr<Error> error, DataSet& data, double te, uint bs)
+    : Trainer(std::move(error), data, te, bs), nWeights(0), historyCount(0), historyStart(0) {}
+
 QuasiNewton::~QuasiNewton() {}
 
 void QuasiNewton::train(ostream& os) {

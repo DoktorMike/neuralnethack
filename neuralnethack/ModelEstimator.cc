@@ -11,29 +11,24 @@ using namespace std;
 
 // PUBLIC
 
-ModelEstimator::ModelEstimator() : theEnsembleBuilder(0), theSampler(0), theSessions(0) {}
+ModelEstimator::ModelEstimator() : theEnsembleBuilder(nullptr), theSampler(nullptr), theSessions() {}
 
-ModelEstimator::ModelEstimator(EnsembleBuilder& eb, Sampler& s)
-    : theEnsembleBuilder(&eb), theSampler(&s), theSessions(0) {}
-
-ModelEstimator::~ModelEstimator() {
-	theSessions.clear();
-}
+ModelEstimator::~ModelEstimator() = default;
 
 // ACCESSOR AND MUTATOR
 
 EnsembleBuilder* ModelEstimator::ensembleBuilder() {
-	return theEnsembleBuilder;
+	return theEnsembleBuilder.get();
 }
-void ModelEstimator::ensembleBuilder(EnsembleBuilder* eb) {
-	theEnsembleBuilder = eb;
+void ModelEstimator::ensembleBuilder(std::unique_ptr<EnsembleBuilder> eb) {
+	theEnsembleBuilder = std::move(eb);
 }
 
 Sampler* ModelEstimator::sampler() {
-	return theSampler;
+	return theSampler.get();
 }
-void ModelEstimator::sampler(Sampler* s) {
-	theSampler = s;
+void ModelEstimator::sampler(std::unique_ptr<Sampler> s) {
+	theSampler = std::move(s);
 }
 
 vector<Session>& ModelEstimator::sessions() {
