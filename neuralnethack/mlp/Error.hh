@@ -162,16 +162,16 @@ class Error {
 
 	/**Pack a DataSet into the Error's reusable [B x n_in] and [B x n_out]
 	 * buffers (row-major). Buffers persist across calls so repeated
-	 * gradient() invocations don't allocate.
+	 * gradient()/outputError() invocations don't allocate.
 	 * \param dset the DataSet to pack.
 	 */
-	void packBatch(DataTools::DataSet& dset);
+	void packBatch(DataTools::DataSet& dset) const;
 
 	/**Reusable batch input buffer, populated by packBatch. */
-	std::vector<double> theInputMatrix;
+	mutable std::vector<double> theInputMatrix;
 
 	/**Reusable batch target buffer, populated by packBatch. */
-	std::vector<double> theTargetMatrix;
+	mutable std::vector<double> theTargetMatrix;
 
 	/**The Mlp associated with an Error. Always points at the active Mlp,
 	 * whether owned (theOwnedMlp set) or borrowed.

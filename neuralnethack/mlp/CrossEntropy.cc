@@ -170,13 +170,28 @@ double CrossEntropy::outputError(Mlp& mlp, DataSet& dset) {
 
 double CrossEntropy::outputError() const {
 	assert(theDset != 0 && theMlp != 0);
-	double err = 0;
-	uint bs = theDset->size();
+	const uint bs = theDset->size();
+	const uint nOut = theMlp->layer(theMlp->nLayers() - 1).nNeurons();
 
-	for (uint i = 0; i < bs; ++i) {
-		Pattern& p = theDset->pattern(i);
-		const vector<double>& output = theMlp->propagate(p.input());
-		err += outputError(output, p.output());
+	packBatch(*theDset);
+	const double* o = theMlp->propagateBatch(theInputMatrix.data(), bs);
+	const double* t = theTargetMatrix.data();
+
+	const double power = -20;
+	const double tiny = exp(power);
+	double err = 0;
+	for (uint b = 0; b < bs; ++b) {
+		if (nOut == 1) {
+			if (t[b] == 0.0)
+				err += (1.0 - o[b] > tiny) ? log(1.0 - o[b]) : power;
+			else
+				err += (o[b] > tiny) ? log(o[b]) : power;
+		} else {
+			for (uint j = 0; j < nOut; ++j) {
+				const uint idx = b * nOut + j;
+				if (t[idx] != 0.0) err += (o[idx] > tiny) ? log(o[idx]) : power;
+			}
+		}
 	}
 	return -err / bs;
 }

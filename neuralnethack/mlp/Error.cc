@@ -119,7 +119,7 @@ double Error::weightElim() const {
 	return we;
 }
 
-void Error::packBatch(DataSet& dset) {
+void Error::packBatch(DataSet& dset) const {
 	const uint B = dset.size();
 	const uint n_in = dset.nInput();
 	const uint n_out = dset.nOutput();

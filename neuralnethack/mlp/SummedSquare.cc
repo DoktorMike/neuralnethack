@@ -175,13 +175,17 @@ double SummedSquare::outputError(Mlp& mlp, DataSet& dset) {
 
 double SummedSquare::outputError() const {
 	assert(theDset != 0 && theMlp != 0);
-	double err = 0;
-	uint bs = theDset->size();
+	const uint bs = theDset->size();
+	const uint nOut = theMlp->layer(theMlp->nLayers() - 1).nNeurons();
 
-	for (uint i = 0; i < bs; ++i) {
-		Pattern& p = theDset->pattern(i);
-		vector<double> output = theMlp->propagate(p.input());
-		err += outputError(output, p.output());
+	packBatch(*theDset);
+	const double* o = theMlp->propagateBatch(theInputMatrix.data(), bs);
+	const double* t = theTargetMatrix.data();
+
+	double err = 0;
+	for (uint i = 0; i < bs * nOut; ++i) {
+		double d = t[i] - o[i];
+		err += d * d;
 	}
 	return err / (double)bs;
 }
