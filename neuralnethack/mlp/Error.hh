@@ -160,13 +160,18 @@ class Error {
 	 */
 	double weightElim() const;
 
-	/**Pack a DataSet into contiguous row-major batch matrices.
+	/**Pack a DataSet into the Error's reusable [B x n_in] and [B x n_out]
+	 * buffers (row-major). Buffers persist across calls so repeated
+	 * gradient() invocations don't allocate.
 	 * \param dset the DataSet to pack.
-	 * \param inputMatrix output: resized to [B x n_in].
-	 * \param targetMatrix output: resized to [B x n_out].
 	 */
-	void packBatch(DataTools::DataSet& dset, std::vector<double>& inputMatrix,
-	               std::vector<double>& targetMatrix) const;
+	void packBatch(DataTools::DataSet& dset);
+
+	/**Reusable batch input buffer, populated by packBatch. */
+	std::vector<double> theInputMatrix;
+
+	/**Reusable batch target buffer, populated by packBatch. */
+	std::vector<double> theTargetMatrix;
 
 	/**The Mlp associated with an Error. Always points at the active Mlp,
 	 * whether owned (theOwnedMlp set) or borrowed.

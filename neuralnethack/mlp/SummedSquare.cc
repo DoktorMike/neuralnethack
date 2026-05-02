@@ -42,12 +42,11 @@ double SummedSquare::gradient() {
 	const uint bs = theDset->size();
 	const uint nOut = theMlp->layer(theMlp->nLayers() - 1).nNeurons();
 
-	// Pack dataset into contiguous batch matrices
-	vector<double> inputMatrix, targetMatrix;
-	packBatch(*theDset, inputMatrix, targetMatrix);
+	// Pack dataset into reusable Error-owned batch matrices
+	packBatch(*theDset);
 
 	// Batch forward pass (one GEMM per layer)
-	const double* batchOut = theMlp->propagateBatch(inputMatrix.data(), bs);
+	const double* batchOut = theMlp->propagateBatch(theInputMatrix.data(), bs);
 
 	// Per-layer accumulator for skip-connection deltas. skipDelta[s] holds
 	// the sum of post-derivative deltas flowing back to layer s through
@@ -63,7 +62,7 @@ double SummedSquare::gradient() {
 	last.batchLocalGradients().resize(bs * nOut);
 	{
 		double* delta = last.batchLocalGradients().data();
-		const double* t = targetMatrix.data();
+		const double* t = theTargetMatrix.data();
 		const double* o = batchOut;
 		for (uint i = 0; i < bs * nOut; ++i)
 			delta[i] = t[i] - o[i];
@@ -132,7 +131,7 @@ double SummedSquare::gradient() {
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)
-	(*theMlp)[0].accumulateGradientsBatch(inputMatrix.data(), bs);
+	(*theMlp)[0].accumulateGradientsBatch(theInputMatrix.data(), bs);
 	for (uint l = 1; l < theMlp->nLayers(); ++l)
 		(*theMlp)[l].accumulateGradientsBatch((*theMlp)[l - 1].batchOutputs().data(), bs);
 
@@ -140,7 +139,7 @@ double SummedSquare::gradient() {
 	double err = 0;
 	{
 		const double* o = batchOut;
-		const double* t = targetMatrix.data();
+		const double* t = theTargetMatrix.data();
 		for (uint b = 0; b < bs; ++b)
 			for (uint j = 0; j < nOut; ++j) {
 				double diff = t[b * nOut + j] - o[b * nOut + j];
