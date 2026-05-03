@@ -1,12 +1,60 @@
 #include "Random.hh"
+#include "datatools/CoreDataSet.hh"
+#include "datatools/DataSet.hh"
+#include "datatools/Pattern.hh"
+#include "mlp/Adam.hh"
 #include "mlp/Mlp.hh"
-#include <iostream>
-#include <vector>
-#include <string>
+#include "mlp/SummedSquare.hh"
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
 using namespace MultiLayerPerceptron;
+using namespace DataTools;
+
+namespace {
+
+// Tiny XOR DataSet -- just enough to drive forward + backward through
+// each activation layer so the gradient/derivative paths are exercised
+// (otherwise gcov reports ~6% on Linear/ELU/LeakyReLU layers).
+DataSet buildXor() {
+	auto core = std::make_shared<CoreDataSet>();
+	double in_[][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+	double out_[][1] = {{0}, {1}, {1}, {0}};
+	for (int i = 0; i < 4; ++i) {
+		std::vector<double> in(in_[i], in_[i] + 2);
+		std::vector<double> out(out_[i], out_[i] + 1);
+		core->addPattern(Pattern(std::to_string(i), in, out));
+	}
+	DataSet ds;
+	ds.coreDataSet(core);
+	return ds;
+}
+
+bool trainBriefly(const std::string& act) {
+	srand(7);
+	nnh::rand::seed(7);
+	DataSet data = buildXor();
+	std::vector<uint> arch = {2, 4, 1};
+	std::vector<std::string> types = {act, "logsig"};
+	Mlp mlp(arch, types, false);
+	SummedSquare loss(mlp, data);
+	Adam opt(mlp, data, loss, 0.0, 4, 0.05);
+	opt.numEpochs(50);
+	std::ostringstream sink;
+	opt.train(sink);
+	for (uint i = 0; i < data.size(); ++i) {
+		const auto& y = mlp.propagate(data.pattern(i).input());
+		if (!std::isfinite(y[0])) return false;
+	}
+	return true;
+}
+
+} // namespace
 
 int main() {
 	const std::vector<std::string> activations = {"logsig", "tansig",    "purelin",
@@ -58,6 +106,13 @@ int main() {
 		}
 
 		std::cout << "  clone output = " << cloneOutput[0] << " (match)" << std::endl;
+
+		if (!trainBriefly(act)) {
+			std::cerr << "  FAIL: training step produced non-finite output for " << act << std::endl;
+			pass = false;
+			continue;
+		}
+		std::cout << "  trained 50 epochs (OK)" << std::endl;
 	}
 
 	if (pass) {
