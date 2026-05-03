@@ -108,7 +108,8 @@ int main() {
 		std::cout << "  clone output = " << cloneOutput[0] << " (match)" << std::endl;
 
 		if (!trainBriefly(act)) {
-			std::cerr << "  FAIL: training step produced non-finite output for " << act << std::endl;
+			std::cerr << "  FAIL: training step produced non-finite output for " << act
+			          << std::endl;
 			pass = false;
 			continue;
 		}
