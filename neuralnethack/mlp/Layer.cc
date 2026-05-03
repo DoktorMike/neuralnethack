@@ -200,7 +200,8 @@ void Layer::printGradients(ostream& os) const {
 void Layer::regenerateWeights() {
 	const uint stride = nprev + 1;
 	if (theInitScheme == InitScheme::LegacyUniform) {
-		for (auto& w : theWeights) w = 0.5 - nnh::rand::uniform();
+		for (auto& w : theWeights)
+			w = 0.5 - nnh::rand::uniform();
 		return;
 	}
 	// Per-activation Xavier-family init. Saturating activations get Glorot
@@ -295,12 +296,14 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 	// the inner loop over j has unit-stride loads on both sides; the
 	// stride-load wt[j*stride+nprev] otherwise blocks vectorisation.
 	theBiasBuf.resize(ncurr);
-	for (uint j = 0; j < ncurr; ++j) theBiasBuf[j] = wt[j * stride + nprev];
+	for (uint j = 0; j < ncurr; ++j)
+		theBiasBuf[j] = wt[j * stride + nprev];
 	for (uint b = 0; b < B; ++b) {
 		double* row = out + b * ncurr;
 		const double* bias = theBiasBuf.data();
 #pragma omp simd
-		for (uint j = 0; j < ncurr; ++j) row[j] += bias[j];
+		for (uint j = 0; j < ncurr; ++j)
+			row[j] += bias[j];
 	}
 #else
 	for (uint b = 0; b < B; ++b) {
@@ -448,9 +451,11 @@ void Layer::accumulateGradientsBatch(const double* input, uint B) {
 	for (uint b = 0; b < B; ++b) {
 		const double* drow = delta + b * ncurr;
 #pragma omp simd
-		for (uint i = 0; i < ncurr; ++i) bias_acc[i] += drow[i];
+		for (uint i = 0; i < ncurr; ++i)
+			bias_acc[i] += drow[i];
 	}
-	for (uint i = 0; i < ncurr; ++i) grad[i * stride + nprev] += bias_acc[i];
+	for (uint i = 0; i < ncurr; ++i)
+		grad[i * stride + nprev] += bias_acc[i];
 }
 
 void Layer::applyNormBackwardBatch(uint B) {
