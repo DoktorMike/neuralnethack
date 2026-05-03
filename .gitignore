@@ -107,3 +107,4 @@ coverage-report/
 # coverage-badge.svg is tracked (committed by CI)
 build-asan/
 *.csv
+.claude/
