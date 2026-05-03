@@ -377,6 +377,11 @@ class Layer {
 	/**Batch local gradients: row-major [B x ncurr]. */
 	std::vector<double> theBatchLocalGradients;
 
+	/**Reusable scratch for vectorised bias add / bias-gradient column sum.
+	 * Size = ncurr; lazily resized per call.
+	 */
+	mutable std::vector<double> theBiasBuf;
+
 	// --- Normalization state ---
 	NormType theNormType;
 	std::vector<double> theGamma;
