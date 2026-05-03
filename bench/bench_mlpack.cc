@@ -70,8 +70,15 @@ int main(int argc, char** argv) {
 		net.Add<mlpack::Linear>(1);
 		net.Add<mlpack::Sigmoid>();
 
+		// ensmallen counts maxIterations in batch steps, not in samples,
+		// so for `epochs` passes over the data we need
+		// epochs * ceil(n_train / batch) iterations -- not epochs *
+		// n_train, which would silently train ~n_train / batch times
+		// longer than the other harnesses and inflate accuracy.
+		const std::size_t batches_per_epoch =
+		    (Xtrn.n_cols + static_cast<std::size_t>(batch) - 1) / static_cast<std::size_t>(batch);
 		ens::Adam optimiser(0.01, batch, 0.9, 0.999, 1e-8,
-		                    static_cast<std::size_t>(epochs) * Xtrn.n_cols, 1e-8, true);
+		                    static_cast<std::size_t>(epochs) * batches_per_epoch, 1e-8, true);
 
 		const auto t0 = bench::clk::now();
 		net.Train(Xtrn, Ytrn, optimiser);
