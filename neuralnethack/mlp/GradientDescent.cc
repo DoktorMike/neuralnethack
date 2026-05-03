@@ -54,6 +54,7 @@ void GradientDescent::train(ostream& os) {
 		theBatchSize = theData->size();
 	}
 
+	resetEarlyStopping();
 	double origLearnRate = theLearningRate; // Save the learning rate
 	double err = theError->outputError(*theMlp, *theData);
 	double prevErr = err + 1;
@@ -79,6 +80,7 @@ void GradientDescent::train(ostream& os) {
 			if (cntr % 100 == 0)
 				os << setw(w) << theNumEpochs - cntr << setw(w) << err << setw(w) << theLearningRate
 				   << endl;
+			if (earlyStopCheck()) break;
 		}
 	} while (cntr && !hasConverged(err, prevErr));
 	os << setw(w) << theNumEpochs - cntr << setw(w) << err << setw(w) << theLearningRate << endl;

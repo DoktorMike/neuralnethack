@@ -40,6 +40,7 @@ void QuasiNewton::train(ostream& os) {
 	theError->mlp(*theMlp);
 	theError->dset(*theData);
 	resetVectors();
+	resetEarlyStopping();
 
 	double err = 10;
 	double prevErr = 100;
@@ -88,6 +89,7 @@ void QuasiNewton::train(ostream& os) {
 		if (cntr % 20 == 0)
 			os << setw(width) << theNumEpochs - cntr << setw(width) << err << setw(width) << alpha
 			   << endl;
+		if (earlyStopCheck()) break;
 	}
 	os << setw(width) << theNumEpochs - cntr << setw(width) << err << setw(width) << alpha << endl;
 }

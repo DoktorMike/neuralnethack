@@ -2,11 +2,6 @@
 
 ## Worth doing (fits mission, cheap)
 
-### Early stopping on validation loss
-Learning-curve infra is in place. Add a "stop if val hasn't improved in N
-epochs" check inside the trainer loop. ~30 LOC. Every practitioner expects
-it. Removes the current dependency on hand-tuning epoch count.
-
 ### Class weights / sample weights in cross-entropy
 Real tabular data is rarely balanced (Pima already isn't). Currently the
 only fix is resampling. Add `theError->classWeights({...})` that scales the

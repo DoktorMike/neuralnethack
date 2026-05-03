@@ -45,6 +45,7 @@ void Adam::train(ostream& os) {
 		theTimestep = 0;
 	}
 
+	resetEarlyStopping();
 	double err = theError->outputError(*theMlp, *theData);
 	double prevErr = err + 1;
 	uint cntr = theNumEpochs;
@@ -68,6 +69,7 @@ void Adam::train(ostream& os) {
 			if (cntr % 100 == 0)
 				os << setw(w) << theNumEpochs - cntr << setw(w) << err << setw(w) << theLearningRate
 				   << endl;
+			if (earlyStopCheck()) break;
 		}
 	} while (cntr && !hasConverged(err, prevErr));
 	os << setw(w) << theNumEpochs - cntr << setw(w) << err << setw(w) << theLearningRate << endl;

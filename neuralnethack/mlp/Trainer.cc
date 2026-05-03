@@ -1,7 +1,10 @@
 #include "Trainer.hh"
+#include "Layer.hh"
+#include "Mlp.hh"
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <ostream>
 #include <algorithm>
 
@@ -106,6 +109,76 @@ void Trainer::recordLearningPoint(uint epoch, double trainErr) {
 	}
 	*theLearningCurveStream << "\n";
 	theLearningCurveStream->flush();
+}
+
+void Trainer::earlyStopping(uint patience, double minDelta) {
+	theEsPatience = patience;
+	theEsMinDelta = minDelta;
+}
+
+void Trainer::resetEarlyStopping() {
+	theEsBestVal = std::numeric_limits<double>::infinity();
+	theEsStaleEpochs = 0;
+	theEsHasBest = false;
+	theEsTriggered = false;
+	theEsBestW.clear();
+	theEsBestGammas.clear();
+	theEsBestBetas.clear();
+}
+
+void Trainer::snapshotBestWeights() {
+	if (!theMlp) return;
+	theEsBestW = theMlp->weights();
+	const uint nL = theMlp->nLayers();
+	theEsBestGammas.assign(nL, {});
+	theEsBestBetas.assign(nL, {});
+	for (uint i = 0; i < nL; ++i) {
+		Layer& l = theMlp->layer(i);
+		if (l.normType() != NormType::None) {
+			theEsBestGammas[i] = l.gamma();
+			theEsBestBetas[i] = l.beta();
+		}
+	}
+	theEsHasBest = true;
+}
+
+void Trainer::restoreBestWeights() {
+	if (!theEsHasBest || !theMlp) return;
+	theMlp->weights(theEsBestW);
+	const uint nL = theMlp->nLayers();
+	for (uint i = 0; i < nL && i < theEsBestGammas.size(); ++i) {
+		Layer& l = theMlp->layer(i);
+		if (l.normType() != NormType::None && !theEsBestGammas[i].empty()) {
+			l.gamma() = theEsBestGammas[i];
+			l.beta() = theEsBestBetas[i];
+		}
+	}
+}
+
+bool Trainer::earlyStopCheck() {
+	if (theEsPatience == 0 || theValData == nullptr || theMlp == nullptr ||
+	    theError == nullptr)
+		return false;
+
+	const double valErr = theError->outputError(*theMlp, *theValData);
+	// outputError(Mlp&, DataSet&) repoints Error at val data; restore for
+	// downstream gradient() calls.
+	theError->mlp(*theMlp);
+	theError->dset(*theData);
+
+	if (valErr < theEsBestVal - theEsMinDelta) {
+		theEsBestVal = valErr;
+		theEsStaleEpochs = 0;
+		snapshotBestWeights();
+		return false;
+	}
+	++theEsStaleEpochs;
+	if (theEsStaleEpochs >= theEsPatience) {
+		theEsTriggered = true;
+		restoreBestWeights();
+		return true;
+	}
+	return false;
 }
 
 bool Trainer::hasConverged(double ecurr, double eprev) const {

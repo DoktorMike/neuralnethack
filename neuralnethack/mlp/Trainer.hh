@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <ostream>
+#include <vector>
 
 namespace MultiLayerPerceptron {
 /**A base class representing the training of an MLP. */
@@ -89,6 +90,18 @@ class Trainer {
 	void learningCurveFile(const std::string& path);
 	const std::string& learningCurveFile() const;
 
+	/**Enable validation-loss early stopping. Training stops if the
+	 * validation loss has not improved by more than `minDelta` for
+	 * `patience` consecutive recorded epochs, and the MLP weights
+	 * (including norm params) are restored to the best-val-loss
+	 * snapshot. patience=0 disables (default). Requires
+	 * validationData to be set; silently no-ops otherwise.
+	 */
+	void earlyStopping(uint patience, double minDelta = 0.0);
+	uint earlyStoppingPatience() const { return theEsPatience; }
+	double earlyStoppingMinDelta() const { return theEsMinDelta; }
+	bool earlyStopped() const { return theEsTriggered; }
+
 	/**Tells wether this trainer has everything it needs in order to
 	 * perform training.
 	 * \return true if everything is ready, false if something is missing.
@@ -168,6 +181,19 @@ class Trainer {
 	 */
 	void recordLearningPoint(uint epoch, double trainErr);
 
+	/**Reset the early-stopping bookkeeping. Subclasses must call this
+	 * once at the top of their train() implementation. No-op when
+	 * patience=0.
+	 */
+	void resetEarlyStopping();
+
+	/**Update early-stopping state with the current epoch's validation
+	 * loss (computed lazily if val data is set). Returns true iff the
+	 * subclass should break out of its training loop. When it does,
+	 * the best-snapshot weights are automatically restored.
+	 */
+	bool earlyStopCheck();
+
 	/**The Mlp this Trainer is using. */
 	Mlp* theMlp;
 
@@ -200,7 +226,20 @@ class Trainer {
 	/**Lazy-opened stream for the learning-curve file. */
 	std::unique_ptr<std::ofstream> theLearningCurveStream;
 
+	/**Early-stopping config + state. */
+	uint theEsPatience = 0;
+	double theEsMinDelta = 0.0;
+	double theEsBestVal = 0.0;
+	uint theEsStaleEpochs = 0;
+	bool theEsHasBest = false;
+	bool theEsTriggered = false;
+	std::vector<double> theEsBestW;
+	std::vector<std::vector<double>> theEsBestGammas;
+	std::vector<std::vector<double>> theEsBestBetas;
+
   private:
+	void snapshotBestWeights();
+	void restoreBestWeights();
 };
 } // namespace MultiLayerPerceptron
 #endif
