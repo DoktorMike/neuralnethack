@@ -12,35 +12,20 @@
 #ifndef NEURALNETHACK_AMALGAMATED_HH
 #define NEURALNETHACK_AMALGAMATED_HH
 
-// ---- system includes (deduped) -------------------------------
-#include <algorithm>
-#include <cassert>
-#include <cblas.h>
-#include <cctype>
-#include <cmath>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <functional>
-#include <iomanip>
-#include <iostream>
-#include <istream>
-#include <iterator>
-#include <limits>
-#include <map>
-#include <memory>
-#include <numeric>
-#include <ostream>
-#include <random>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <utility>
-#include <vector>
+// System includes are kept inline at each header / source where they
+// originally appeared, including ones inside #ifdef USE_BLAS or other
+// preprocessor blocks. Duplicates are harmless (every standard header
+// has its own guard), and this preserves the original conditionality
+// so building without optional deps (BLAS, OpenMP) still works.
 
 // ---- declarations --------------------------------------------
 // ===== Config.hh =====
+#include <string>
+#include <vector>
+#include <map>
+#include <ostream>
+#include <cstdlib>
+
 namespace NeuralNetHack {
 /**An enum representing the different options for Error functions */
 enum ErrorFuncType { SUMSQR, KULLBACK };
@@ -400,6 +385,12 @@ class Config {
 } // namespace NeuralNetHack
 
 // ===== NeuralNetHack.hh =====
+#include <vector>
+#include <string>
+#include <sstream>
+#include <iterator>
+#include <iostream>
+
 /**This namespace encloses the NeuralNetHack project.
  * It contains all classes and methods needed to create, train, and test a
  * committee of MLPs.
@@ -432,6 +423,9 @@ template <class T> T getfromstream(std::istream& is) {
 } // namespace NeuralNetHack
 
 // ===== Random.hh =====
+#include <cstdint>
+#include <random>
+
 namespace nnh {
 
 /**Thread-local RNG abstraction. Each OS thread keeps its own seeded
@@ -471,6 +465,11 @@ std::mt19937_64& generator();
 namespace DataTools {}
 
 // ===== datatools/Pattern.hh =====
+#include <string>
+#include <vector>
+#include <iostream>
+#include <cstdlib>
+
 namespace DataTools {
 /**A class representing a pattern. A pattern consists of two elements.
  * (i)The data point i.e. input to the classifier.
@@ -562,6 +561,9 @@ inline void Pattern::idstring(const std::string& id) {
 } // namespace DataTools
 
 // ===== datatools/CoreDataSet.hh =====
+#include <vector>
+#include <iostream>
+
 namespace DataTools {
 /**A class representing data storage.
  * \sa DataSet, Pattern
@@ -630,6 +632,10 @@ class CoreDataSet {
 } // namespace DataTools
 
 // ===== datatools/DataSet.hh =====
+#include <iostream>
+#include <memory>
+#include <vector>
+
 namespace DataTools {
 /**A view layer over a CoreDataSet. Each DataSet holds a `shared_ptr` to the
  * underlying CoreDataSet plus its own index vector, so multiple views (train
@@ -688,6 +694,9 @@ class DataSet {
 } // namespace DataTools
 
 // ===== ModelSelector.hh =====
+#include <vector>
+#include <utility>
+
 namespace NeuralNetHack {
 /**Selecting the optimal model by performing a grid search over the chosen
  * parameters.
@@ -717,6 +726,10 @@ class ModelSelector {
 } // namespace NeuralNetHack
 
 // ===== datatools/DataManager.hh =====
+#include <vector>
+#include <ostream>
+#include <utility>
+
 namespace DataTools {
 /**A class representing splitting one large DataSet into K DataSet(s).
  * Both bootstrap and cross-splitting is possible.
@@ -816,6 +829,8 @@ class DataManager {
 } // namespace DataTools
 
 // ===== datatools/Normaliser.hh =====
+#include <vector>
+
 namespace DataTools {
 /**A class that can normalise a DataSet using Z-Normalisation.
  * The normalisation is done by calculating the mean and standard
@@ -998,6 +1013,9 @@ class Normaliser {
 } // namespace DataTools
 
 // ===== datatools/Sampler.hh =====
+#include <memory>
+#include <vector>
+
 namespace DataTools {
 class Sampler {
   public:
@@ -1073,6 +1091,8 @@ class Sampler {
 } // namespace DataTools
 
 // ===== datatools/BootstrapSampler.hh =====
+#include <utility>
+
 namespace DataTools {
 class BootstrapSampler : public Sampler {
   public:
@@ -1100,6 +1120,9 @@ class BootstrapSampler : public Sampler {
 } // namespace DataTools
 
 // ===== datatools/CrossSplitSampler.hh =====
+#include <utility>
+#include <ostream>
+
 namespace DataTools {
 /**Represents the Cross Validation sampling method. The data is split
  * evenly into K bins. Eeach bin represents a validation set. The training
@@ -1158,6 +1181,8 @@ inline void DataTools::CrossSplitSampler::numParts(const uint k) {
 }
 
 // ===== datatools/DummySampler.hh =====
+#include <utility>
+
 namespace DataTools {
 class DummySampler : public Sampler {
   public:
@@ -1185,6 +1210,8 @@ class DummySampler : public Sampler {
 } // namespace DataTools
 
 // ===== datatools/HoldOutSampler.hh =====
+#include <utility>
+
 namespace DataTools {
 class HoldOutSampler : public Sampler {
   public:
@@ -1216,6 +1243,10 @@ class HoldOutSampler : public Sampler {
 } // namespace DataTools
 
 // ===== evaltools/Gof.hh =====
+#include <vector>
+#include <utility>
+#include <cstdlib>
+
 namespace EvalTools {
 /**A class representing the Hosmer-Lemeshow goodness of fit test.
  * \f[\chi ^2 = \sum_{j=1}^{G}\frac{(o_j - n_j \bar{\pi}_j)^2}{ n_j \bar{\pi}_j (1 - \bar{\pi}_j)
@@ -1255,6 +1286,9 @@ class Gof {
 } // namespace EvalTools
 
 // ===== matrixtools/MatrixTools.hh =====
+#include <vector>
+#include <cstdlib>
+
 /**This namespace encloses functions for vector and matrix manipulation. */
 namespace MatrixTools {
 
@@ -1525,6 +1559,12 @@ enum class NormType : unsigned char { None = 0, BatchNorm = 1, LayerNorm = 2 };
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/Layer.hh =====
+#include <memory>
+#include <string>
+#include <vector>
+#include <cassert>
+#include <cstdlib>
+
 namespace MultiLayerPerceptron {
 /**A class representing a layer in an Mlp.
  * A Layer has a number of neurons which have an activation function that
@@ -2067,6 +2107,9 @@ inline uint Layer::index(const uint i, const uint j) const {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/ELULayer.hh =====
+#include <cmath>
+#include <cassert>
+
 namespace MultiLayerPerceptron {
 class ELULayer : public Layer {
   public:
@@ -2114,6 +2157,8 @@ inline double ELULayer::firePrimePrime(const uint i) const {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/LeakyReLULayer.hh =====
+#include <cassert>
+
 namespace MultiLayerPerceptron {
 class LeakyReLULayer : public Layer {
   public:
@@ -2163,6 +2208,9 @@ inline double LeakyReLULayer::firePrimePrime(const uint i) const {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/LinearLayer.hh =====
+#include <string>
+#include <cassert>
+
 namespace MultiLayerPerceptron {
 /**A class representing a linear implementation of the layer interface.
  * It knows the number of neurons contained in itself and its
@@ -2236,6 +2284,8 @@ inline double LinearLayer::firePrimePrime(const uint i) const {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/Mlp.hh =====
+#include <memory>
+
 namespace MultiLayerPerceptron {
 /**A struct representing the model for a multilayer perceptron. */
 struct MlpModel {
@@ -2464,6 +2514,9 @@ inline uint Mlp::numLayers() const {
 } // namespace MultiLayerPerceptron
 
 // ===== Ensemble.hh =====
+#include <memory>
+#include <vector>
+
 namespace NeuralNetHack {
 
 /**A class representing an ensemble of Mlp(s). Thus the classification of a
@@ -2584,6 +2637,9 @@ class Ensemble {
 } // namespace NeuralNetHack
 
 // ===== FeatureSelector.hh =====
+#include <ostream>
+
+
 namespace NeuralNetHack {
 class FeatureSelector {
   public:
@@ -2638,6 +2694,10 @@ class FeatureSelector {
 } // namespace NeuralNetHack
 
 // ===== OddsRatio.hh =====
+#include <vector>
+#include <ostream>
+#include <functional>
+
 namespace NeuralNetHack {
 /**This namespace encloses functions for calculating effective odds
  * ratios. It is currently limited to single output networks using a
@@ -2682,6 +2742,9 @@ void print(std::ostream& os, std::vector<double>& oddsrat);
 } // namespace NeuralNetHack
 
 // ===== Saliency.hh =====
+#include <vector>
+#include <ostream>
+
 namespace NeuralNetHack {
 /**This namespace encloses functions for calculating salinecies for a
  * given datapoint for a given Mlp or Ensemble.
@@ -2791,6 +2854,8 @@ void print(std::ostream& os, std::vector<double>& saliency);
 } // namespace NeuralNetHack
 
 // ===== evaltools/Conformal.hh =====
+#include <vector>
+
 namespace EvalTools {
 
 /**Split conformal prediction on top of a NeuralNetHack::Ensemble.
@@ -2872,6 +2937,9 @@ class Conformal {
 } // namespace EvalTools
 
 // ===== evaltools/ConfusionMatrix.hh =====
+#include <ostream>
+#include <vector>
+
 namespace EvalTools {
 
 /**A confusion matrix indexed as `m(actual, predicted)`.
@@ -2931,6 +2999,8 @@ class ConfusionMatrix {
 } // namespace EvalTools
 
 // ===== evaltools/EvalTools.hh =====
+#include <vector>
+
 /**This namespace encloses a bunch of functions needed to
  * evaluate the performance of a classifier or a regressor.
  *
@@ -3116,6 +3186,9 @@ double macroF1(const ConfusionMatrix& cm);
 } // namespace EvalTools
 
 // ===== evaltools/Evaluator.hh =====
+#include <vector>
+#include <ostream>
+
 #define NEG 0
 #define POS 1
 
@@ -3241,6 +3314,11 @@ class Evaluator {
 } // namespace EvalTools
 
 // ===== evaltools/Roc.hh =====
+#include <memory>
+#include <vector>
+#include <utility>
+#include <ostream>
+
 namespace EvalTools {
 
 class Evaluator;
@@ -3370,6 +3448,9 @@ inline std::vector<std::pair<double, double>>& Roc::roc() {
 } // namespace EvalTools
 
 // ===== mlp/Error.hh =====
+#include <memory>
+#include <vector>
+
 namespace MultiLayerPerceptron {
 /**A base class representing the error functions. The error function is
  * responsible for calculating an error and a gradient to update the Mlp
@@ -3678,6 +3759,8 @@ class CrossEntropy : public Error {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/ReLULayer.hh =====
+#include <cassert>
+
 namespace MultiLayerPerceptron {
 class ReLULayer : public Layer {
   public:
@@ -3722,6 +3805,10 @@ inline double ReLULayer::firePrimePrime(const uint i) const {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/Serialization.hh =====
+#include <memory>
+#include <string>
+#include <iostream>
+
 namespace MultiLayerPerceptron {
 /**Save an Mlp in binary format.
  * \param mlp the Mlp to save.
@@ -3773,6 +3860,10 @@ std::unique_ptr<NeuralNetHack::Ensemble> loadEnsembleBinary(const std::string& p
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/SigmoidLayer.hh =====
+#include <string>
+#include <cmath>
+#include <cassert>
+
 namespace MultiLayerPerceptron {
 /**A class representing a sigmoid implementation of the layer interface.
  * It knows the number of neurons contained in itself and its
@@ -3956,6 +4047,9 @@ class SummedSquare : public Error {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/TanHypLayer.hh =====
+#include <string>
+#include <cmath>
+
 namespace MultiLayerPerceptron {
 /**A class representing a tanhyp implementation of the layer interface.
  * It knows the number of neurons contained in itself and its
@@ -4027,6 +4121,12 @@ inline double TanHypLayer::firePrimePrime(const uint i) const {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/Trainer.hh =====
+#include <fstream>
+#include <memory>
+#include <string>
+#include <ostream>
+#include <vector>
+
 namespace MultiLayerPerceptron {
 /**A base class representing the training of an MLP. */
 class Trainer {
@@ -4261,6 +4361,10 @@ class Trainer {
 } // namespace MultiLayerPerceptron
 
 // ===== EnsembleBuilder.hh =====
+#include <cstdint>
+#include <functional>
+#include <memory>
+
 namespace NeuralNetHack {
 /**The result of a training session. A training session can
  * include several trainings and Mlp(s).*/
@@ -4407,6 +4511,11 @@ class EnsembleBuilder {
 } // namespace NeuralNetHack
 
 // ===== ModelEstimator.hh =====
+#include <iostream>
+#include <memory>
+#include <utility>
+#include <vector>
+
 namespace NeuralNetHack {
 /**A base class representing the different model estimation methods available.
  * \sa CrossValidator, Bootstrapper.
@@ -4452,6 +4561,9 @@ class ModelEstimator {
 } // namespace NeuralNetHack
 
 // ===== PrintUtils.hh =====
+#include <ostream>
+#include <string>
+
 namespace NeuralNetHack {
 /**This namespace encloses functions for printing various data.
  */
@@ -4536,6 +4648,8 @@ void printXML(std::ostream& os, Ensemble& ensemble, DataTools::Normaliser& norm,
 } // namespace NeuralNetHack
 
 // ===== mlp/Adam.hh =====
+#include <vector>
+
 namespace MultiLayerPerceptron {
 /**Adam/AdamW optimizer.
  * Uses per-weight adaptive learning rates with first and second moment
@@ -4700,6 +4814,8 @@ class GradientDescent : public Trainer {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/QuasiNewton.hh =====
+#include <ostream>
+
 namespace MultiLayerPerceptron {
 /**A class implementing the L-BFGS quasi-Newton optimization algorithm.
  * Uses limited-memory BFGS which stores only the last M (s,y) pairs
@@ -4845,6 +4961,8 @@ class QuasiNewton : public Trainer {
 } // namespace MultiLayerPerceptron
 
 // ===== Factory.hh =====
+#include <memory>
+
 namespace NeuralNetHack {
 /**Factory functions for the standard NeuralNetHack object graph. Every
  * factory returns a `unique_ptr` so the caller's lifetime expectations are
@@ -4872,6 +4990,9 @@ std::unique_ptr<ModelEstimator> createModelEstimator(const Config& config,
 } // namespace NeuralNetHack
 
 // ===== mlp/Weights.hh =====
+#include <vector>
+#include <cstdlib>
+
 namespace MultiLayerPerceptron {
 /**A class holding all the weights in the network.
  * The input layer is not regarded as a layer in this class since there
@@ -5027,6 +5148,11 @@ class Weights {
 } // namespace MultiLayerPerceptron
 
 // ===== parser/NetworkParser.hh =====
+#include <vector>
+#include <utility>
+#include <istream>
+#include <string>
+
 namespace NeuralNetHack {
 /**This class encloses the network XML parsing.
  * It contains parsing methods for the saved ensembles of mlps in XML
@@ -5106,6 +5232,11 @@ class NetworkParser {
 } // namespace NeuralNetHack
 
 // ===== parser/Parser.hh =====
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cstdlib>
+
 namespace NeuralNetHack {
 /**Data-file parsing and a thin wrapper around TomlParser for configs.
  *
@@ -5146,6 +5277,10 @@ class Parser {
 } // namespace NeuralNetHack
 
 // ===== parser/TomlParser.hh =====
+#include <istream>
+#include <string>
+#include <vector>
+
 namespace NeuralNetHack {
 
 // Parses a TOML configuration file into a Config.
@@ -5173,6 +5308,11 @@ class TomlParser {
 // ---- implementation (gated) ----------------------------------
 #ifdef NNH_IMPLEMENTATION
 // ===== Config.cc =====
+#include <iostream>
+#include <algorithm>
+#include <iterator>
+#include <ostream>
+
 using namespace NeuralNetHack;
 using namespace std;
 
@@ -5265,6 +5405,8 @@ using namespace std;
 // DEBUGGING-------------------------------------------------------------------//
 
 // ===== Random.cc =====
+#include <random>
+
 namespace nnh::rand {
 
 namespace {
@@ -5298,6 +5440,8 @@ std::mt19937_64& generator() {
 
 
 // ===== datatools/Pattern.cc =====
+#include <cassert>
+
 using namespace DataTools;
 using namespace std;
 
@@ -5362,6 +5506,8 @@ void Pattern::print(ostream& os) const {
 }
 
 // ===== datatools/CoreDataSet.cc =====
+#include <cassert>
+
 using namespace DataTools;
 using namespace std;
 
@@ -5417,6 +5563,8 @@ void CoreDataSet::print(ostream& os) const {
 }
 
 // ===== datatools/DataSet.cc =====
+#include <cassert>
+
 using namespace DataTools;
 using namespace std;
 
@@ -5490,6 +5638,14 @@ void DataSet::print(ostream& os) const {
 }
 
 // ===== ModelSelector.cc =====
+#include <vector>
+#include <map>
+#include <utility>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <string>
+
 using namespace NeuralNetHack;
 using namespace DataTools;
 using namespace EvalTools;
@@ -5578,6 +5734,13 @@ double ModelSelector::Auc632PlusRule(double meanTrn, double meanTst) {
 }
 
 // ===== datatools/DataManager.cc =====
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <iostream>
+#include <iterator>
+#include <numeric>
+
 using namespace DataTools;
 using namespace std;
 
@@ -5726,6 +5889,11 @@ void DataManager::printIndices(ostream& os) {
 }
 
 // ===== datatools/Normaliser.cc =====
+#include <cmath>
+#include <cassert>
+#include <cstdlib>
+#include <algorithm>
+
 using namespace DataTools;
 using namespace std;
 
@@ -5943,6 +6111,8 @@ void Normaliser::transformBinaryCoding(vector<double>& input) {
 }
 
 // ===== datatools/Sampler.cc =====
+#include <cassert>
+
 using namespace DataTools;
 
 DataSet* Sampler::data() const {
@@ -5985,6 +6155,8 @@ Sampler& Sampler::operator=(const Sampler& s) {
 }
 
 // ===== datatools/BootstrapSampler.cc =====
+#include <cassert>
+
 using namespace DataTools;
 using namespace std;
 
@@ -6035,6 +6207,9 @@ void BootstrapSampler::numRuns(uint n) {
 // PRIVATE
 
 // ===== datatools/CrossSplitSampler.cc =====
+#include <ostream>
+#include <cassert>
+
 using namespace DataTools;
 using namespace std;
 
@@ -6108,6 +6283,8 @@ uint CrossSplitSampler::howMany() const {
 // PRIVATE
 
 // ===== datatools/DummySampler.cc =====
+#include <cassert>
+
 using namespace DataTools;
 using namespace std;
 
@@ -6160,6 +6337,8 @@ void DummySampler::numRuns(uint n) {
 // PRIVATE
 
 // ===== datatools/HoldOutSampler.cc =====
+#include <cassert>
+
 using namespace DataTools;
 using namespace std;
 
@@ -6211,6 +6390,11 @@ void HoldOutSampler::numRuns(uint n) {
 // PRIVATE
 
 // ===== evaltools/Gof.cc =====
+#include <vector>
+#include <cassert>
+#include <algorithm>
+#include <utility>
+
 using namespace EvalTools;
 using std::pair;
 using std::vector;
@@ -6269,9 +6453,14 @@ vector<pair<double, uint>> Gof::doSort(const vector<double>& output, const vecto
 // ===== matrixtools/MatrixTools.cc =====
 #ifdef USE_BLAS
 extern "C" {
+#include <cblas.h>
 }
 #endif
 
+#include <cassert>
+#include <algorithm>
+#include <iostream>
+#include <iterator>
 
 using namespace MatrixTools;
 using namespace std;
@@ -6522,10 +6711,17 @@ void MatrixTools::print(vector<vector<double>>& m) {
 // ===== mlp/Layer.cc =====
 #ifdef USE_BLAS
 extern "C" {
+#include <cblas.h>
 }
 #endif
 
+#include <iostream>
+#include <cassert>
 
+#include <algorithm>
+#include <iterator>
+#include <numeric>
+#include <cmath>
 
 using namespace MultiLayerPerceptron;
 using namespace std;
@@ -7060,6 +7256,10 @@ LinearLayer::~LinearLayer() {}
 // PRIVATE--------------------------------------------------------------------//
 
 // ===== mlp/Mlp.cc =====
+#include <cassert>
+#include <cmath>
+#include <iostream>
+
 using namespace MultiLayerPerceptron;
 using namespace std;
 
@@ -7298,6 +7498,8 @@ void Mlp::createLayers() {
 }
 
 // ===== Ensemble.cc =====
+#include <cassert>
+
 using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
 using namespace MatrixTools;
@@ -7401,6 +7603,16 @@ vector<double> Ensemble::propagate(const vector<double>& input) {
 }
 
 // ===== FeatureSelector.cc =====
+#include <utility>
+#include <fstream>
+#include <iostream>
+#include <functional>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <string>
+#include <iterator>
+
 using namespace NeuralNetHack;
 using DataTools::CoreDataSet;
 using DataTools::DataSet;
@@ -7605,6 +7817,10 @@ double FeatureSelector::mean(DataSet& d, uint index) {
 }
 
 // ===== OddsRatio.cc =====
+#include <algorithm>
+#include <functional>
+#include <iostream>
+
 using namespace NeuralNetHack;
 using DataTools::DataSet;
 using DataTools::Pattern;
@@ -7670,6 +7886,11 @@ void OddsRatio::print(ostream& os, vector<double>& oddsrat) {
 }
 
 // ===== Saliency.cc =====
+#include <algorithm>
+#include <functional>
+#include <cmath>
+#include <iostream>
+
 using namespace NeuralNetHack;
 using DataTools::DataSet;
 using DataTools::Pattern;
@@ -7836,6 +8057,11 @@ void Saliency::print(ostream& os, vector<double>& sal) {
 }
 
 // ===== evaltools/Conformal.cc =====
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <stdexcept>
+
 namespace EvalTools {
 
 namespace {
@@ -7985,6 +8211,9 @@ double Conformal::coverage(NeuralNetHack::Ensemble& e, DataTools::DataSet& tst) 
 } // namespace EvalTools
 
 // ===== evaltools/ConfusionMatrix.cc =====
+#include <cassert>
+#include <iomanip>
+
 using namespace EvalTools;
 using namespace NeuralNetHack;
 using namespace DataTools;
@@ -8126,6 +8355,9 @@ ConfusionMatrix ConfusionMatrix::fromEnsemble(Ensemble& committee, DataSet& data
 }
 
 // ===== evaltools/EvalTools.cc =====
+#include <cassert>
+#include <cmath>
+
 using namespace EvalTools;
 using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
@@ -8448,6 +8680,11 @@ double ErrorMeasures::macroF1(const ConfusionMatrix& cm) {
 }
 
 // ===== evaltools/Evaluator.cc =====
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <cassert>
+
 using namespace EvalTools;
 using namespace std;
 
@@ -8562,6 +8799,13 @@ void Evaluator::calcRates() {
 }
 
 // ===== evaltools/Roc.cc =====
+#include <algorithm>
+#include <iomanip>
+#include <iostream>
+#include <cassert>
+#include <ostream>
+#include <iterator>
+
 using namespace EvalTools;
 using std::cerr;
 using std::copy;
@@ -8688,6 +8932,10 @@ template <class T> void Roc::printVector(vector<T>& vec) {
 }
 
 // ===== mlp/Error.cc =====
+#include <vector>
+#include <cmath>
+#include <cassert>
+
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
 using namespace std;
@@ -8836,9 +9084,12 @@ Error& Error::operator=(const Error& err) {
 // ===== mlp/CrossEntropy.cc =====
 #ifdef USE_BLAS
 extern "C" {
+#include <cblas.h>
 }
 #endif
 
+#include <cmath>
+#include <cassert>
 
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
@@ -9134,6 +9385,11 @@ ReLULayer::ReLULayer(uint nc, uint np) : Layer(nc, np, RELU) {}
 ReLULayer::~ReLULayer() {}
 
 // ===== mlp/Serialization.cc =====
+#include <cstdint>
+#include <fstream>
+#include <stdexcept>
+#include <cstring>
+
 using namespace MultiLayerPerceptron;
 using namespace std;
 
@@ -9293,9 +9549,13 @@ SigmoidLayer::~SigmoidLayer() {}
 // ===== mlp/SummedSquare.cc =====
 #ifdef USE_BLAS
 extern "C" {
+#include <cblas.h>
 }
 #endif
 
+#include <cmath>
+#include <cassert>
+#include <algorithm>
 
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
@@ -9567,6 +9827,8 @@ void SummedSquare::killGradients() {
 }
 
 // ===== mlp/TanHypLayer.cc =====
+#include <cassert>
+
 using namespace MultiLayerPerceptron;
 
 TanHypLayer::TanHypLayer(uint nc, uint np) : Layer(nc, np, TANHYP) {}
@@ -9586,6 +9848,12 @@ TanHypLayer::~TanHypLayer() {}
 // PRIVATE--------------------------------------------------------------------//
 
 // ===== mlp/Trainer.cc =====
+#include <cmath>
+#include <iostream>
+#include <limits>
+#include <ostream>
+#include <algorithm>
+
 #define CONVERGENCE_TOLERANCE 1e-5
 
 using namespace MultiLayerPerceptron;
@@ -9820,6 +10088,14 @@ Trainer& Trainer::operator=(const Trainer& trainer) {
 }
 
 // ===== EnsembleBuilder.cc =====
+#include <cassert>
+#include <cstdlib>
+#include <iostream>
+#include <ostream>
+#include <vector>
+#include <sstream>
+#include <utility>
+
 using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
@@ -10040,6 +10316,12 @@ pair<double, double>* ModelEstimator::runAndEstimateModel(double (*errorFunc)(En
 // PRIVATE
 
 // ===== PrintUtils.cc =====
+#include <sstream>
+#include <ostream>
+#include <iterator>
+#include <functional>
+#include <algorithm>
+
 using namespace NeuralNetHack;
 using namespace DataTools;
 using namespace MultiLayerPerceptron;
@@ -10263,6 +10545,11 @@ void PrintUtils::printXML(ostream& os, Ensemble& ensemble, Normaliser& norm, con
 }
 
 // ===== mlp/Adam.cc =====
+#include <ostream>
+#include <iomanip>
+#include <cmath>
+#include <cassert>
+
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
 using namespace std;
@@ -10431,6 +10718,10 @@ bool Adam::buildBlock(DataSet& blockData, uint& cntr) const {
 }
 
 // ===== mlp/GradientDescent.cc =====
+#include <ostream>
+#include <cassert>
+#include <iomanip>
+
 using namespace MultiLayerPerceptron;
 using namespace DataTools;
 using namespace MatrixTools;
@@ -10600,6 +10891,10 @@ bool GradientDescent::buildBlock(DataSet& blockData, uint& cntr) const {
 }
 
 // ===== mlp/QuasiNewton.cc =====
+#include <cmath>
+#include <ostream>
+#include <iomanip>
+
 #define ITMAX 10
 #define CGOLD 0.3819660
 #define ZEPS 1.0e-10
@@ -10983,6 +11278,8 @@ float QuasiNewton::err(float alfa) {
 }
 
 // ===== Factory.cc =====
+#include <memory>
+
 using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
 using DataTools::DataSet;
@@ -11099,6 +11396,9 @@ unique_ptr<ModelEstimator> Factory::createModelEstimator(const Config& config, D
 }
 
 // ===== mlp/Weights.cc =====
+#include <iostream>
+#include <cassert>
+
 using namespace MultiLayerPerceptron;
 using namespace std;
 
@@ -11232,6 +11532,9 @@ void Weights::itor(uint layer, uint ncurr, uint nprev, vector<double>::iterator&
 }
 
 // ===== parser/NetworkParser.cc =====
+#include <istream>
+#include <string>
+
 using namespace std;
 using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
@@ -11357,6 +11660,10 @@ Normaliser* NetworkParser::parseXMLnormalisation(istream& is) {
 }
 
 // ===== parser/Parser.cc =====
+#include <algorithm>
+#include <iterator>
+#include <sstream>
+
 using namespace NeuralNetHack;
 using namespace DataTools;
 using namespace std;
@@ -11413,6 +11720,13 @@ void Parser::checkStream(istream& in) {
 }
 
 // ===== parser/TomlParser.cc =====
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <cctype>
+#include <cstdlib>
+
 namespace NeuralNetHack {
 
 namespace {

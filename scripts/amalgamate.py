@@ -62,10 +62,12 @@ def normalize_local_include(include_path: str, file_dir: Path) -> Path | None:
 
 
 def parse_file(path: Path) -> dict:
-    """Returns {system_includes: set[str], local_includes: list[Path], body: str}.
+    """Returns {local_includes: list[Path], body: str}.
 
-    Strips include guards, project includes, config.h includes, pragma once.
-    Keeps system includes separately so they can be deduped in the output.
+    Strips include guards, project local includes (those are wired up via
+    the topological order), config.h includes, and `#pragma once`. System
+    includes (`#include <...>`) are kept inline in the body so any
+    surrounding `#ifdef USE_BLAS` etc. context survives in the output.
     """
     text = path.read_text()
     lines = text.splitlines(keepends=False)
@@ -77,7 +79,6 @@ def parse_file(path: Path) -> dict:
     # tracking depth.
     depth_in_guard = 0
     stripped: list[str] = []
-    system_includes: set[str] = set()
     local_includes: list[Path] = []
     skip_have_config_block = False
 
@@ -106,11 +107,13 @@ def parse_file(path: Path) -> dict:
                 continue
             # Fall through to keep unresolved local includes as-is (rare).
 
-        m = SYSTEM_INCLUDE_RE.match(line)
-        if m:
-            system_includes.add(m.group(1))
-            continue
-
+        # System includes are kept inline (not deduped to a top block).
+        # The dedup approach used to strip the surrounding `#ifdef
+        # USE_BLAS` / `#ifdef HAVE_CONFIG_H` context and turn conditional
+        # includes (like <cblas.h>) into unconditional ones, which then
+        # fails to compile on hosts without those headers. Inline
+        # duplicates are harmless because every standard header has its
+        # own include guard.
         stripped.append(line)
 
     # Drop the matching final #endif of the include guard, if any.
@@ -121,7 +124,6 @@ def parse_file(path: Path) -> dict:
                 break
 
     return {
-        "system_includes": system_includes,
         "local_includes": local_includes,
         "body": "\n".join(stripped).strip("\n"),
     }
@@ -184,10 +186,6 @@ def main() -> int:
         if s not in seen:
             source_order.append(s)
 
-    all_system_includes: set[str] = set()
-    for d in (*parsed_headers.values(), *parsed_sources.values()):
-        all_system_includes.update(d["system_includes"])
-
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out: list[str] = []
     out.append("// neuralnethack.hh -- single-header amalgamation")
@@ -204,9 +202,11 @@ def main() -> int:
     out.append("#ifndef NEURALNETHACK_AMALGAMATED_HH")
     out.append("#define NEURALNETHACK_AMALGAMATED_HH")
     out.append("")
-    out.append("// ---- system includes (deduped) -------------------------------")
-    for inc in sorted(all_system_includes):
-        out.append(f"#include <{inc}>")
+    out.append("// System includes are kept inline at each header / source where they")
+    out.append("// originally appeared, including ones inside #ifdef USE_BLAS or other")
+    out.append("// preprocessor blocks. Duplicates are harmless (every standard header")
+    out.append("// has its own guard), and this preserves the original conditionality")
+    out.append("// so building without optional deps (BLAS, OpenMP) still works.")
     out.append("")
     out.append("// ---- declarations --------------------------------------------")
     for h in ordered_headers:
