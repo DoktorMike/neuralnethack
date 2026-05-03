@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.1.1](https://github.com/DoktorMike/neuralnethack/compare/v4.1.0...v4.1.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* **amalgam:** keep system includes inline so optional deps stay optional ([fb34c0d](https://github.com/DoktorMike/neuralnethack/commit/fb34c0d5f8468563f0702761dde7016feb904129))
+* **bench:** enable tiny-dnn OMP + AVX for fair comparison ([47e95dd](https://github.com/DoktorMike/neuralnethack/commit/47e95dd0e797bc95ee55f39197de0f00932e5cfe))
+
+
+### Other
+
+* formatting ([41cc712](https://github.com/DoktorMike/neuralnethack/commit/41cc71274667e88783e9244c12d9f2450d45f181))
+* update badges [skip ci] ([9728883](https://github.com/DoktorMike/neuralnethack/commit/97288830ecb43d4bda33b96098d37afbbac117be))
+
+
+### Documentation
+
+* **comparison:** add benchmark numbers from the bench/ harness ([6ee5b32](https://github.com/DoktorMike/neuralnethack/commit/6ee5b32bf7c4abd1f69619e4df87923519f1638c))
+* **readme:** document weight_init + early_stopping in the TOML example ([82c6f54](https://github.com/DoktorMike/neuralnethack/commit/82c6f54f1686ceb2543561baee4f3a0a58e73b0c))
+* **readme:** note real-scale speed wins vs mlpack and tiny-dnn ([9c29dad](https://github.com/DoktorMike/neuralnethack/commit/9c29dadef12404ef51a730ecee2f9745b252de10))
+* **todo:** record what closed the mlpack gap and what didn't ([7c43c17](https://github.com/DoktorMike/neuralnethack/commit/7c43c170a73fda7e7a95acbcf0eca1e7d8717791))
+
 ## [4.1.0](https://github.com/DoktorMike/neuralnethack/compare/v4.0.0...v4.1.0) (2026-05-03)
 
 
