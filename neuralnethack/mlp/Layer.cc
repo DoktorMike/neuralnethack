@@ -22,8 +22,7 @@ using namespace std;
 
 // Layer implementation -------------------------------------------------------
 
-Layer::Layer(const uint nc, const uint np, const string t)
-    : Layer(nc, np, activationFromTag(t)) {}
+Layer::Layer(const uint nc, const uint np, const string t) : Layer(nc, np, activationFromTag(t)) {}
 
 Layer::Layer(const uint nc, const uint np, Activation act)
     : ncurr(nc), nprev(np), theType(activationToTag(act)), theAct(std::move(act)),
@@ -161,9 +160,8 @@ vector<double>& Layer::propagate(const vector<double>& input, const double* prea
 }
 
 void Layer::applyDerivative(vector<double>& deltas) {
-	std::visit(
-	    [&](const auto& a) { applyDerivScale(a, theOutputs.data(), deltas.data(), ncurr); },
-	    theAct);
+	std::visit([&](const auto& a) { applyDerivScale(a, theOutputs.data(), deltas.data(), ncurr); },
+	           theAct);
 	if (theTraining && theDropoutRate > 0.0)
 		for (uint i = 0; i < ncurr; ++i)
 			deltas[i] *= theDropoutMask[i];

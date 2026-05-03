@@ -38,8 +38,8 @@ Activation activationFromTag(std::string_view tag) {
 	if (tag == RELU) return ReLU{};
 	if (tag == LEAKYRELU) return LeakyReLU{};
 	if (tag == ELU_ACT) return ELU{};
-	throw std::invalid_argument(std::string("activationFromTag: unknown tag '") +
-	                            std::string(tag) + "'");
+	throw std::invalid_argument(std::string("activationFromTag: unknown tag '") + std::string(tag) +
+	                            "'");
 }
 
 const std::string& activationToTag(const Activation& a) {
