@@ -309,6 +309,13 @@ size = [8, 4, 1]
 activations = ["relu", "logsig"]   # one per non-input layer
 error_fcn = "kullback"             # "sumsqr" or "kullback"
 softmax = false                    # true for multi-class with linear output
+weight_init = "glorot"             # "glorot" (default) or "legacy_uniform".
+                                   # glorot picks Xavier uniform for saturating
+                                   # activations and He uniform for ReLU-family,
+                                   # both scaled to fan-in / fan-out. Biases
+                                   # initialise to zero. legacy_uniform is the
+                                   # pre-4.1.0 U(-0.5, 0.5) draw, kept for
+                                   # back-compat with serialised models.
 # Optional residual connections: each entry is [target_layer, source_layer]
 # (0-indexed, source < target, both layers must have matching width).
 # skip_connections = [[2, 0]]
@@ -323,6 +330,12 @@ beta1 = 0.9
 beta2 = 0.999
 epsilon = 1e-8
 weight_decay = 0.01
+
+[training.early_stopping]
+patience = 0                 # 0 disables (default). When > 0 the trainer stops
+min_delta = 0.0              # if val loss has not improved by min_delta for
+                             # `patience` recorded epochs, and the model weights
+                             # are restored to the best-val snapshot.
 
 [regularization.weight_elim]
 enabled = false
