@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.1.0](https://github.com/DoktorMike/neuralnethack/compare/v4.0.0...v4.1.0) (2026-05-03)
+
+
+### Features
+
+* **mlp:** glorot / he weight init by default ([354e5ef](https://github.com/DoktorMike/neuralnethack/commit/354e5ef3e5f2857ee00a7741d91ac035511d1f05))
+
+
+### Bug Fixes
+
+* **bench:** count mlpack iterations in batch steps, not samples ([b8004db](https://github.com/DoktorMike/neuralnethack/commit/b8004dbd51d0eb24b40cae215e39e0053ad64981))
+
+
+### Documentation
+
+* **readme:** add "Who is this for?" section + comparison doc ([20b1699](https://github.com/DoktorMike/neuralnethack/commit/20b169957754d042cb8fd9db41992cdd5f59b078))
+* **readme:** document single-header amalgamation ([4fd0bb0](https://github.com/DoktorMike/neuralnethack/commit/4fd0bb0531e3e5416b5943fe92f5698ac8dcf62a))
+* rewrite "Who is this for?" + comparison in mike's voice ([5322d14](https://github.com/DoktorMike/neuralnethack/commit/5322d140171856eb0729f0172c75319b53c03445))
+* strip em-dashes from prose ([cac2085](https://github.com/DoktorMike/neuralnethack/commit/cac20858ee7c5f65b4f13348b5e54cb44f8401ae))
+* updated small section in readme. ([d7f83de](https://github.com/DoktorMike/neuralnethack/commit/d7f83de3ff02fb5622067cc718a06eb73a65a0cc))
+
+
+### Other
+
+* **coverage:** exclude CLI binaries + add backward-pass + pipeline tests ([9457541](https://github.com/DoktorMike/neuralnethack/commit/94575412325347e06036af1e65b9f5a98b9fc42a))
+* formatting ([de45d3d](https://github.com/DoktorMike/neuralnethack/commit/de45d3d6b66694ff55b6a9174ea5df5abb591ada))
+* formatting ([dcb00b4](https://github.com/DoktorMike/neuralnethack/commit/dcb00b43368a26a264beb957d68cea7887d9ef96))
+* **mlp:** polynomial tanh + vectorised bias add ([c9bfc3f](https://github.com/DoktorMike/neuralnethack/commit/c9bfc3f50e59a76baec253906d30258855cb1f48))
+* update badges [skip ci] ([828c519](https://github.com/DoktorMike/neuralnethack/commit/828c5191633fe9dd050942e9ec02b1348145f734))
+* update badges [skip ci] ([35263a1](https://github.com/DoktorMike/neuralnethack/commit/35263a1493e52be13045ddf00b49d04b865f2931))
+* update badges [skip ci] ([2965a18](https://github.com/DoktorMike/neuralnethack/commit/2965a18d5cc39a7c20c18a1eeb4606170aafcfda))
+* update badges [skip ci] ([4f69ce4](https://github.com/DoktorMike/neuralnethack/commit/4f69ce4f9a97ef7ac313f4e245386ca38fd93b80))
+* update badges [skip ci] ([5f47b7a](https://github.com/DoktorMike/neuralnethack/commit/5f47b7a29dfb901e4789e2ec358cf33b1c671cbc))
+
 ## [4.0.0](https://github.com/DoktorMike/neuralnethack/compare/v3.0.0...v4.0.0) (2026-05-03)
 
 
