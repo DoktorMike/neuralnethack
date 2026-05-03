@@ -28,7 +28,7 @@ This is the MLP and ensemble-of-MLPs library I've kept maintained, however infre
 
 ## Who is this for?
 
-If you're doing tabular regression or classification in C++ and you actually care about *how confident* the model is — ensembles for spread, conformal sets for coverage guarantees, an explicit aleatoric/epistemic split — this is one of the few C++ libraries that treats that as the point rather than an afterthought. I built it for that and I keep using it for that.
+If you're doing tabular regression or classification in C++ and you actually care about *how confident* the model is (ensembles for spread, conformal sets for coverage guarantees, an explicit aleatoric/epistemic split), this is one of the few C++ libraries that treats that as the point rather than an afterthought. I built it for that and I keep using it for that.
 
 It's not a libtorch replacement and I'm not going to pretend it is. Reach for something else if:
 
@@ -37,7 +37,7 @@ It's not a libtorch replacement and I'm not going to pretend it is. Reach for so
 - you just want a header-only CNN demo → [**tiny-dnn**](https://github.com/tiny-dnn/tiny-dnn) (caveat: it's been quiet since around 2020).
 - you're allowed to use Python → **scikit-learn** or **PyTorch**. Don't be a hero.
 
-If you want the receipts — a full feature-by-feature comparison with the same libraries — see [`doc/comparison.md`](doc/comparison.md).
+If you want the receipts, a full feature-by-feature comparison with the same libraries lives in [`doc/comparison.md`](doc/comparison.md).
 
 ## Build
 

@@ -24,9 +24,9 @@ decomposition (calibrated total uncertainty is what users actually want).
 ### Conformal prediction follow-ups
 Split conformal v1 shipped (`evaltools/Conformal`): per-dim regression
 residual quantiles + LAC non-conformity for classification. Outstanding:
-- APS (adaptive prediction sets) for classification — smaller sets in easy
+- APS (adaptive prediction sets) for classification: smaller sets in easy
   regions, ~30 LOC on top of LAC.
-- Class-conditional (Mondrian) conformal — separate quantile per class for
+- Class-conditional (Mondrian) conformal: separate quantile per class for
   imbalanced problems. Pairs with class weights.
 - Worked example wired into one of the synthetic datasets (cubic / residual
   for regression, iris / spiral for classification) showing empirical
