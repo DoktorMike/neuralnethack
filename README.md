@@ -28,16 +28,16 @@ This is the MLP and ensemble-of-MLPs library I've kept maintained, however infre
 
 ## Who is this for?
 
-Tabular regression and classification, C++-only, where prediction-with-uncertainty matters: ensembles, conformal prediction sets, and aleatoric/epistemic decomposition are first-class here in a way they aren't in most C++ ML libraries. Reach for it in regulated or embedded settings where Python is forbidden, or as a readable end-to-end MLP implementation to study.
+If you're doing tabular regression or classification in C++ and you actually care about *how confident* the model is — ensembles for spread, conformal sets for coverage guarantees, an explicit aleatoric/epistemic split — this is one of the few C++ libraries that treats that as the point rather than an afterthought. I built it for that and I keep using it for that.
 
-If you need something this library doesn't try to do, the honest pointers are:
+It's not a libtorch replacement and I'm not going to pretend it is. Reach for something else if:
 
-- Big-tensor / GPU / Transformers / speech → **[flashlight](https://github.com/flashlight/flashlight)**.
-- Breadth (trees, SVMs, k-means, plus NNs) with Python/Julia bindings → **[mlpack](https://github.com/mlpack/mlpack)**.
-- Header-only, lowest-friction CNN/MLP demo → **[tiny-dnn](https://github.com/tiny-dnn/tiny-dnn)**.
-- Anything tabular in Python → **scikit-learn / PyTorch**.
+- you need GPUs, big tensors, or anything Transformer-shaped → [**flashlight**](https://github.com/flashlight/flashlight).
+- you want trees, SVMs, k-means, or Python/Julia bindings alongside the NN bits → [**mlpack**](https://github.com/mlpack/mlpack).
+- you just want a header-only CNN demo → [**tiny-dnn**](https://github.com/tiny-dnn/tiny-dnn) (caveat: it's been quiet since around 2020).
+- you're allowed to use Python → **scikit-learn** or **PyTorch**. Don't be a hero.
 
-A more detailed feature comparison (axes, distinctive strengths, distinctive weaknesses) lives in [`doc/comparison.md`](doc/comparison.md).
+If you want the receipts — a full feature-by-feature comparison with the same libraries — see [`doc/comparison.md`](doc/comparison.md).
 
 ## Build
 
