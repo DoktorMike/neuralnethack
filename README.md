@@ -26,6 +26,19 @@ This is the MLP and ensemble-of-MLPs library I've kept maintained, however infre
 - **Performance**: BLAS-accelerated batch GEMM training, devirtualized activations, SIMD-friendly loops
 - **Distribution**: ships as a CMake static library *and* a generated single-header amalgamation (stb-style) for drop-in use
 
+## Who is this for?
+
+Tabular regression and classification, C++-only, where prediction-with-uncertainty matters: ensembles, conformal prediction sets, and aleatoric/epistemic decomposition are first-class here in a way they aren't in most C++ ML libraries. Reach for it in regulated or embedded settings where Python is forbidden, or as a readable end-to-end MLP implementation to study.
+
+If you need something this library doesn't try to do, the honest pointers are:
+
+- Big-tensor / GPU / Transformers / speech → **[flashlight](https://github.com/flashlight/flashlight)**.
+- Breadth (trees, SVMs, k-means, plus NNs) with Python/Julia bindings → **[mlpack](https://github.com/mlpack/mlpack)**.
+- Header-only, lowest-friction CNN/MLP demo → **[tiny-dnn](https://github.com/tiny-dnn/tiny-dnn)**.
+- Anything tabular in Python → **scikit-learn / PyTorch**.
+
+A more detailed feature comparison (axes, distinctive strengths, distinctive weaknesses) lives in [`doc/comparison.md`](doc/comparison.md).
+
 ## Build
 
 ```sh
