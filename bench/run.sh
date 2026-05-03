@@ -38,7 +38,11 @@ build_pima() {
     g++ -std=c++23 -O3 -march=native -DNDEBUG -DUSE_BLAS=1 \
         -I"$ROOT/neuralnethack" -I. \
         bench_nnh.cc "$LIB" -lopenblas -fopenmp -o bench_nnh
+    # tiny-dnn opts in to OpenMP / AVX via macros, NOT auto-detected from
+    # -march=native. Without these defines the per-batch loops run scalar
+    # single-threaded and the comparison is unfair.
     g++ -std=c++14 -O3 -march=native -DNDEBUG \
+        -DCNN_USE_OMP -DCNN_USE_AVX -DCNN_SINGLE_THREAD=0 -fopenmp \
         -I. -Ithird_party/tiny-dnn -Ithird_party/tiny-dnn/third_party \
         bench_tinydnn.cc -o bench_tinydnn
     if [[ "$HAS_MLPACK" == 1 ]]; then
@@ -55,6 +59,7 @@ build_covtype() {
         -I"$ROOT/neuralnethack" -I. \
         bench_nnh_covtype.cc "$LIB" -lopenblas -fopenmp -o bench_nnh_covtype
     g++ -std=c++14 -O3 -march=native -DNDEBUG \
+        -DCNN_USE_OMP -DCNN_USE_AVX -DCNN_SINGLE_THREAD=0 -fopenmp \
         -I. -Ithird_party/tiny-dnn -Ithird_party/tiny-dnn/third_party \
         bench_tinydnn_covtype.cc -o bench_tinydnn_covtype
     if [[ "$HAS_MLPACK" == 1 ]]; then
