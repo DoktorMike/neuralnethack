@@ -19,8 +19,8 @@ unique_ptr<Sampler> buildEnsembleSampler(const Config& config, DataSet& data) {
 	const std::string& method = config.ensParamDataSelection();
 	unique_ptr<Sampler> sampler;
 	if (method == "cs")
-		sampler = make_unique<DataTools::CrossSplitSampler>(data, config.ensParamN(),
-		                                                   config.ensParamK());
+		sampler =
+		    make_unique<DataTools::CrossSplitSampler>(data, config.ensParamN(), config.ensParamK());
 	else if (method == "bagg")
 		sampler = make_unique<DataTools::BootstrapSampler>(data, config.ensParamN());
 	else if (method == "hold")
@@ -35,13 +35,13 @@ unique_ptr<Sampler> buildModelSelectionSampler(const Config& config, DataSet& da
 	const std::string& method = config.msParamDataSelection();
 	unique_ptr<Sampler> sampler;
 	if (method == "cv")
-		sampler = make_unique<DataTools::CrossSplitSampler>(data, config.msParamN(),
-		                                                   config.msParamK());
+		sampler =
+		    make_unique<DataTools::CrossSplitSampler>(data, config.msParamN(), config.msParamK());
 	else if (method == "boot")
 		sampler = make_unique<DataTools::BootstrapSampler>(data, config.msParamN());
 	else if (method == "hold")
 		sampler = make_unique<DataTools::HoldOutSampler>(data, config.msParamNumTrainingData(),
-		                                                config.msParamN());
+		                                                 config.msParamN());
 	else if (method == "none" || method == "dummy")
 		sampler = make_unique<DataTools::DummySampler>(data, config.msParamN());
 	if (sampler) sampler->randomSampling(config.msParamSplitMode());
@@ -80,10 +80,9 @@ unique_ptr<Trainer> Factory::createTrainer(const Config& config, DataSet& data) 
 		                                       config.batchSize(), config.learningRate(),
 		                                       config.decLearningRate(), config.momentum());
 	} else if (config.minMethod() == ADAM) {
-		trainer = make_unique<Adam>(std::move(error), data, MAX_ERROR, config.batchSize(),
-		                            config.adamLearningRate(), config.adamBeta1(),
-		                            config.adamBeta2(), config.adamEpsilon(),
-		                            config.adamWeightDecay());
+		trainer = make_unique<Adam>(
+		    std::move(error), data, MAX_ERROR, config.batchSize(), config.adamLearningRate(),
+		    config.adamBeta1(), config.adamBeta2(), config.adamEpsilon(), config.adamWeightDecay());
 	} else {
 		trainer = make_unique<QuasiNewton>(std::move(error), data, MAX_ERROR, config.batchSize());
 	}
@@ -106,8 +105,7 @@ unique_ptr<EnsembleBuilder> Factory::createEnsembleBuilder(const Config& config,
 	// value so the lambda is safe regardless of the caller's lifetime.
 	eb->trainerFactory([config](DataSet& d) { return Factory::createTrainer(config, d); });
 	eb->baseSeed(config.seed() == 0 ? 1 : static_cast<uint64_t>(config.seed()));
-	if (!config.learningCurveFile().empty())
-		eb->learningCurvePathBase(config.learningCurveFile());
+	if (!config.learningCurveFile().empty()) eb->learningCurvePathBase(config.learningCurveFile());
 	return eb;
 }
 

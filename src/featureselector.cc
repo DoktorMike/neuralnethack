@@ -204,8 +204,9 @@ int main(int argc, char* argv[]) {
 		parseCmdLine(config, argc, argv);
 	}
 
-	nnh::rand::seed(config.seed() == 0 ? time(0)
-	                           : config.seed()); // This is the ONLY place one may set the seed!
+	nnh::rand::seed(config.seed() == 0
+	                    ? time(0)
+	                    : config.seed()); // This is the ONLY place one may set the seed!
 
 	featureSelect(config);
 

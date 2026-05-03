@@ -188,7 +188,6 @@ void testTrainer(Config& config, DataTools::DataSet& trnData, DataTools::DataSet
 	cout << "TrnCE: " << trnErrCE << endl;
 	cout << "TstAUC: " << tstErrAUC << endl;
 	cout << "TstCE: " << tstErrCE << endl;
-
 }
 
 void testEnsemble(Config& config, DataTools::DataSet& trnData, DataTools::DataSet& tstData) {
@@ -219,7 +218,6 @@ void testOddsRatio(Config& config, DataTools::DataSet& trnData, DataTools::DataS
 	for (vector<double>::iterator it = oddsrat.begin(); it != oddsrat.end(); ++it)
 		cout << "Saliency for input " << it - oddsrat.begin() << ": " << *it << endl;
 	// trainer->mlp()->printWeights(cout);
-
 }
 
 void parseConfAndData(string fname, Config& config, DataTools::CoreDataSet& trnData,

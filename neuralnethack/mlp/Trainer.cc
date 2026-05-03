@@ -21,8 +21,8 @@ Trainer::Trainer(Mlp& mlp, DataSet& data, Error& error, double te, uint bs)
       theTrainingError(te), theBatchSize(bs) {}
 
 Trainer::Trainer(unique_ptr<Error> error, DataSet& data, double te, uint bs)
-    : theMlp(&error->mlp()), theData(&data), theError(error.get()),
-      theOwnedError(std::move(error)), theNumEpochs(0), theTrainingError(te), theBatchSize(bs) {}
+    : theMlp(&error->mlp()), theData(&data), theError(error.get()), theOwnedError(std::move(error)),
+      theNumEpochs(0), theTrainingError(te), theBatchSize(bs) {}
 
 Trainer::~Trainer() {}
 
@@ -88,8 +88,8 @@ void Trainer::recordLearningPoint(uint epoch, double trainErr) {
 	if (!theLearningCurveStream) {
 		theLearningCurveStream = std::make_unique<std::ofstream>(theLearningCurvePath);
 		if (!theLearningCurveStream || !*theLearningCurveStream) {
-			std::cerr << "Trainer: cannot open learning-curve file '" << theLearningCurvePath
-			          << "'" << std::endl;
+			std::cerr << "Trainer: cannot open learning-curve file '" << theLearningCurvePath << "'"
+			          << std::endl;
 			theLearningCurvePath.clear();
 			theLearningCurveStream.reset();
 			return;
@@ -156,8 +156,7 @@ void Trainer::restoreBestWeights() {
 }
 
 bool Trainer::earlyStopCheck() {
-	if (theEsPatience == 0 || theValData == nullptr || theMlp == nullptr ||
-	    theError == nullptr)
+	if (theEsPatience == 0 || theValData == nullptr || theMlp == nullptr || theError == nullptr)
 		return false;
 
 	const double valErr = theError->outputError(*theMlp, *theValData);

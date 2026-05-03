@@ -23,8 +23,7 @@ using std::vector;
 
 SummedSquare::SummedSquare(Mlp& mlp, DataSet& dset) : Error(mlp, dset) {}
 
-SummedSquare::SummedSquare(std::unique_ptr<Mlp> mlp, DataSet& dset)
-    : Error(std::move(mlp), dset) {}
+SummedSquare::SummedSquare(std::unique_ptr<Mlp> mlp, DataSet& dset) : Error(std::move(mlp), dset) {}
 
 SummedSquare::~SummedSquare() {}
 

@@ -38,8 +38,7 @@ Sampler& Sampler::operator=(const Sampler& s) {
 		theDataManager =
 		    s.theDataManager ? std::make_unique<DataManager>(*s.theDataManager) : nullptr;
 		theData = s.theData;
-		theSplits =
-		    s.theSplits ? std::make_unique<std::vector<DataSet>>(*s.theSplits) : nullptr;
+		theSplits = s.theSplits ? std::make_unique<std::vector<DataSet>>(*s.theSplits) : nullptr;
 	}
 	return *this;
 }

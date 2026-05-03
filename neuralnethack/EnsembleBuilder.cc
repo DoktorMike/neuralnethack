@@ -96,7 +96,8 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 
 	// Drain the sampler upfront so the parallel loop has indexable input.
 	std::vector<std::pair<DataSet, DataSet>> samples;
-	while (theSampler->hasNext()) samples.push_back(theSampler->next());
+	while (theSampler->hasNext())
+		samples.push_back(theSampler->next());
 	const int N = static_cast<int>(samples.size());
 
 	cout << "Building ensemble of size " << N << endl;
@@ -137,7 +138,8 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 		}
 	}
 
-	for (int i = 0; i < N; ++i) ensemble->addMlp(*trained[i]);
+	for (int i = 0; i < N; ++i)
+		ensemble->addMlp(*trained[i]);
 	theSessions = std::move(sessions);
 	return ensemble;
 }

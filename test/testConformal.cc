@@ -81,7 +81,8 @@ void threeWaySplit(DataSet& src, uint nA, uint nB, DataSet& a, DataSet& b, DataS
 	auto core = src.sharedCoreDataSet();
 	const uint n = src.size();
 	std::vector<uint> idx(n);
-	for (uint i = 0; i < n; ++i) idx[i] = i;
+	for (uint i = 0; i < n; ++i)
+		idx[i] = i;
 	for (uint i = n - 1; i > 0; --i) {
 		const uint j = static_cast<uint>(nnh::rand::uniform() * (i + 1));
 		std::swap(idx[i], idx[j]);

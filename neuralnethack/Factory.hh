@@ -34,7 +34,7 @@ std::unique_ptr<EnsembleBuilder> createEnsembleBuilder(const Config& config,
                                                        DataTools::DataSet& data);
 
 std::unique_ptr<ModelEstimator> createModelEstimator(const Config& config,
-                                                    DataTools::DataSet& data);
+                                                     DataTools::DataSet& data);
 
 } // namespace Factory
 } // namespace NeuralNetHack

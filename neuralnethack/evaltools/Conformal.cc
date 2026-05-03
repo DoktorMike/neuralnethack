@@ -64,7 +64,8 @@ void Conformal::calibrate(NeuralNetHack::Ensemble& e, DataTools::DataSet& cal) {
 
 	if (theMode == Mode::Regression) {
 		std::vector<std::vector<double>> scores(theNOutput);
-		for (auto& s : scores) s.reserve(n);
+		for (auto& s : scores)
+			s.reserve(n);
 		for (uint i = 0; i < n; ++i) {
 			auto& pat = cal.pattern(i);
 			const auto& y = e.propagate(pat.input());
@@ -106,8 +107,7 @@ std::vector<Conformal::Interval> Conformal::interval(NeuralNetHack::Ensemble& e,
 	return out;
 }
 
-std::vector<uint> Conformal::set(NeuralNetHack::Ensemble& e,
-                                 const std::vector<double>& x) const {
+std::vector<uint> Conformal::set(NeuralNetHack::Ensemble& e, const std::vector<double>& x) const {
 	if (!theCalibrated) throw std::runtime_error("Conformal::set: not calibrated");
 	if (theMode != Mode::Classification)
 		throw std::runtime_error("Conformal::set: not classification mode");

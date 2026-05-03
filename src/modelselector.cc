@@ -196,8 +196,9 @@ int main(int argc, char* argv[]) {
 	parseData(config, trnData, tstData);
 	cout << "Printing configuration file." << endl << endl;
 	config.print(cout);
-	nnh::rand::seed(config.seed() == 0 ? time(0)
-	                           : config.seed()); // This is the ONLY place one may set the seed!
+	nnh::rand::seed(config.seed() == 0
+	                    ? time(0)
+	                    : config.seed()); // This is the ONLY place one may set the seed!
 
 	// Normalise training data last since those are the coeff we want printed
 	if (config.normalization() == "Z") {

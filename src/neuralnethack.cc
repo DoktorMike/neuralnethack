@@ -21,7 +21,6 @@ using namespace DataTools;
 using namespace EvalTools;
 using namespace std;
 
-
 void saveOutputList(vector<Session>& sessions, DataSet& trnData, DataSet& tstData, Config& config,
                     bool tst) {
 	if (config.saveOutputList() == false) return;
@@ -249,8 +248,9 @@ int main(int argc, char* argv[]) {
 	ofstream os("myconfig.debug");
 	config.print(os);
 	os.close();
-	nnh::rand::seed(config.seed() == 0 ? time(0)
-	                           : config.seed()); // This is the ONLY place one may set the seed!
+	nnh::rand::seed(config.seed() == 0
+	                    ? time(0)
+	                    : config.seed()); // This is the ONLY place one may set the seed!
 
 	// Normalise training data last since those are the coeff we want printed
 	cout << "Normalizing data" << endl;

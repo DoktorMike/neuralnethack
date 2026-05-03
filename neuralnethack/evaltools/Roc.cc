@@ -22,8 +22,7 @@ using std::vector;
 Roc::Roc() : theRoc(), theAuc(0), theEval(std::make_unique<Evaluator>()) {}
 
 Roc::Roc(const Roc& roc)
-    : theRoc(roc.theRoc), theAuc(roc.theAuc),
-      theEval(std::make_unique<Evaluator>(*roc.theEval)) {}
+    : theRoc(roc.theRoc), theAuc(roc.theAuc), theEval(std::make_unique<Evaluator>(*roc.theEval)) {}
 
 Roc::~Roc() = default;
 

@@ -8,7 +8,8 @@ using namespace std;
 
 // PUBLIC
 
-ModelEstimator::ModelEstimator() : theEnsembleBuilder(nullptr), theSampler(nullptr), theSessions() {}
+ModelEstimator::ModelEstimator()
+    : theEnsembleBuilder(nullptr), theSampler(nullptr), theSessions() {}
 
 ModelEstimator::~ModelEstimator() = default;
 

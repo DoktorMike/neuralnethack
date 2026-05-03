@@ -201,8 +201,10 @@ bool testConfigWiring() {
 	    "[training.early_stopping]\n"
 	    "patience = 7\n"
 	    "min_delta = 0.0025\n"
-	    "[ensemble]\nmethod = \"none\"\nruns = 1\nparts = 1\nsplit = \"ser\"\nvary_weights = false\n"
-	    "[model_selection]\nmethod = \"none\"\nruns = 1\nparts = 1\nsplit = \"ser\"\nfraction = 0.5\n"
+	    "[ensemble]\nmethod = \"none\"\nruns = 1\nparts = 1\nsplit = \"ser\"\nvary_weights = "
+	    "false\n"
+	    "[model_selection]\nmethod = \"none\"\nruns = 1\nparts = 1\nsplit = \"ser\"\nfraction = "
+	    "0.5\n"
 	    "[output]\nsave_session = false\nsave_output_list = false\n";
 
 	std::istringstream in(toml);

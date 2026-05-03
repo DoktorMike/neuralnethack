@@ -52,15 +52,13 @@ class Conformal {
 	 * prediction, length nOutput. Throws on mode mismatch or if not
 	 * calibrated.
 	 */
-	std::vector<Interval> interval(NeuralNetHack::Ensemble& e,
-	                               const std::vector<double>& x) const;
+	std::vector<Interval> interval(NeuralNetHack::Ensemble& e, const std::vector<double>& x) const;
 
 	/**Classification: prediction set as sorted class indices. Throws on
 	 * mode mismatch or if not calibrated. May be empty in pathological
 	 * cases (model is overconfident on every wrong class for this point).
 	 */
-	std::vector<uint> set(NeuralNetHack::Ensemble& e,
-	                      const std::vector<double>& x) const;
+	std::vector<uint> set(NeuralNetHack::Ensemble& e, const std::vector<double>& x) const;
 
 	/**Marginal empirical coverage on a held-out test DataSet.
 	 * Regression: fraction over (pattern, dim) pairs.

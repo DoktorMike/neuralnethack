@@ -91,7 +91,8 @@ static void testBatchEqualsSingle() {
 	for (uint i = 0; i < data.size(); ++i) {
 		vector<double> single = mlp.propagate(data.pattern(i).input());
 		double s = 0;
-		for (double v : single) s += v;
+		for (double v : single)
+			s += v;
 		EXPECT(nearly(s, 1.0, 1e-12), "single-pattern softmax sums to 1");
 	}
 }
@@ -141,11 +142,14 @@ static void testGradientCheckSoftmaxCE() {
 	double maxRel = 0.0;
 	for (uint k = 0; k < w.size(); ++k) {
 		double saved = w[k];
-		w[k] = saved + h; mlp.weights(w);
+		w[k] = saved + h;
+		mlp.weights(w);
 		double Lp = evalLoss();
-		w[k] = saved - h; mlp.weights(w);
+		w[k] = saved - h;
+		mlp.weights(w);
 		double Lm = evalLoss();
-		w[k] = saved; mlp.weights(w);
+		w[k] = saved;
+		mlp.weights(w);
 		double g_num = (Lp - Lm) / (2.0 * h);
 		double denom = std::max(1.0, std::fabs(g_num) + std::fabs(g_an[k]));
 		double rel = std::fabs(g_num - g_an[k]) / denom;

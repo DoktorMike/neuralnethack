@@ -65,8 +65,9 @@ int main(int argc, char* argv[]) {
 		exit(0);
 	}
 
-	nnh::rand::seed(config.seed() == 0 ? time(0)
-	                           : config.seed()); // This is the ONLY place one may set the seed!
+	nnh::rand::seed(config.seed() == 0
+	                    ? time(0)
+	                    : config.seed()); // This is the ONLY place one may set the seed!
 
 	FeatureSelector fs(minF, maxF, maxR);
 	fs.run(config, ErrorMeasures::auc);

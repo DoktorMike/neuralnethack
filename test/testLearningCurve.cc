@@ -134,23 +134,33 @@ void runCase(const string& tag, std::function<std::unique_ptr<Trainer>(Mlp&, Dat
 
 int main() {
 	// Adam, with and without val.
-	runCase("adam", [](Mlp& m, DataSet& d, Error& e) {
-		return std::make_unique<Adam>(m, d, e, /*te=*/0.0, /*bs=*/8, /*lr=*/0.05);
-	}, false);
-	runCase("adam", [](Mlp& m, DataSet& d, Error& e) {
-		return std::make_unique<Adam>(m, d, e, 0.0, 8, 0.05);
-	}, true);
+	runCase(
+	    "adam",
+	    [](Mlp& m, DataSet& d, Error& e) {
+		    return std::make_unique<Adam>(m, d, e, /*te=*/0.0, /*bs=*/8, /*lr=*/0.05);
+	    },
+	    false);
+	runCase(
+	    "adam",
+	    [](Mlp& m, DataSet& d, Error& e) { return std::make_unique<Adam>(m, d, e, 0.0, 8, 0.05); },
+	    true);
 
 	// GradientDescent, with val.
-	runCase("gd", [](Mlp& m, DataSet& d, Error& e) {
-		return std::make_unique<GradientDescent>(m, d, e, /*te=*/0.0, /*bs=*/8, /*lr=*/0.05,
-		                                         /*dlr=*/1.0, /*momentum=*/0.0);
-	}, true);
+	runCase(
+	    "gd",
+	    [](Mlp& m, DataSet& d, Error& e) {
+		    return std::make_unique<GradientDescent>(m, d, e, /*te=*/0.0, /*bs=*/8, /*lr=*/0.05,
+		                                             /*dlr=*/1.0, /*momentum=*/0.0);
+	    },
+	    true);
 
 	// QuasiNewton, with val.
-	runCase("qn", [](Mlp& m, DataSet& d, Error& e) {
-		return std::make_unique<QuasiNewton>(m, d, e, /*te=*/0.0, /*bs=*/8);
-	}, true);
+	runCase(
+	    "qn",
+	    [](Mlp& m, DataSet& d, Error& e) {
+		    return std::make_unique<QuasiNewton>(m, d, e, /*te=*/0.0, /*bs=*/8);
+	    },
+	    true);
 
 	if (fails == 0) std::cout << "All learning-curve tests passed." << std::endl;
 	return fails == 0 ? 0 : 1;
