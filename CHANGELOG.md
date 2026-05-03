@@ -2,6 +2,117 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.0.0](https://github.com/DoktorMike/neuralnethack/compare/v3.0.0...v4.0.0) (2026-05-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* **parallel:** random number generation is now nnh::rand (thread-
+local mt19937_64) rather than libc drand48. Existing srand48(s) calls
+became nnh::rand::seed(s); reproducibility holds for the same seed,
+but values differ from the drand48-seeded build.
+
+NNH_OPENMP CMake option (default ON, auto-disabled under NNH_ASAN).
+* DataManager::split overloads and Sampler::next now
+return by value (std::pair<DataSet, DataSet> or std::vector<DataSet>),
+not raw owning pointers. Callers should drop the manual `delete`.
+DataSet's shared_ptr<CoreDataSet> + indices vector make these moves
+cheap.
+* Factory::create* return std::unique_ptr<T>; no more
+manual delete. EnsembleBuilder/ModelEstimator setters take unique_ptr.
+Error/Trainer (and concrete subclasses) gain unique_ptr-taking ctors
+alongside the existing reference ctors.
+* **datatools:** DataSet::coreDataSet(CoreDataSet&) is replaced with
+DataSet::coreDataSet(std::shared_ptr<CoreDataSet>). External callers
+must wrap their CoreDataSet in std::make_shared<CoreDataSet>().
+killCoreData() is removed.
+
+Drive-by fixes ASan caught along the way:
+- Parser::selectInserter leaked one byte per parsed value (`new char`
+  for strtod's end pointer; should have been a stack `char*`).
+- Parser::readDataFile read past rowRange.end() when the requested
+  rows were exhausted before EOF.
+
+Adds an NNH_ASAN CMake option (off by default) that builds with
+-fsanitize=address,undefined and runs tests with detect_leaks=0
+(several Sampler / DataManager APIs still use raw owning pointers
+and leak; cleaning those up is a separate PR).
+
+### Features
+
+* **cli:** emit per-member learning curves ([6350ae4](https://github.com/DoktorMike/neuralnethack/commit/6350ae409d0b740f47affeba40379c5035bee653))
+* **config:** expose early stopping in TOML config ([5ec68b1](https://github.com/DoktorMike/neuralnethack/commit/5ec68b1c85c4729cb5965bcfa26864a070477593))
+* **eval:** add ConfusionMatrix with binary and multi-class metrics ([41ffc07](https://github.com/DoktorMike/neuralnethack/commit/41ffc07bb61faac13102ceea4b5cb630e39ed486))
+* **eval:** add regression metrics MAE, MAPE, sMAPE, RMSE, R2 ([e0e8fb9](https://github.com/DoktorMike/neuralnethack/commit/e0e8fb9c933777d4d668a36953a0e0218b470c48))
+* **evaltools:** add split conformal prediction ([dc24e59](https://github.com/DoktorMike/neuralnethack/commit/dc24e59a059f4409a35dfe666476ae553049ab58))
+* **examples:** aleatoric/epistemic + spiral ([5f193eb](https://github.com/DoktorMike/neuralnethack/commit/5f193ebc60428e29edc03abae6e99fe2fb70498a))
+* **examples:** make ensemble size configurable via argv[1] ([3598b9d](https://github.com/DoktorMike/neuralnethack/commit/3598b9d2fbe836700fa87ec76dd147e379f7f707))
+* **mlp:** add residual (skip) connections with pre-activation sum merge ([5037df4](https://github.com/DoktorMike/neuralnethack/commit/5037df430edec127bf7a5c7dc78f4df518215ba1))
+* **mlp:** softmax output layer ([7bb249f](https://github.com/DoktorMike/neuralnethack/commit/7bb249f81fdf29ef5dd5d5740947ee0a594b8bff))
+* **parallel:** EnsembleBuilder runs members in parallel via trainer factory ([29b37c8](https://github.com/DoktorMike/neuralnethack/commit/29b37c800087a5e862aa17a148b8edf1ff326051))
+* **parallel:** thread-local RNG + OpenMP ensemble training ([553e08e](https://github.com/DoktorMike/neuralnethack/commit/553e08e678b4776f3e3057a2e3bbc2b332bd8fb3))
+* **trainer:** early stopping on validation loss ([f4a0f5f](https://github.com/DoktorMike/neuralnethack/commit/f4a0f5f6190668cc6a73abb3a500a3e38b2642f1))
+* **trainer:** learning-curve file with val ([fe4038f](https://github.com/DoktorMike/neuralnethack/commit/fe4038feb6024acfbc0bbfc0bca239a2473c1111))
+
+
+### Bug Fixes
+
+* **cli:** multiclass eval uses accuracy not auc ([47497ef](https://github.com/DoktorMike/neuralnethack/commit/47497efff93828a87d0720623ffe3a774f5f2e97))
+* **ensemblebuilder:** widen snprintf buffer for -Wformat-truncation ([c2de1e1](https://github.com/DoktorMike/neuralnethack/commit/c2de1e10928470b4026b0019b4cebe37803bc8ea))
+* **test:** avoid use-after-free in testDataManager ([4ce5766](https://github.com/DoktorMike/neuralnethack/commit/4ce5766567d53e71ffe50b7d0acde0e7e5446a45))
+
+
+### Documentation
+
+* dedicated README section for residual skip connections ([1a05559](https://github.com/DoktorMike/neuralnethack/commit/1a0555965bea60411ec664cde41a5ee792843e3c))
+* **examples:** add Amini cubic ensemble uncertainty demo ([ee10bf7](https://github.com/DoktorMike/neuralnethack/commit/ee10bf7a675e1cd1cfb90be197142f7e4ff589d1))
+* **examples:** iris ensemble uncertainty + ggplot ([6616a27](https://github.com/DoktorMike/neuralnethack/commit/6616a276bd5824b0cb180aff1c302d46b48e1113))
+* **examples:** residual ensemble on XOR ([e276178](https://github.com/DoktorMike/neuralnethack/commit/e27617872a226b76bdf699a672152aaf17ee616a))
+* **examples:** residual ensemble uncertainty demo ([4fce163](https://github.com/DoktorMike/neuralnethack/commit/4fce1633b542cc671e4e58eed1d7bd80685d59d8))
+* **examples:** residual vs plain deep MLP regression demo ([1b8816e](https://github.com/DoktorMike/neuralnethack/commit/1b8816ec9121a72c932c614bdda95c7601cfb83e))
+* **examples:** spiral progress prints per member ([9360c11](https://github.com/DoktorMike/neuralnethack/commit/9360c11d170dba87c8b4f15d4c2fc271deaf9d32))
+* fix README quick start for shared_ptr API + show skipFrom ([1d654d7](https://github.com/DoktorMike/neuralnethack/commit/1d654d7c1393ec4f4e7eb9c8b9119064a58b6fc5))
+* move TODO to TODO.md, list ASan-found leaks ([c505f79](https://github.com/DoktorMike/neuralnethack/commit/c505f7968a002f078c3814541e154c9ebbd8029e))
+* **plot:** show holdout shading, mean+std band, members on uncertainty plot ([95d2235](https://github.com/DoktorMike/neuralnethack/commit/95d2235d0ebf114ca5924a7878386a70d985dc22))
+* **readme:** rewrite in mike voice + sync features ([56497f8](https://github.com/DoktorMike/neuralnethack/commit/56497f8c24b1c3197bad929c1e8cffcc02ebae82))
+* refresh TODO.md after Factory unique_ptr cleanup ([7d80e5a](https://github.com/DoktorMike/neuralnethack/commit/7d80e5afb170aca457f8090e3f2037ee3933d611))
+* **todo:** drop matrix-template, expand ROC entry ([6a9c5c8](https://github.com/DoktorMike/neuralnethack/commit/6a9c5c85e1646e0d54b6fbc9dc36dff0605c3578))
+* **todo:** drop residual step 2 ([cc09cbb](https://github.com/DoktorMike/neuralnethack/commit/cc09cbb1119d2e817d3c325a03795ac15712ea3a))
+* **todo:** drop time-series + perf entries ([b84042f](https://github.com/DoktorMike/neuralnethack/commit/b84042f12fafffe0702f1d614f9c511e1a5bd5f2))
+* **todo:** expand with concrete next-step ideas ([4b4d4b5](https://github.com/DoktorMike/neuralnethack/commit/4b4d4b5fe51e86b40ef7ee16afbd5d1df1eaae0a))
+
+
+### Other
+
+* DataManager::split + Sampler::next return by value ([5c3e4e5](https://github.com/DoktorMike/neuralnethack/commit/5c3e4e5651b15bf717810b40e9fe2fcdac758cfc))
+* **datatools:** DataSet now owns CoreDataSet via shared_ptr ([319f5eb](https://github.com/DoktorMike/neuralnethack/commit/319f5ebc99cb5f0014d6ad5485f69ca7d7e46205))
+* **error:** batched outputError ([262b2de](https://github.com/DoktorMike/neuralnethack/commit/262b2dea815ef63e693bbd9128cc1bfa4a635607))
+* **error:** reuse packBatch buffers ([6a0ebe6](https://github.com/DoktorMike/neuralnethack/commit/6a0ebe6e65be591c666dd1f7cfa8d3326fadb925))
+* formatting ([db59a79](https://github.com/DoktorMike/neuralnethack/commit/db59a79982c76b0ab1a58566480325fb6c3fde3c))
+* formatting ([9a02301](https://github.com/DoktorMike/neuralnethack/commit/9a023012c9bf252425e1fa5b0ea0be04b8f263bf))
+* formatting ([a9feaf5](https://github.com/DoktorMike/neuralnethack/commit/a9feaf51e328425c1967ed19c509afec82e07df0))
+* **gof:** assert chi2 separates good vs bad fit ([ddc86e4](https://github.com/DoktorMike/neuralnethack/commit/ddc86e4ff3949f965f4a05cad1391d67f5155076))
+* own Factory ownership graph via unique_ptr ([012b590](https://github.com/DoktorMike/neuralnethack/commit/012b590daa84b3ac81c30404e5dea923a89c1175))
+* update badges [skip ci] ([ec00185](https://github.com/DoktorMike/neuralnethack/commit/ec001850b465b6e9d415f02dda6d7f137c2b7251))
+* update badges [skip ci] ([2c075d4](https://github.com/DoktorMike/neuralnethack/commit/2c075d45accd7b4af2c40c7d37e09edeb1ddaebd))
+* update badges [skip ci] ([f1142f7](https://github.com/DoktorMike/neuralnethack/commit/f1142f71c02540b5386b5205d5fcded26514226b))
+* update badges [skip ci] ([3f30ea3](https://github.com/DoktorMike/neuralnethack/commit/3f30ea3163923cb049a09bbb5c9d4b5c9c5ac2e7))
+* update badges [skip ci] ([10fdbef](https://github.com/DoktorMike/neuralnethack/commit/10fdbef9c094f90e6ce79a409976d3d1768454b3))
+* update badges [skip ci] ([83520ed](https://github.com/DoktorMike/neuralnethack/commit/83520edfebc5a8e6d9038cf866410c1444f1d81e))
+* update badges [skip ci] ([e20d567](https://github.com/DoktorMike/neuralnethack/commit/e20d567ecdec1be78a647a356ad676ee124a217c))
+* update badges [skip ci] ([166c13a](https://github.com/DoktorMike/neuralnethack/commit/166c13a5d1b6e4682c131c55b3b8a1ec87b32a69))
+* update badges [skip ci] ([5edab28](https://github.com/DoktorMike/neuralnethack/commit/5edab280284dd7d92e62703af0b10664a3107748))
+* update badges [skip ci] ([abd962b](https://github.com/DoktorMike/neuralnethack/commit/abd962b4abd3abd7d8fff4874f8d17b20c5f9ffa))
+* update badges [skip ci] ([b09d8b3](https://github.com/DoktorMike/neuralnethack/commit/b09d8b3bbbd277f3aec2a3c89cbd9f8cf192434c))
+* update badges [skip ci] ([94766dd](https://github.com/DoktorMike/neuralnethack/commit/94766dd86631b1807380dd354513a3d07632339a))
+* update badges [skip ci] ([a354eb1](https://github.com/DoktorMike/neuralnethack/commit/a354eb15bb918a3eb99829e7445ecf1bf4249e56))
+* update badges [skip ci] ([976bff7](https://github.com/DoktorMike/neuralnethack/commit/976bff77bae2d36f6b8166ced2f6fc7e0252376a))
+* update badges [skip ci] ([3a3291a](https://github.com/DoktorMike/neuralnethack/commit/3a3291a6ab627a39efc785c37c7204c373c627d7))
+* update badges [skip ci] ([f176b9e](https://github.com/DoktorMike/neuralnethack/commit/f176b9e065aaa0aaf734fdf4db8c71585494f0b3))
+* update badges [skip ci] ([42d4285](https://github.com/DoktorMike/neuralnethack/commit/42d428535bcffe3d3d4a16282d1f5820e0187450))
+* update badges [skip ci] ([b54914e](https://github.com/DoktorMike/neuralnethack/commit/b54914e60bcfc4aebb9cf689b0abff3097bd2a5e))
+* update badges [skip ci] ([464a87a](https://github.com/DoktorMike/neuralnethack/commit/464a87a519b60345cca8e6a2f9155fa31c859d70))
+
 ## [3.0.0](https://github.com/DoktorMike/neuralnethack/compare/v2.1.1...v3.0.0) (2026-05-01)
 
 
