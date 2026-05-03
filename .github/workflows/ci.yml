@@ -34,6 +34,22 @@ jobs:
       - name: Test
         run: make test
 
+  amalgamation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y g++ python3
+      - name: Regenerate + smoke-compile single_include header
+        run: make single-include
+      - name: Verify single_include is up to date
+        run: |
+          if ! git diff --quiet single_include/neuralnethack.hh; then
+            echo "::error::single_include/neuralnethack.hh is stale. Run 'make single-include' and commit the result."
+            git --no-pager diff single_include/neuralnethack.hh | head -40
+            exit 1
+          fi
+
   badges:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
