@@ -19,6 +19,62 @@ decomposition (calibrated total uncertainty is what users actually want).
   / one-sided p-value). DeLong's test is the principled binary
   comparison; only worth it if a concrete user asks.
 
+## Refactor toward a more functional style
+
+Mostly aesthetic but with one real perf upside. C++ doesn't reward going
+fully functional the way ML does (variant ergonomics, lambda captures,
+RAII boilerplate eat a lot of the win), so these are scoped to the
+specific places where the OO genuinely hurts rather than a blanket
+rewrite.
+
+### Replace Layer hierarchy with std::variant + free functions
+Every `Layer::propagate` / `firePrime` call goes through a vtable lookup
+right now. Swap the SigmoidLayer / TansigLayer / ReLULayer / ... subclasses
+for a `std::variant<Sigmoid, TanH, ReLU, ...>` and dispatch via visitor or
+tag matching. The compiler then inlines the activation per call site,
+which is also one of the few changes that could measurably close the
+small-matrix perf gap to mlpack (each layer's per-element loop becomes
+inlinable by the optimiser). Free `propagate(layer, x)` + `apply_derivative(layer, deltas)`
+replace the virtuals.
+
+Scope: ~1 week, ~500 LOC touched. Caveats:
+- Public API break at the `Layer*` boundary; anyone subclassing Layer
+  externally is out of luck. Internally only `Mlp`, `Error`, and the
+  serialiser touch it.
+- Serialisation needs a tag byte instead of a polymorphic type id, but
+  the binary format already hand-rolls types so this is small.
+- Variant size is the size of the largest alternative; for our layers
+  that's negligible (a few doubles).
+
+### Split Mlp into MlpArch + Weights + MlpState
+Mlp currently mixes the architecture (immutable shape and activation
+choices), the weights (mutable trainable params + gradients), and a pile
+of transient batch buffers. Split into three plain structs and lift the
+existing methods to free functions: `forward(arch, weights, state, x)`,
+`backward(arch, weights, state, target, error_fn)`, `propagate_batch(...)`,
+etc.
+
+Scope: ~2 weeks on top of the variant rewrite (above), ~1k LOC touched.
+Caveats:
+- Bigger API break than (1). Every test, example, and CLI binary that
+  builds an Mlp gets rewritten.
+- The Trainer / Error classes also need adjusting because they currently
+  take `Mlp&`. Most natural fix is to keep them as thin wrappers over
+  the new free functions, with the wrapper as the user-facing surface.
+- Save / load reshapes: serialiser writes Weights only, Arch is
+  deserialised separately. Format-compatible if we keep the same field
+  order.
+- Worth doing only with (1) bundled in: fixing one without the other
+  leaves the awkward seam between OO and free-function APIs.
+
+### Probably leave alone
+- `Trainer` / `Error` subclass virtuals dispatch once per epoch, not
+  per element. The vtable cost is rounding-error compared to the GEMMs.
+- `Pattern`, `Config`, `Conformal`, `ConfusionMatrix` are already close
+  to "data + a couple of methods". Cleanup would be cosmetic.
+- `DataSet` / `CoreDataSet` shared-ownership pattern is fine; the
+  shared_ptr is the point.
+
 ## Nice but more work
 
 ### Conformal prediction follow-ups
