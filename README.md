@@ -39,6 +39,10 @@ It's not a libtorch replacement and I'm not going to pretend it is. Reach for so
 
 If you want the receipts, a full feature-by-feature comparison with the same libraries lives in [`doc/comparison.md`](doc/comparison.md).
 
+## Speed
+
+At realistic data scale this library is fast. On UCI Covertype (581k rows, 54 features, 7-class softmax MLP, 5 epochs) it lands the **lowest inference latency and the highest test accuracy** in a head-to-head against mlpack and tiny-dnn under identical config. On tiny-matrix workloads (Pima, 8-32-1) mlpack still wins on training time because BLAS per-call dispatch overhead dominates over the actual compute there. Numbers and the bench harness live in [`doc/comparison.md`](doc/comparison.md#speed-and-accuracy-on-real-benchmarks) and [`bench/`](bench/).
+
 ## Build
 
 ```sh
