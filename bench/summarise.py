@@ -18,17 +18,19 @@ def main() -> int:
         print("(no rows)")
         return 0
 
-    by_lib = defaultdict(lambda: {
+    by_key = defaultdict(lambda: {
         "train_s": [], "infer_us": [], "test_acc": [],
-        "threads": "", "blas": "",
+        "threads": "", "blas": "", "arch": "",
     })
     for r in rows:
         lib, dataset, arch, epochs, batch, threads, blas, trial, train_s, infer_us, acc = r
-        by_lib[lib]["train_s"].append(float(train_s))
-        by_lib[lib]["infer_us"].append(float(infer_us))
-        by_lib[lib]["test_acc"].append(float(acc))
-        by_lib[lib]["threads"] = threads
-        by_lib[lib]["blas"] = blas
+        key = (dataset, lib)
+        by_key[key]["train_s"].append(float(train_s))
+        by_key[key]["infer_us"].append(float(infer_us))
+        by_key[key]["test_acc"].append(float(acc))
+        by_key[key]["threads"] = threads
+        by_key[key]["blas"] = blas
+        by_key[key]["arch"] = arch
 
     def fmt(xs: list[float], pct: int = 4) -> str:
         med = st.median(xs)
@@ -36,13 +38,19 @@ def main() -> int:
         return f"{med:.{pct}f} ± {std:.{pct}f}"
 
     cols = [
-        ("lib", 15), ("threads", 8), ("blas", 9),
+        ("dataset", 9), ("lib", 15), ("arch", 12), ("threads", 8), ("blas", 9),
         ("train_s", 22), ("infer_us", 22), ("test_acc", 22),
     ]
     print("  ".join(f"{name:<{w}}" for name, w in cols))
-    for lib, d in sorted(by_lib.items()):
+    last_dataset = None
+    for (dataset, lib), d in sorted(by_key.items()):
+        if last_dataset is not None and dataset != last_dataset:
+            print()  # blank line between datasets for readability
+        last_dataset = dataset
         print("  ".join([
+            f"{dataset:<9}",
             f"{lib:<15}",
+            f"{d['arch']:<12}",
             f"{d['threads']:<8}",
             f"{d['blas']:<9}",
             f"{fmt(d['train_s'], 4):<22}",
