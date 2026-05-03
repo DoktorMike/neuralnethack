@@ -58,3 +58,42 @@ Listed for clarity so they don't keep coming up:
 - Bayesian / TPE hyperparameter optimization beyond the existing grid
   search.
 - Mixed precision / templated Matrix library.
+
+## Performance ceiling notes
+On the Pima 8-32-1 / batch-32 benchmark, this lib trains in ~10 ms / 100
+epochs vs mlpack at ~0.5 ms (20x gap). The gap is structural, not a
+specific bottleneck. mlpack's Armadillo expression templates inline a
+compile-time-sized GEMM directly at the call site, fusing forward +
+backward + Adam update with no per-call dispatch overhead. nnh's
+runtime-sized `Layer` has to dispatch through OpenBLAS's small-kernel
+path on every call, which costs ~1 us per dgemm and is the floor.
+
+Things that didn't close the gap (verified, save the time next time):
+- **Eigen Dynamic-size embed.** Eigen's `Map<MatrixXd>` ends up calling
+  the same `general_matrix_matrix_product` path as OpenBLAS for tiny
+  matrices. AVX-512 microkernels in both, near-identical perf. Tried
+  and rolled back. Static-size templates (`Matrix<double, M, N>`) are
+  the only Eigen path that actually inlines, but they require making
+  `Layer` template-parameterised by dimensions -- big rewrite.
+- **Skipping BLAS for small sizes.** OpenBLAS already has tuned
+  `dgemm_small_kernel_*` paths that beat naive C loops; gating to the
+  manual fallback was strictly slower.
+
+Things that *did* help (already shipped in 4.1.0):
+- Polynomial tanh / sigmoid (5-6x training speedup; libm tanh wasn't
+  vectorising and ate 23% of profile).
+- Pre-pack biases for vectorised per-row add.
+
+Plausible further wins (not yet attempted):
+- Hand-coded AVX-512 microkernels for the 4-6 hot GEMM shapes that
+  dominate small MLPs. ~200 LOC of intrinsics. Probably gets to within
+  3-5x of mlpack.
+- Compile-time `Layer<InDim, OutDim>` templates. Highest ceiling but
+  rewrites Mlp/Factory/parser/serialisation. Loses the runtime-arch
+  property. Reach for this only if the benchmark gap is biting a real
+  user.
+
+Pre-existing build bug while we're at it: `Layer.cc` and
+`MatrixTools.cc` call `cblas_ddot` / `cblas_dcopy` without `#ifdef
+USE_BLAS` guards, so `NNH_USE_BLAS=OFF` doesn't link. Easy fix when
+someone needs a BLAS-free build.
