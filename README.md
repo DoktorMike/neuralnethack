@@ -6,7 +6,7 @@
 ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-This is the MLP and ensemble-of-MLPs library I've kept maintained since 2004. It's small, fast, and stays out of your way: a C++23 core, an optional BLAS dependency, and nothing else. I reach for it on tabular problems where libtorch is overkill and I actually want to see what the optimizer is doing. If that sounds like your kind of thing, read on.
+This is the MLP and ensemble-of-MLPs library I've kept maintained, however infrequent, since 2004. It's small, fast, and stays out of your way: a C++23 core, an optional BLAS dependency, and nothing else. I reach for it on tabular problems where libtorch is overkill and I actually want to see what the optimizer is doing. If that sounds like your kind of thing, read on.
 
 ## Features
 
