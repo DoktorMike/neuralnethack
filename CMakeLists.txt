@@ -95,12 +95,7 @@ set(LIB_SOURCES
     neuralnethack/mlp/CrossEntropy.cc
     neuralnethack/mlp/Mlp.cc
     neuralnethack/mlp/Layer.cc
-    neuralnethack/mlp/SigmoidLayer.cc
-    neuralnethack/mlp/TanHypLayer.cc
-    neuralnethack/mlp/LinearLayer.cc
-    neuralnethack/mlp/ReLULayer.cc
-    neuralnethack/mlp/LeakyReLULayer.cc
-    neuralnethack/mlp/ELULayer.cc
+    neuralnethack/mlp/Activation.cc
     neuralnethack/mlp/Weights.cc
     neuralnethack/mlp/Serialization.cc
     # datatools

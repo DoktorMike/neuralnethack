@@ -3,8 +3,6 @@
 
 #include "Layer.hh"
 
-#include <memory>
-
 namespace MultiLayerPerceptron {
 /**A struct representing the model for a multilayer perceptron. */
 struct MlpModel {
@@ -203,7 +201,7 @@ class Mlp {
 	bool theSoftmax;
 
 	/**The layers in this MLP. */
-	std::vector<std::unique_ptr<Layer>> theLayers;
+	std::vector<Layer> theLayers;
 
 	/**Skip-connection source per layer; -1 = no skip. */
 	std::vector<int> theSkipFrom;

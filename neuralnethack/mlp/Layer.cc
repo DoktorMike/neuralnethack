@@ -10,179 +10,64 @@ extern "C" {
 }
 #endif
 
-#include <iostream>
-#include <cassert>
-
 #include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <iostream>
 #include <iterator>
 #include <numeric>
-#include <cmath>
 
 using namespace MultiLayerPerceptron;
 using namespace std;
 
-// Vectorizable batch activation functions ------------------------------------
-//
-// libm's scalar tanh / exp ate ~25% of training time on profile because gcc
-// auto-vectorisation didn't pick libmvec siblings even with -ffast-math +
-// `omp simd`. Replaced with branchless polynomial approximations that the
-// compiler vectorises trivially. Accuracy: tanh better than 1e-7 on
-// [-3, 3] and saturates correctly outside that range; sigmoid is derived
-// from the same tanh, accurate to ~5e-8 over the working range. Both are
-// well within training noise for any practical NN.
-
-static inline double fast_tanh(double x) {
-	const double xc = x < -5.0 ? -5.0 : (x > 5.0 ? 5.0 : x);
-	const double x2 = xc * xc;
-	const double a = xc * (135135.0 + x2 * (17325.0 + x2 * (378.0 + x2)));
-	const double b = 135135.0 + x2 * (62370.0 + x2 * (3150.0 + x2 * 28.0));
-	return a / b;
-}
-
-static inline double fast_sigmoid(double x) {
-	// sigmoid(x) = 0.5 * (tanh(x/2) + 1), which lets us reuse the same
-	// vectorisable polynomial path.
-	return 0.5 * (fast_tanh(0.5 * x) + 1.0);
-}
-
-static void sigmoidActivation(double* __restrict__ out, uint n) {
-#pragma omp simd
-	for (uint i = 0; i < n; ++i)
-		out[i] = fast_sigmoid(out[i]);
-}
-
-static void tanhypActivation(double* __restrict__ out, uint n) {
-#pragma omp simd
-	for (uint i = 0; i < n; ++i)
-		out[i] = fast_tanh(out[i]);
-}
-
-static void linearActivation(double* __restrict__, uint) {
-	// identity: no-op
-}
-
-// Vectorizable batch derivative-scale functions ------------------------------
-// Each computes deltas[i] *= f'(outputs[i])
-
-static void sigmoidDerivScale(const double* __restrict__ out, double* __restrict__ deltas, uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= out[i] * (1.0 - out[i]);
-}
-
-static void tanhypDerivScale(const double* __restrict__ out, double* __restrict__ deltas, uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= (1.0 - out[i] * out[i]);
-}
-
-static void linearDerivScale(const double* __restrict__, double* __restrict__, uint) {
-	// f'(x) = 1, so deltas unchanged
-}
-
-// ReLU
-static void reluActivation(double* __restrict__ out, uint n) {
-	for (uint i = 0; i < n; ++i)
-		out[i] = out[i] > 0.0 ? out[i] : 0.0;
-}
-static void reluDerivScale(const double* __restrict__ out, double* __restrict__ deltas, uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= (out[i] > 0.0 ? 1.0 : 0.0);
-}
-
-// Leaky ReLU (alpha = 0.01)
-static constexpr double LEAKY_ALPHA = 0.01;
-static void leakyReluActivation(double* __restrict__ out, uint n) {
-	for (uint i = 0; i < n; ++i)
-		out[i] = out[i] > 0.0 ? out[i] : LEAKY_ALPHA * out[i];
-}
-static void leakyReluDerivScale(const double* __restrict__ out, double* __restrict__ deltas,
-                                uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= (out[i] > 0.0 ? 1.0 : LEAKY_ALPHA);
-}
-
-// ELU (alpha = 1.0)
-static constexpr double ELU_ALPHA_VAL = 1.0;
-static void eluActivation(double* __restrict__ out, uint n) {
-#pragma omp simd
-	for (uint i = 0; i < n; ++i)
-		out[i] = out[i] > 0.0 ? out[i] : ELU_ALPHA_VAL * (exp(out[i]) - 1.0);
-}
-static void eluDerivScale(const double* __restrict__ out, double* __restrict__ deltas, uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= (out[i] >= 0.0 ? 1.0 : out[i] + ELU_ALPHA_VAL);
-}
-
 // Layer implementation -------------------------------------------------------
 
 Layer::Layer(const uint nc, const uint np, const string t)
-    : ncurr(nc), nprev(np), theType(t), theWeights(ncurr * (nprev + 1), 0), theOutputs(ncurr, 0),
-      theLocalGradients(ncurr, 0), theGradients(ncurr * (nprev + 1), 0),
-      theWeightUpdates(ncurr * (nprev + 1), 0), theDropoutRate(0.0), theTraining(false),
-      theDropoutMask(ncurr, 1.0), theNormType(NormType::None), theGamma(ncurr, 1.0),
-      theBeta(ncurr, 0.0), theGammaGrad(ncurr, 0.0), theBetaGrad(ncurr, 0.0),
-      theGammaUpdate(ncurr, 0.0), theBetaUpdate(ncurr, 0.0), theRunningMean(ncurr, 0.0),
-      theRunningVar(ncurr, 1.0), theBNMomentum(0.1), theActivation(nullptr),
-      theDerivScale(nullptr) {
-	if (t == SIGMOID) {
-		theActivation = sigmoidActivation;
-		theDerivScale = sigmoidDerivScale;
-	} else if (t == TANHYP) {
-		theActivation = tanhypActivation;
-		theDerivScale = tanhypDerivScale;
-	} else if (t == LINEAR) {
-		theActivation = linearActivation;
-		theDerivScale = linearDerivScale;
-	} else if (t == RELU) {
-		theActivation = reluActivation;
-		theDerivScale = reluDerivScale;
-	} else if (t == LEAKYRELU) {
-		theActivation = leakyReluActivation;
-		theDerivScale = leakyReluDerivScale;
-	} else if (t == ELU_ACT) {
-		theActivation = eluActivation;
-		theDerivScale = eluDerivScale;
-	}
+    : Layer(nc, np, activationFromTag(t)) {}
+
+Layer::Layer(const uint nc, const uint np, Activation act)
+    : ncurr(nc), nprev(np), theType(activationToTag(act)), theAct(std::move(act)),
+      theWeights(ncurr * (nprev + 1), 0), theOutputs(ncurr, 0), theLocalGradients(ncurr, 0),
+      theGradients(ncurr * (nprev + 1), 0), theWeightUpdates(ncurr * (nprev + 1), 0),
+      theDropoutRate(0.0), theTraining(false), theDropoutMask(ncurr, 1.0),
+      theNormType(NormType::None), theGamma(ncurr, 1.0), theBeta(ncurr, 0.0),
+      theGammaGrad(ncurr, 0.0), theBetaGrad(ncurr, 0.0), theGammaUpdate(ncurr, 0.0),
+      theBetaUpdate(ncurr, 0.0), theRunningMean(ncurr, 0.0), theRunningVar(ncurr, 1.0),
+      theBNMomentum(0.1) {
 	regenerateWeights();
-}
-
-Layer::Layer(const Layer& layer) {
-	*this = layer;
-}
-
-Layer::~Layer() {}
-
-Layer& Layer::operator=(const Layer& layer) {
-	if (this != &layer) {
-		ncurr = layer.ncurr;
-		nprev = layer.nprev;
-		theType = layer.theType;
-		theWeights = layer.theWeights;
-		theOutputs = layer.theOutputs;
-		theLocalGradients = layer.theLocalGradients;
-		theGradients = layer.theGradients;
-		theWeightUpdates = layer.theWeightUpdates;
-		theDropoutRate = layer.theDropoutRate;
-		theTraining = layer.theTraining;
-		theDropoutMask = layer.theDropoutMask;
-		theNormType = layer.theNormType;
-		theGamma = layer.theGamma;
-		theBeta = layer.theBeta;
-		theGammaGrad = layer.theGammaGrad;
-		theBetaGrad = layer.theBetaGrad;
-		theGammaUpdate = layer.theGammaUpdate;
-		theBetaUpdate = layer.theBetaUpdate;
-		theRunningMean = layer.theRunningMean;
-		theRunningVar = layer.theRunningVar;
-		theBNMomentum = layer.theBNMomentum;
-		theActivation = layer.theActivation;
-		theDerivScale = layer.theDerivScale;
-	}
-	return *this;
 }
 
 double& Layer::operator[](const uint i) {
 	assert(i < theOutputs.size());
 	return theOutputs[i];
+}
+
+// Scalar activation API ------------------------------------------------------
+
+double Layer::fire(double lif) const {
+	return std::visit([lif](const auto& a) { return MultiLayerPerceptron::fire(a, lif); }, theAct);
+}
+
+double Layer::firePrime(double lif) const {
+	return std::visit([lif](const auto& a) { return MultiLayerPerceptron::firePrime(a, lif); },
+	                  theAct);
+}
+
+double Layer::firePrime(const uint i) const {
+	assert(i < theOutputs.size());
+	const double y = theOutputs[i];
+	return std::visit([y](const auto& a) { return firePrimeFromOutput(a, y); }, theAct);
+}
+
+double Layer::firePrimePrime(double lif) const {
+	return std::visit([lif](const auto& a) { return MultiLayerPerceptron::firePrimePrime(a, lif); },
+	                  theAct);
+}
+
+double Layer::firePrimePrime(const uint i) const {
+	assert(i < theOutputs.size());
+	const double y = theOutputs[i];
+	return std::visit([y](const auto& a) { return firePrimePrimeFromOutput(a, y); }, theAct);
 }
 
 // PRINTS
@@ -209,7 +94,9 @@ void Layer::regenerateWeights() {
 	// because that's what compensates for the half of inputs they zero out.
 	// Biases (the last column in each row of the [ncurr, nprev+1] flat
 	// layout) are zeroed.
-	const bool isRelu = (theType == RELU || theType == LEAKYRELU || theType == ELU_ACT);
+	const bool isRelu = std::holds_alternative<ReLU>(theAct) ||
+	                    std::holds_alternative<LeakyReLU>(theAct) ||
+	                    std::holds_alternative<ELU>(theAct);
 	const double a = isRelu ? std::sqrt(6.0 / static_cast<double>(nprev))
 	                        : std::sqrt(6.0 / static_cast<double>(nprev + ncurr));
 	for (uint o = 0; o < ncurr; ++o) {
@@ -256,8 +143,10 @@ vector<double>& Layer::propagate(const vector<double>& input, const double* prea
 		for (uint i = 0; i < ncurr; ++i)
 			out[i] += preactSkip[i];
 
-	// Phase 2: apply activation in a single vectorizable loop
-	theActivation(out, ncurr);
+	// Phase 2: apply activation in a single vectorizable loop. std::visit
+	// inlines applyActivation per-alternative so the compiler sees a
+	// concrete activation type at the inner-loop call site.
+	std::visit([out, this](const auto& a) { applyActivation(a, out, ncurr); }, theAct);
 
 	// Phase 3: inverted dropout
 	if (theTraining && theDropoutRate > 0.0) {
@@ -272,7 +161,9 @@ vector<double>& Layer::propagate(const vector<double>& input, const double* prea
 }
 
 void Layer::applyDerivative(vector<double>& deltas) {
-	theDerivScale(theOutputs.data(), deltas.data(), ncurr);
+	std::visit(
+	    [&](const auto& a) { applyDerivScale(a, theOutputs.data(), deltas.data(), ncurr); },
+	    theAct);
 	if (theTraining && theDropoutRate > 0.0)
 		for (uint i = 0; i < ncurr; ++i)
 			deltas[i] *= theDropoutMask[i];
@@ -396,8 +287,9 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 			out[i] += preactSkip[i];
 	}
 
-	// Apply activation to all B*ncurr elements
-	theActivation(out, B * ncurr);
+	// Apply activation to all B*ncurr elements. std::visit lets the compiler
+	// inline the per-element activation kernel inside each variant branch.
+	std::visit([out, B, this](const auto& a) { applyActivation(a, out, B * ncurr); }, theAct);
 
 	// Inverted dropout for batch
 	if (theTraining && theDropoutRate > 0.0) {
@@ -414,7 +306,11 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 }
 
 void Layer::applyDerivativeBatch(uint B) {
-	theDerivScale(theBatchOutputs.data(), theBatchLocalGradients.data(), B * ncurr);
+	std::visit(
+	    [B, this](const auto& a) {
+		    applyDerivScale(a, theBatchOutputs.data(), theBatchLocalGradients.data(), B * ncurr);
+	    },
+	    theAct);
 	if (theTraining && theDropoutRate > 0.0 && !theBatchDropoutMask.empty()) {
 		double* delta = theBatchLocalGradients.data();
 		const double* mask = theBatchDropoutMask.data();

@@ -1522,6 +1522,95 @@ void div(std::vector<std::vector<double>>& m, double scale, std::vector<std::vec
 void print(std::vector<std::vector<double>>& m);
 } // namespace MatrixTools
 
+// ===== mlp/Activation.hh =====
+#include <string>
+#include <string_view>
+#include <variant>
+
+namespace MultiLayerPerceptron {
+
+// Activation tag types. Replace the old Layer-subclass hierarchy: each tag
+// carries only the parameters specific to that activation (LeakyReLU/ELU
+// alpha), and dispatch is done via std::visit on Activation rather than
+// virtual calls. The compiler can inline applyActivation per call site.
+struct Sigmoid {};
+struct TanH {};
+struct Linear {};
+struct ReLU {};
+struct LeakyReLU {
+	double alpha = 0.01;
+};
+struct ELU {
+	double alpha = 1.0;
+};
+
+using Activation = std::variant<Sigmoid, TanH, Linear, ReLU, LeakyReLU, ELU>;
+
+// String tag (logsig / tansig / purelin / relu / leakyrelu / elu) round-trip.
+// activationFromTag throws std::invalid_argument on unknown tags.
+Activation activationFromTag(std::string_view tag);
+const std::string& activationToTag(const Activation& a);
+
+// Scalar API. fire/firePrime/firePrimePrime take the local induced field;
+// the *FromOutput variants take the cached activation y = fire(lif) and
+// compute the derivative analytically (cheaper than recomputing fire).
+
+double fire(Sigmoid, double lif);
+double fire(TanH, double lif);
+double fire(Linear, double lif);
+double fire(ReLU, double lif);
+double fire(LeakyReLU a, double lif);
+double fire(ELU a, double lif);
+
+double firePrime(Sigmoid, double lif);
+double firePrime(TanH, double lif);
+double firePrime(Linear, double lif);
+double firePrime(ReLU, double lif);
+double firePrime(LeakyReLU a, double lif);
+double firePrime(ELU a, double lif);
+
+double firePrimeFromOutput(Sigmoid, double y);
+double firePrimeFromOutput(TanH, double y);
+double firePrimeFromOutput(Linear, double y);
+double firePrimeFromOutput(ReLU, double y);
+double firePrimeFromOutput(LeakyReLU a, double y);
+double firePrimeFromOutput(ELU a, double y);
+
+double firePrimePrime(Sigmoid, double lif);
+double firePrimePrime(TanH, double lif);
+double firePrimePrime(Linear, double lif);
+double firePrimePrime(ReLU, double lif);
+double firePrimePrime(LeakyReLU a, double lif);
+double firePrimePrime(ELU a, double lif);
+
+double firePrimePrimeFromOutput(Sigmoid, double y);
+double firePrimePrimeFromOutput(TanH, double y);
+double firePrimePrimeFromOutput(Linear, double y);
+double firePrimePrimeFromOutput(ReLU, double y);
+double firePrimePrimeFromOutput(LeakyReLU a, double y);
+double firePrimePrimeFromOutput(ELU a, double y);
+
+// Batch API. applyActivation maps lif -> output in place (used after the
+// linear+norm step in Layer::propagateBatch). applyDerivScale multiplies
+// deltas[i] by f'(output[i]) (used in Layer::applyDerivativeBatch).
+using ActivationSize = unsigned int;
+
+void applyActivation(Sigmoid, double* out, ActivationSize n);
+void applyActivation(TanH, double* out, ActivationSize n);
+void applyActivation(Linear, double* out, ActivationSize n);
+void applyActivation(ReLU, double* out, ActivationSize n);
+void applyActivation(LeakyReLU a, double* out, ActivationSize n);
+void applyActivation(ELU a, double* out, ActivationSize n);
+
+void applyDerivScale(Sigmoid, const double* out, double* deltas, ActivationSize n);
+void applyDerivScale(TanH, const double* out, double* deltas, ActivationSize n);
+void applyDerivScale(Linear, const double* out, double* deltas, ActivationSize n);
+void applyDerivScale(ReLU, const double* out, double* deltas, ActivationSize n);
+void applyDerivScale(LeakyReLU a, const double* out, double* deltas, ActivationSize n);
+void applyDerivScale(ELU a, const double* out, double* deltas, ActivationSize n);
+
+} // namespace MultiLayerPerceptron
+
 // ===== mlp/MultiLayerPerceptron.hh =====
 /**This namespace encloses the MultiLayerPerceptron library.
  * It contains all classes and methods needed to create an MLP.
@@ -1559,60 +1648,36 @@ enum class NormType : unsigned char { None = 0, BatchNorm = 1, LayerNorm = 2 };
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/Layer.hh =====
-#include <memory>
-#include <string>
-#include <vector>
 #include <cassert>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 namespace MultiLayerPerceptron {
 /**A class representing a layer in an Mlp.
- * A Layer has a number of neurons which have an activation function that
- * is implementation dependant. The Layer knows the number of neurons
- * contained in itself and its predecessor.
- * \sa Mlp, SigmoidLayer, TanHypLayer, LinearLayer.
+ * A Layer has a number of neurons with an activation function held as a
+ * std::variant tag (see Activation.hh). The Layer knows the number of
+ * neurons contained in itself and its predecessor.
+ * \sa Mlp, Activation.
  */
 class Layer {
   public:
-	/**Constructor.
-	 * \param nc the number of neurons in this layer.
-	 * \param np the number of neurons in the previous layer.
-	 * \param t the type of layer this is.
-	 */
+	/**Constructor from a string activation tag (logsig / tansig / ...). */
 	Layer(const uint nc, const uint np, std::string t);
 
-	/**Copy constructur.
-	 * \param layer the Layer to copy from.
-	 */
-	Layer(const Layer& layer);
-
-	/**Destructor.
-	 */
-	virtual ~Layer();
-
-	/**Clone this Layer.
-	 * \return a unique_ptr to the cloned Layer.
-	 */
-	virtual std::unique_ptr<Layer> clone() const = 0;
-
-	/**Assignment operator.
-	 * \param layer the Layer to assign from.
-	 * \return the Layer assigned to.
-	 */
-	Layer& operator=(const Layer& layer);
-
-	/**Index operator.
-	 * Fetch the weight located at the specified index.
-	 * \param i the index to return.
-	 * \return the weight at index i.
-	 */
-	double& operator[](const uint i);
+	/**Constructor from an Activation variant directly. */
+	Layer(const uint nc, const uint np, Activation act);
 
 	// ACCESSOR AND MUTATOR FUNCTIONS
+
+	/**Index operator: weight at index i. */
+	double& operator[](const uint i);
+
 	/**Get the weights leading into this layer.
 	 * \return the weight vector.
 	 */
 	std::vector<double>& weights();
+	const std::vector<double>& weights() const;
 
 	/**Set the weights to those in w.
 	 * \param w the weights to assign from.
@@ -1624,6 +1689,7 @@ class Layer {
 	 * \return the outputs from this layer.
 	 */
 	std::vector<double>& outputs();
+	const std::vector<double>& outputs() const;
 
 	/**Returns the local gradients in this layer.
 	 * \return the local gradients in this layer.
@@ -1634,6 +1700,7 @@ class Layer {
 	 * \return the gradients leading into this layer.
 	 */
 	std::vector<double>& gradients();
+	const std::vector<double>& gradients() const;
 
 	/**Return the weight updates leading into this layer.
 	 * \return the wight updates leading into this layer.
@@ -1642,94 +1709,33 @@ class Layer {
 
 	// ACCESSOR FUNCTIONS
 
-	/**Get the specified weight.
-	 * \param i the node in this layer that the weight is connected to.
-	 * \param j the node in the previous layer that the weight is connected to.
-	 * \return the weight.
-	 */
 	double& weights(const uint i, const uint j);
-
-	/**Get the specified weight.
-	 * \param i the index of the weight in the weight vector.
-	 * \return the weight.
-	 */
 	double& weights(const uint i);
-
-	/**Get the specified output.
-	 * \param i the node which output to return.
-	 * \return the output.
-	 */
 	double& outputs(const uint i);
-
-	/**Get the specified local gradient.
-	 * \param i the node which local gradient to return.
-	 * \return the local gradient.
-	 */
 	double& localGradients(const uint i);
-
-	/**Get the specified gradient.
-	 * \param i the node in this layer that the gradient is connected to.
-	 * \param j the node in the previous layer that the gradient is connected to.
-	 * \return the gradient.
-	 */
 	double& gradients(const uint i, const uint j);
-
-	/**Get the specified gradient.
-	 * \param i the index of the gradient in the gradient vector.
-	 * \return the gradient.
-	 */
 	double& gradients(const uint i);
-
-	/**Get the specified weight update.
-	 * \param i the node in this layer that the weight update is connected to.
-	 * \param j the node in the previous layer that the weight update is connected to.
-	 * \return the weight update.
-	 */
 	double& weightUpdates(const uint i, const uint j);
-
-	/**Get the specified weight update.
-	 * \param i the index of the weight update in the weight update vector.
-	 * \return the weight update.
-	 */
 	double& weightUpdates(const uint i);
 
 	// COUNTS AND CRAP
 
-	/**Get the number of weights contained in this layer.
-	 * \return the number of weights contained in this layer.
-	 */
 	uint nWeights() const;
-
-	/**Get the number of neurons contained in this layer.
-	 * Not including the bias.
-	 * \return the number of neurons contained in this layer.
-	 */
 	uint nNeurons() const;
-
-	/**Get the number of neurons contained in the previous layer.
-	 * Not including the bias.
-	 * \return the number of neurons contained in the previous layer.
-	 */
 	uint nPrevious() const;
-
-	/**Get the number of neurons contained in this layer.
-	 * Not including the bias.
-	 * \return the number of neurons contained in this layer.
-	 */
 	uint size() const;
+
+	/**The activation tag for this layer (variant over Sigmoid, TanH, ...). */
+	const Activation& activation() const { return theAct; }
+	Activation& activation() { return theAct; }
+
+	/**The string identifier for this layer's activation (used for serialisation). */
+	const std::string& type() const { return theType; }
 
 	// PRINTS
 
-	/**Prints the weights leading into this layer.
-	 */
 	void printWeights(std::ostream& os) const;
-
-	/**Prints the local gradients for the neurons in this layer.
-	 */
 	void printLocalGradients(std::ostream& os) const;
-
-	/**Prints the gradients for the neurons in this layer.
-	 */
 	void printGradients(std::ostream& os) const;
 
 	// UTILS
@@ -1743,48 +1749,22 @@ class Layer {
 	 */
 	enum class InitScheme { LegacyUniform, Glorot };
 
-	/**Set the init scheme. Takes effect on the next regenerateWeights() call.*/
 	void initScheme(InitScheme s) { theInitScheme = s; }
 	InitScheme initScheme() const { return theInitScheme; }
 
 	/**Assign new random weights to the weight vector. */
 	void regenerateWeights();
 
-	/**Activation function for every neuron in this layer.
-	 * \param lif the local induced field for a neuron.
-	 * \return the activation for the neuron.
-	 */
-	virtual double fire(double lif) const = 0;
+	// Activation API. Scalar overloads dispatch via std::visit on theAct.
+	// fire(uint i) returns the cached output directly (identical across all
+	// activations, since outputs[] stores the activation result post-propagate).
 
-	/**Get the activation value for the specified neuron.
-	 * \param i the neuron in this layer which activation to return.
-	 * \return the activation for the neuron.
-	 */
-	virtual double fire(const uint i) const = 0;
-
-	/**The derivative of the activation function.
-	 * \param lif the local induced field for a neuron.
-	 * \return the derivative of the activation for the neuron.
-	 */
-	virtual double firePrime(const double lif) const = 0;
-
-	/**Get the derivative of the activation value for the specified neuron.
-	 * \param i the neuron in this layer which activation to return.
-	 * \return the derivative of the activation for the neuron.
-	 */
-	virtual double firePrime(const uint i) const = 0;
-
-	/**The 2nd derivative of the activation function.
-	 * \param lif the local induced field for a neuron.
-	 * \return the derivative of the activation for the neuron.
-	 */
-	virtual double firePrimePrime(const double lif) const = 0;
-
-	/**Get the 2nd derivative of the activation value for the specified neuron.
-	 * \param i the neuron in this layer which activation to return.
-	 * \return the derivative of the activation for the neuron.
-	 */
-	virtual double firePrimePrime(const uint i) const = 0;
+	double fire(double lif) const;
+	double fire(const uint i) const;
+	double firePrime(double lif) const;
+	double firePrime(const uint i) const;
+	double firePrimePrime(double lif) const;
+	double firePrimePrime(const uint i) const;
 
 	/**Propagates an input pattern through this layer.
 	 * Note that the bias should not be included in the parameter
@@ -1799,65 +1779,29 @@ class Layer {
 	                               const double* preactSkip = nullptr);
 
 	/**Apply the activation derivative to a vector of deltas in batch.
-	 * Computes deltas[i] *= f'(outputs[i]) for all neurons,
-	 * using a function pointer instead of virtual dispatch.
+	 * Computes deltas[i] *= f'(outputs[i]) for all neurons.
 	 * \param deltas the vector to scale by the derivative.
 	 */
 	void applyDerivative(std::vector<double>& deltas);
 
-	/**Propagate a batch of inputs through this layer using GEMM.
-	 * \param input pointer to row-major input matrix [B x nprev].
-	 * \param B the batch size.
-	 * \param n_in number of input columns (must equal nprev).
-	 * \param preactSkip optional pre-activation skip-add buffer of size
-	 *        B * nNeurons(). Added between linear+norm and activation.
-	 * \return pointer to batch outputs [B x ncurr].
-	 */
+	/**Propagate a batch of inputs through this layer using GEMM. */
 	const double* propagateBatch(const double* input, uint B, uint n_in,
 	                             const double* preactSkip = nullptr);
 
-	/**Apply activation derivative to batch local gradients.
-	 * Both theBatchLocalGradients and theBatchOutputs are [B x ncurr].
-	 * \param B the batch size.
-	 */
 	void applyDerivativeBatch(uint B);
-
-	/**Accumulate weight gradients from batch via GEMM.
-	 * dW += Delta^T * Input, bias_grad += column_sum(Delta).
-	 * \param input pointer to row-major input matrix [B x nprev].
-	 * \param B the batch size.
-	 */
 	void accumulateGradientsBatch(const double* input, uint B);
 
-	/**Return batch outputs storage. */
 	std::vector<double>& batchOutputs();
-
-	/**Return batch local gradients storage. */
 	std::vector<double>& batchLocalGradients();
 
-	/**Set the dropout rate for this layer.
-	 * \param rate dropout probability (0 to 1, 0 = disabled).
-	 */
 	void dropoutRate(double rate);
-
-	/**Get the dropout rate. */
 	double dropoutRate() const;
-
-	/**Set training mode (enables/disables dropout).
-	 * \param t true for training, false for inference.
-	 */
 	void training(bool t);
-
-	/**Get training mode. */
 	bool isTraining() const;
 
-	/**Set normalization type for this layer. */
 	void normType(NormType nt);
-
-	/**Get normalization type. */
 	NormType normType() const;
 
-	/**Accessors for normalization parameters. */
 	std::vector<double>& gamma();
 	std::vector<double>& beta();
 	std::vector<double>& gammaGradients();
@@ -1865,76 +1809,39 @@ class Layer {
 	std::vector<double>& gammaUpdates();
 	std::vector<double>& betaUpdates();
 
-	/**Number of learnable normalization parameters (2*ncurr if norm active, 0 otherwise). */
 	uint nNormParams() const;
 
-	/**Propagate batch local gradients backward through normalization.
-	 * Accumulates gamma/beta gradients and transforms deltas to pre-norm space.
-	 * \param B the batch size.
-	 */
 	void applyNormBackwardBatch(uint B);
 
-	/**Calculates the Local Induced Field for each node in this layer.
-	 * Note that the bias should not be included in the parameter
-	 * since it is explicitly included later.
-	 * \param input the input to this Layer.
-	 * \return the local induced fields.
-	 */
 	std::vector<double> calcLifs(const std::vector<double>& input);
 
   protected:
-	/**Convert a two index value to a one index value.
-	 * \param i the row.
-	 * \param j the column.
-	 * \return the resulting index.
-	 */
 	uint index(const uint i, const uint j) const;
 
-	/**Number of neurons in this layer. */
 	uint ncurr;
-
-	/**Number of neurons in previous layer. */
 	uint nprev;
 
-	/**Type of neurons in this layer. */
+	/**Type tag (logsig / tansig / ...). Held alongside theAct because
+	 * serialisation writes the string and several callers query it. */
 	std::string theType;
 
-	/**The weights leading into this layer. */
+	/**Activation variant. Replaces the old per-subclass virtual dispatch. */
+	Activation theAct;
+
 	std::vector<double> theWeights;
-
-	/**The output of this layer. */
 	std::vector<double> theOutputs;
-
-	/**The local gradients of this layers neurons. */
 	std::vector<double> theLocalGradients;
-
-	/**The weight gradients of this layers weights. */
 	std::vector<double> theGradients;
-
-	/**The update used for this layers weights. */
 	std::vector<double> theWeightUpdates;
 
-	/**Dropout probability (0.0 = disabled). */
 	double theDropoutRate;
-
-	/**Training mode flag. */
 	bool theTraining;
-
-	/**Dropout mask (inverted: 1/(1-p) or 0), sized [ncurr]. */
 	std::vector<double> theDropoutMask;
-
-	/**Batch dropout mask [B * ncurr]. */
 	std::vector<double> theBatchDropoutMask;
 
-	/**Batch outputs: row-major [B x ncurr]. */
 	std::vector<double> theBatchOutputs;
-
-	/**Batch local gradients: row-major [B x ncurr]. */
 	std::vector<double> theBatchLocalGradients;
 
-	/**Reusable scratch for vectorised bias add / bias-gradient column sum.
-	 * Size = ncurr; lazily resized per call.
-	 */
 	mutable std::vector<double> theBiasBuf;
 
 	// --- Normalization state ---
@@ -1953,20 +1860,6 @@ class Layer {
 	std::vector<double> theBatchNormVar;
 	static constexpr double NORM_EPS = 1e-5;
 
-	/**Batch activation function pointer. */
-	using ActivationFn = void (*)(double* __restrict__ outputs, uint n);
-
-	/**Batch derivative-scale function pointer.
-	 * Computes deltas[i] *= f'(outputs[i]). */
-	using DerivScaleFn = void (*)(const double* __restrict__ outputs, double* __restrict__ deltas,
-	                              uint n);
-
-	/**Batch activation function for this layer's type. */
-	ActivationFn theActivation;
-
-	/**Batch derivative-scale function for this layer's type. */
-	DerivScaleFn theDerivScale;
-
 	InitScheme theInitScheme = InitScheme::Glorot;
 };
 
@@ -1974,6 +1867,18 @@ class Layer {
 
 inline std::vector<double>& Layer::weights() {
 	return theWeights;
+}
+
+inline const std::vector<double>& Layer::weights() const {
+	return theWeights;
+}
+
+inline const std::vector<double>& Layer::outputs() const {
+	return theOutputs;
+}
+
+inline const std::vector<double>& Layer::gradients() const {
+	return theGradients;
 }
 
 inline void Layer::weights(const std::vector<double>& w) {
@@ -2097,6 +2002,11 @@ inline bool Layer::isTraining() const {
 	return theTraining;
 }
 
+inline double Layer::fire(const uint i) const {
+	assert(i < theOutputs.size());
+	return theOutputs[i];
+}
+
 // PRIVATE--------------------------------------------------------------------//
 
 inline uint Layer::index(const uint i, const uint j) const {
@@ -2106,186 +2016,7 @@ inline uint Layer::index(const uint i, const uint j) const {
 
 } // namespace MultiLayerPerceptron
 
-// ===== mlp/ELULayer.hh =====
-#include <cmath>
-#include <cassert>
-
-namespace MultiLayerPerceptron {
-class ELULayer : public Layer {
-  public:
-	ELULayer(uint nc, uint np);
-	virtual ~ELULayer();
-	std::unique_ptr<Layer> clone() const override { return std::make_unique<ELULayer>(*this); }
-
-	double fire(const double lif) const;
-	double fire(const uint i) const;
-	double firePrime(const double lif) const;
-	double firePrime(const uint i) const;
-	double firePrimePrime(const double lif) const;
-	double firePrimePrime(const uint i) const;
-
-  private:
-	static constexpr double ALPHA = 1.0;
-};
-
-inline double ELULayer::fire(const double lif) const {
-	return lif > 0.0 ? lif : ALPHA * (exp(lif) - 1.0);
-}
-
-inline double ELULayer::fire(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i];
-}
-
-inline double ELULayer::firePrime(const double lif) const {
-	return lif > 0.0 ? 1.0 : ALPHA * exp(lif);
-}
-
-inline double ELULayer::firePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i] >= 0.0 ? 1.0 : theOutputs[i] + ALPHA;
-}
-
-inline double ELULayer::firePrimePrime(const double lif) const {
-	return lif > 0.0 ? 0.0 : ALPHA * exp(lif);
-}
-
-inline double ELULayer::firePrimePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i] >= 0.0 ? 0.0 : theOutputs[i] + ALPHA;
-}
-} // namespace MultiLayerPerceptron
-
-// ===== mlp/LeakyReLULayer.hh =====
-#include <cassert>
-
-namespace MultiLayerPerceptron {
-class LeakyReLULayer : public Layer {
-  public:
-	LeakyReLULayer(uint nc, uint np);
-	virtual ~LeakyReLULayer();
-	std::unique_ptr<Layer> clone() const override {
-		return std::make_unique<LeakyReLULayer>(*this);
-	}
-
-	double fire(const double lif) const;
-	double fire(const uint i) const;
-	double firePrime(const double lif) const;
-	double firePrime(const uint i) const;
-	double firePrimePrime(const double lif) const;
-	double firePrimePrime(const uint i) const;
-
-  private:
-	static constexpr double ALPHA = 0.01;
-};
-
-inline double LeakyReLULayer::fire(const double lif) const {
-	return lif > 0.0 ? lif : ALPHA * lif;
-}
-
-inline double LeakyReLULayer::fire(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i];
-}
-
-inline double LeakyReLULayer::firePrime(const double lif) const {
-	return lif > 0.0 ? 1.0 : ALPHA;
-}
-
-inline double LeakyReLULayer::firePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i] > 0.0 ? 1.0 : ALPHA;
-}
-
-inline double LeakyReLULayer::firePrimePrime(const double) const {
-	return 0.0;
-}
-
-inline double LeakyReLULayer::firePrimePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return 0.0;
-}
-} // namespace MultiLayerPerceptron
-
-// ===== mlp/LinearLayer.hh =====
-#include <string>
-#include <cassert>
-
-namespace MultiLayerPerceptron {
-/**A class representing a linear implementation of the layer interface.
- * It knows the number of neurons contained in itself and its
- * predecessor.
- * \f[\varphi (v)=v\f]
- * \sa Layer, Mlp.
- */
-class LinearLayer : public Layer {
-  public:
-	/**Constructor.
-	 * \param nc the number of neurons in this layer.
-	 * \param np the number of neurons in the previous layer.
-	 */
-	LinearLayer(uint nc, uint np);
-
-	/**Destructor.
-	 */
-	virtual ~LinearLayer();
-
-	std::unique_ptr<Layer> clone() const override { return std::make_unique<LinearLayer>(*this); }
-
-	// ACCESSOR AND MUTATOR FUNCTIONS
-
-	// ACCESSOR FUNCTIONS
-
-	// COUNTS AND CRAP
-
-	// PRINTS
-
-	// UTILS
-
-	double fire(const double lif) const;
-
-	double fire(const uint i) const;
-
-	double firePrime(const double lif) const;
-
-	double firePrime(const uint i) const;
-
-	double firePrimePrime(const double lif) const;
-
-	double firePrimePrime(const uint i) const;
-};
-
-inline double LinearLayer::fire(const double lif) const {
-	return lif;
-}
-
-inline double LinearLayer::fire(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i];
-}
-
-inline double LinearLayer::firePrime(const double lif) const {
-	return 1.0;
-}
-
-inline double LinearLayer::firePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return 1.0;
-}
-
-inline double LinearLayer::firePrimePrime(const double lif) const {
-	return 0.0;
-}
-
-inline double LinearLayer::firePrimePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return 0.0;
-}
-} // namespace MultiLayerPerceptron
-
 // ===== mlp/Mlp.hh =====
-#include <memory>
-
 namespace MultiLayerPerceptron {
 /**A struct representing the model for a multilayer perceptron. */
 struct MlpModel {
@@ -2484,7 +2215,7 @@ class Mlp {
 	bool theSoftmax;
 
 	/**The layers in this MLP. */
-	std::vector<std::unique_ptr<Layer>> theLayers;
+	std::vector<Layer> theLayers;
 
 	/**Skip-connection source per layer; -1 = no skip. */
 	std::vector<int> theSkipFrom;
@@ -3758,52 +3489,6 @@ class CrossEntropy : public Error {
 };
 } // namespace MultiLayerPerceptron
 
-// ===== mlp/ReLULayer.hh =====
-#include <cassert>
-
-namespace MultiLayerPerceptron {
-class ReLULayer : public Layer {
-  public:
-	ReLULayer(uint nc, uint np);
-	virtual ~ReLULayer();
-	std::unique_ptr<Layer> clone() const override { return std::make_unique<ReLULayer>(*this); }
-
-	double fire(const double lif) const;
-	double fire(const uint i) const;
-	double firePrime(const double lif) const;
-	double firePrime(const uint i) const;
-	double firePrimePrime(const double lif) const;
-	double firePrimePrime(const uint i) const;
-};
-
-inline double ReLULayer::fire(const double lif) const {
-	return lif > 0.0 ? lif : 0.0;
-}
-
-inline double ReLULayer::fire(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i];
-}
-
-inline double ReLULayer::firePrime(const double lif) const {
-	return lif > 0.0 ? 1.0 : 0.0;
-}
-
-inline double ReLULayer::firePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i] > 0.0 ? 1.0 : 0.0;
-}
-
-inline double ReLULayer::firePrimePrime(const double) const {
-	return 0.0;
-}
-
-inline double ReLULayer::firePrimePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return 0.0;
-}
-} // namespace MultiLayerPerceptron
-
 // ===== mlp/Serialization.hh =====
 #include <memory>
 #include <string>
@@ -3857,88 +3542,6 @@ void saveEnsembleBinary(const NeuralNetHack::Ensemble& ens, const std::string& p
  * \return a unique_ptr to the loaded Ensemble.
  */
 std::unique_ptr<NeuralNetHack::Ensemble> loadEnsembleBinary(const std::string& path);
-} // namespace MultiLayerPerceptron
-
-// ===== mlp/SigmoidLayer.hh =====
-#include <string>
-#include <cmath>
-#include <cassert>
-
-namespace MultiLayerPerceptron {
-/**A class representing a sigmoid implementation of the layer interface.
- * It knows the number of neurons contained in itself and its
- * predecessor.
- * \f[\varphi (v)=\frac{1}{1+\exp^{-v}}\f]
- * \sa Layer, Mlp.
- */
-class SigmoidLayer : public Layer {
-  public:
-	/**Constructor.
-	 * \param nc the number of neurons in this layer.
-	 * \param np the number of neurons in the previous layer.
-	 */
-	SigmoidLayer(const uint nc, const uint np);
-
-	/**Destructor.
-	 */
-	virtual ~SigmoidLayer();
-
-	std::unique_ptr<Layer> clone() const override { return std::make_unique<SigmoidLayer>(*this); }
-
-	// ACCESSOR AND MUTATOR FUNCTIONS
-
-	// ACCESSOR FUNCTIONS
-
-	// COUNTS AND CRAP
-
-	// PRINTS
-
-	// UTILS
-
-	double fire(const double lif) const;
-
-	double fire(const uint i) const;
-
-	double firePrime(const double lif) const;
-
-	double firePrime(const uint i) const;
-
-	double firePrimePrime(const double lif) const;
-
-	double firePrimePrime(const uint i) const;
-};
-
-inline double SigmoidLayer::fire(const double lif) const {
-	return 1.0 / (1.0 + exp(-lif));
-}
-
-inline double SigmoidLayer::fire(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i];
-}
-
-inline double SigmoidLayer::firePrime(const double lif) const {
-	double tmp = fire(lif);
-	return tmp * (1 - tmp);
-}
-
-inline double SigmoidLayer::firePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i] * (1 - theOutputs[i]);
-}
-
-inline double SigmoidLayer::firePrimePrime(const double lif) const {
-	double f = fire(lif);
-	double fp = f * (1 - f);
-	return fp - 2 * f * fp;
-}
-
-inline double SigmoidLayer::firePrimePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	double f = theOutputs[i];
-	double fp = f * (1 - f);
-	return fp - 2 * f * fp;
-}
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/SummedSquare.hh =====
@@ -4044,80 +3647,6 @@ class SummedSquare : public Error {
 	/**Set all gradients to zero. */
 	void killGradients();
 };
-} // namespace MultiLayerPerceptron
-
-// ===== mlp/TanHypLayer.hh =====
-#include <string>
-#include <cmath>
-
-namespace MultiLayerPerceptron {
-/**A class representing a tanhyp implementation of the layer interface.
- * It knows the number of neurons contained in itself and its
- * predecessor.
- * \f[\varphi (v)=\tanh{v}\f]
- * \sa Layer, Mlp.
- */
-class TanHypLayer : public Layer {
-  public:
-	/**Constructor.
-	 * \param nc the number of neurons in this layer.
-	 * \param np the number of neurons in the previous layer.
-	 */
-	TanHypLayer(uint nc, uint np);
-
-	/**Destructor.
-	 */
-	virtual ~TanHypLayer();
-
-	std::unique_ptr<Layer> clone() const override { return std::make_unique<TanHypLayer>(*this); }
-
-	// ACCESSOR AND MUTATOR FUNCTIONS
-
-	// ACCESSOR FUNCTIONS
-
-	// COUNTS AND CRAP
-
-	// PRINTS
-
-	// UTILS
-
-	double fire(const double lif) const;
-	double fire(const uint i) const;
-	double firePrime(const double lif) const;
-	double firePrime(const uint i) const;
-	double firePrimePrime(const double lif) const;
-	double firePrimePrime(const uint i) const;
-};
-
-inline double TanHypLayer::fire(const double lif) const {
-	return tanh(lif);
-}
-
-inline double TanHypLayer::fire(const uint i) const {
-	assert(i < theOutputs.size());
-	return theOutputs[i];
-}
-
-inline double TanHypLayer::firePrime(const double lif) const {
-	double tmp = fire(lif);
-	return 1.0 - tmp * tmp;
-}
-
-inline double TanHypLayer::firePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	return 1.0 - theOutputs[i] * theOutputs[i];
-}
-
-inline double TanHypLayer::firePrimePrime(const double lif) const {
-	double f = fire(lif);
-	return 2 * f * (f * f - 1);
-}
-
-inline double TanHypLayer::firePrimePrime(const uint i) const {
-	assert(i < theOutputs.size());
-	double f = theOutputs[i];
-	return 2 * f * (f * f - 1);
-}
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/Trainer.hh =====
@@ -6705,6 +6234,253 @@ void MatrixTools::print(vector<vector<double>>& m) {
 	}
 }
 
+// ===== mlp/Activation.cc =====
+#include <cmath>
+#include <stdexcept>
+
+namespace MultiLayerPerceptron {
+
+// Vectorisable polynomial tanh / sigmoid for the batch path.
+//
+// libm's scalar tanh / exp ate ~25% of training time on profile because gcc
+// auto-vectorisation didn't pick libmvec siblings even with -ffast-math +
+// `omp simd`. Replaced with branchless polynomial approximations that the
+// compiler vectorises trivially. Accuracy: tanh better than 1e-7 on
+// [-3, 3] and saturates correctly outside; sigmoid is derived from the
+// same tanh, accurate to ~5e-8 over the working range. Both well within
+// training noise. Scalar fire() still uses libm for exactness.
+namespace {
+inline double fast_tanh(double x) {
+	const double xc = x < -5.0 ? -5.0 : (x > 5.0 ? 5.0 : x);
+	const double x2 = xc * xc;
+	const double a = xc * (135135.0 + x2 * (17325.0 + x2 * (378.0 + x2)));
+	const double b = 135135.0 + x2 * (62370.0 + x2 * (3150.0 + x2 * 28.0));
+	return a / b;
+}
+
+inline double fast_sigmoid(double x) {
+	return 0.5 * (fast_tanh(0.5 * x) + 1.0);
+}
+} // namespace
+
+// Tag <-> string round-trip ---------------------------------------------------
+
+Activation activationFromTag(std::string_view tag) {
+	if (tag == SIGMOID) return Sigmoid{};
+	if (tag == TANHYP) return TanH{};
+	if (tag == LINEAR) return Linear{};
+	if (tag == RELU) return ReLU{};
+	if (tag == LEAKYRELU) return LeakyReLU{};
+	if (tag == ELU_ACT) return ELU{};
+	throw std::invalid_argument(std::string("activationFromTag: unknown tag '") +
+	                            std::string(tag) + "'");
+}
+
+const std::string& activationToTag(const Activation& a) {
+	static const std::string kSigmoid = SIGMOID;
+	static const std::string kTanH = TANHYP;
+	static const std::string kLinear = LINEAR;
+	static const std::string kReLU = RELU;
+	static const std::string kLeakyReLU = LEAKYRELU;
+	static const std::string kELU = ELU_ACT;
+	struct V {
+		const std::string& operator()(Sigmoid) const { return kSigmoid; }
+		const std::string& operator()(TanH) const { return kTanH; }
+		const std::string& operator()(Linear) const { return kLinear; }
+		const std::string& operator()(ReLU) const { return kReLU; }
+		const std::string& operator()(LeakyReLU) const { return kLeakyReLU; }
+		const std::string& operator()(ELU) const { return kELU; }
+	};
+	return std::visit(V{}, a);
+}
+
+// Scalar fire -----------------------------------------------------------------
+
+double fire(Sigmoid, double lif) {
+	return 1.0 / (1.0 + std::exp(-lif));
+}
+double fire(TanH, double lif) {
+	return std::tanh(lif);
+}
+double fire(Linear, double lif) {
+	return lif;
+}
+double fire(ReLU, double lif) {
+	return lif > 0.0 ? lif : 0.0;
+}
+double fire(LeakyReLU a, double lif) {
+	return lif > 0.0 ? lif : a.alpha * lif;
+}
+double fire(ELU a, double lif) {
+	return lif > 0.0 ? lif : a.alpha * (std::exp(lif) - 1.0);
+}
+
+// Scalar firePrime (from local induced field) ---------------------------------
+
+double firePrime(Sigmoid s, double lif) {
+	const double f = fire(s, lif);
+	return f * (1.0 - f);
+}
+double firePrime(TanH t, double lif) {
+	const double f = fire(t, lif);
+	return 1.0 - f * f;
+}
+double firePrime(Linear, double) {
+	return 1.0;
+}
+double firePrime(ReLU, double lif) {
+	return lif > 0.0 ? 1.0 : 0.0;
+}
+double firePrime(LeakyReLU a, double lif) {
+	return lif > 0.0 ? 1.0 : a.alpha;
+}
+double firePrime(ELU a, double lif) {
+	return lif > 0.0 ? 1.0 : a.alpha * std::exp(lif);
+}
+
+// Scalar firePrime (from cached output y = fire(lif)) -------------------------
+
+double firePrimeFromOutput(Sigmoid, double y) {
+	return y * (1.0 - y);
+}
+double firePrimeFromOutput(TanH, double y) {
+	return 1.0 - y * y;
+}
+double firePrimeFromOutput(Linear, double) {
+	return 1.0;
+}
+double firePrimeFromOutput(ReLU, double y) {
+	return y > 0.0 ? 1.0 : 0.0;
+}
+double firePrimeFromOutput(LeakyReLU a, double y) {
+	return y > 0.0 ? 1.0 : a.alpha;
+}
+double firePrimeFromOutput(ELU a, double y) {
+	return y >= 0.0 ? 1.0 : y + a.alpha;
+}
+
+// Scalar firePrimePrime (from local induced field) ----------------------------
+
+double firePrimePrime(Sigmoid s, double lif) {
+	const double f = fire(s, lif);
+	const double fp = f * (1.0 - f);
+	return fp - 2.0 * f * fp;
+}
+double firePrimePrime(TanH t, double lif) {
+	const double f = fire(t, lif);
+	return 2.0 * f * (f * f - 1.0);
+}
+double firePrimePrime(Linear, double) {
+	return 0.0;
+}
+double firePrimePrime(ReLU, double) {
+	return 0.0;
+}
+double firePrimePrime(LeakyReLU, double) {
+	return 0.0;
+}
+double firePrimePrime(ELU a, double lif) {
+	return lif > 0.0 ? 0.0 : a.alpha * std::exp(lif);
+}
+
+// Scalar firePrimePrime (from cached output) ----------------------------------
+
+double firePrimePrimeFromOutput(Sigmoid, double y) {
+	const double fp = y * (1.0 - y);
+	return fp - 2.0 * y * fp;
+}
+double firePrimePrimeFromOutput(TanH, double y) {
+	return 2.0 * y * (y * y - 1.0);
+}
+double firePrimePrimeFromOutput(Linear, double) {
+	return 0.0;
+}
+double firePrimePrimeFromOutput(ReLU, double) {
+	return 0.0;
+}
+double firePrimePrimeFromOutput(LeakyReLU, double) {
+	return 0.0;
+}
+double firePrimePrimeFromOutput(ELU a, double y) {
+	return y >= 0.0 ? 0.0 : y + a.alpha;
+}
+
+// Batch activation ------------------------------------------------------------
+
+void applyActivation(Sigmoid, double* __restrict__ out, ActivationSize n) {
+#pragma omp simd
+	for (ActivationSize i = 0; i < n; ++i)
+		out[i] = fast_sigmoid(out[i]);
+}
+
+void applyActivation(TanH, double* __restrict__ out, ActivationSize n) {
+#pragma omp simd
+	for (ActivationSize i = 0; i < n; ++i)
+		out[i] = fast_tanh(out[i]);
+}
+
+void applyActivation(Linear, double* __restrict__, ActivationSize) {
+	// identity
+}
+
+void applyActivation(ReLU, double* __restrict__ out, ActivationSize n) {
+	for (ActivationSize i = 0; i < n; ++i)
+		out[i] = out[i] > 0.0 ? out[i] : 0.0;
+}
+
+void applyActivation(LeakyReLU a, double* __restrict__ out, ActivationSize n) {
+	const double alpha = a.alpha;
+	for (ActivationSize i = 0; i < n; ++i)
+		out[i] = out[i] > 0.0 ? out[i] : alpha * out[i];
+}
+
+void applyActivation(ELU a, double* __restrict__ out, ActivationSize n) {
+	const double alpha = a.alpha;
+#pragma omp simd
+	for (ActivationSize i = 0; i < n; ++i)
+		out[i] = out[i] > 0.0 ? out[i] : alpha * (std::exp(out[i]) - 1.0);
+}
+
+// Batch derivative scaling ----------------------------------------------------
+
+void applyDerivScale(Sigmoid, const double* __restrict__ out, double* __restrict__ deltas,
+                     ActivationSize n) {
+	for (ActivationSize i = 0; i < n; ++i)
+		deltas[i] *= out[i] * (1.0 - out[i]);
+}
+
+void applyDerivScale(TanH, const double* __restrict__ out, double* __restrict__ deltas,
+                     ActivationSize n) {
+	for (ActivationSize i = 0; i < n; ++i)
+		deltas[i] *= (1.0 - out[i] * out[i]);
+}
+
+void applyDerivScale(Linear, const double* __restrict__, double* __restrict__, ActivationSize) {
+	// f'(x) = 1, deltas unchanged
+}
+
+void applyDerivScale(ReLU, const double* __restrict__ out, double* __restrict__ deltas,
+                     ActivationSize n) {
+	for (ActivationSize i = 0; i < n; ++i)
+		deltas[i] *= (out[i] > 0.0 ? 1.0 : 0.0);
+}
+
+void applyDerivScale(LeakyReLU a, const double* __restrict__ out, double* __restrict__ deltas,
+                     ActivationSize n) {
+	const double alpha = a.alpha;
+	for (ActivationSize i = 0; i < n; ++i)
+		deltas[i] *= (out[i] > 0.0 ? 1.0 : alpha);
+}
+
+void applyDerivScale(ELU a, const double* __restrict__ out, double* __restrict__ deltas,
+                     ActivationSize n) {
+	const double alpha = a.alpha;
+	for (ActivationSize i = 0; i < n; ++i)
+		deltas[i] *= (out[i] >= 0.0 ? 1.0 : out[i] + alpha);
+}
+
+} // namespace MultiLayerPerceptron
+
 // ===== mlp/MultiLayerPerceptron.cc =====
 // DEBUGGING-------------------------------------------------------------------//
 
@@ -6715,179 +6491,64 @@ extern "C" {
 }
 #endif
 
-#include <iostream>
-#include <cassert>
-
 #include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <iostream>
 #include <iterator>
 #include <numeric>
-#include <cmath>
 
 using namespace MultiLayerPerceptron;
 using namespace std;
 
-// Vectorizable batch activation functions ------------------------------------
-//
-// libm's scalar tanh / exp ate ~25% of training time on profile because gcc
-// auto-vectorisation didn't pick libmvec siblings even with -ffast-math +
-// `omp simd`. Replaced with branchless polynomial approximations that the
-// compiler vectorises trivially. Accuracy: tanh better than 1e-7 on
-// [-3, 3] and saturates correctly outside that range; sigmoid is derived
-// from the same tanh, accurate to ~5e-8 over the working range. Both are
-// well within training noise for any practical NN.
-
-static inline double fast_tanh(double x) {
-	const double xc = x < -5.0 ? -5.0 : (x > 5.0 ? 5.0 : x);
-	const double x2 = xc * xc;
-	const double a = xc * (135135.0 + x2 * (17325.0 + x2 * (378.0 + x2)));
-	const double b = 135135.0 + x2 * (62370.0 + x2 * (3150.0 + x2 * 28.0));
-	return a / b;
-}
-
-static inline double fast_sigmoid(double x) {
-	// sigmoid(x) = 0.5 * (tanh(x/2) + 1), which lets us reuse the same
-	// vectorisable polynomial path.
-	return 0.5 * (fast_tanh(0.5 * x) + 1.0);
-}
-
-static void sigmoidActivation(double* __restrict__ out, uint n) {
-#pragma omp simd
-	for (uint i = 0; i < n; ++i)
-		out[i] = fast_sigmoid(out[i]);
-}
-
-static void tanhypActivation(double* __restrict__ out, uint n) {
-#pragma omp simd
-	for (uint i = 0; i < n; ++i)
-		out[i] = fast_tanh(out[i]);
-}
-
-static void linearActivation(double* __restrict__, uint) {
-	// identity: no-op
-}
-
-// Vectorizable batch derivative-scale functions ------------------------------
-// Each computes deltas[i] *= f'(outputs[i])
-
-static void sigmoidDerivScale(const double* __restrict__ out, double* __restrict__ deltas, uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= out[i] * (1.0 - out[i]);
-}
-
-static void tanhypDerivScale(const double* __restrict__ out, double* __restrict__ deltas, uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= (1.0 - out[i] * out[i]);
-}
-
-static void linearDerivScale(const double* __restrict__, double* __restrict__, uint) {
-	// f'(x) = 1, so deltas unchanged
-}
-
-// ReLU
-static void reluActivation(double* __restrict__ out, uint n) {
-	for (uint i = 0; i < n; ++i)
-		out[i] = out[i] > 0.0 ? out[i] : 0.0;
-}
-static void reluDerivScale(const double* __restrict__ out, double* __restrict__ deltas, uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= (out[i] > 0.0 ? 1.0 : 0.0);
-}
-
-// Leaky ReLU (alpha = 0.01)
-static constexpr double LEAKY_ALPHA = 0.01;
-static void leakyReluActivation(double* __restrict__ out, uint n) {
-	for (uint i = 0; i < n; ++i)
-		out[i] = out[i] > 0.0 ? out[i] : LEAKY_ALPHA * out[i];
-}
-static void leakyReluDerivScale(const double* __restrict__ out, double* __restrict__ deltas,
-                                uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= (out[i] > 0.0 ? 1.0 : LEAKY_ALPHA);
-}
-
-// ELU (alpha = 1.0)
-static constexpr double ELU_ALPHA_VAL = 1.0;
-static void eluActivation(double* __restrict__ out, uint n) {
-#pragma omp simd
-	for (uint i = 0; i < n; ++i)
-		out[i] = out[i] > 0.0 ? out[i] : ELU_ALPHA_VAL * (exp(out[i]) - 1.0);
-}
-static void eluDerivScale(const double* __restrict__ out, double* __restrict__ deltas, uint n) {
-	for (uint i = 0; i < n; ++i)
-		deltas[i] *= (out[i] >= 0.0 ? 1.0 : out[i] + ELU_ALPHA_VAL);
-}
-
 // Layer implementation -------------------------------------------------------
 
 Layer::Layer(const uint nc, const uint np, const string t)
-    : ncurr(nc), nprev(np), theType(t), theWeights(ncurr * (nprev + 1), 0), theOutputs(ncurr, 0),
-      theLocalGradients(ncurr, 0), theGradients(ncurr * (nprev + 1), 0),
-      theWeightUpdates(ncurr * (nprev + 1), 0), theDropoutRate(0.0), theTraining(false),
-      theDropoutMask(ncurr, 1.0), theNormType(NormType::None), theGamma(ncurr, 1.0),
-      theBeta(ncurr, 0.0), theGammaGrad(ncurr, 0.0), theBetaGrad(ncurr, 0.0),
-      theGammaUpdate(ncurr, 0.0), theBetaUpdate(ncurr, 0.0), theRunningMean(ncurr, 0.0),
-      theRunningVar(ncurr, 1.0), theBNMomentum(0.1), theActivation(nullptr),
-      theDerivScale(nullptr) {
-	if (t == SIGMOID) {
-		theActivation = sigmoidActivation;
-		theDerivScale = sigmoidDerivScale;
-	} else if (t == TANHYP) {
-		theActivation = tanhypActivation;
-		theDerivScale = tanhypDerivScale;
-	} else if (t == LINEAR) {
-		theActivation = linearActivation;
-		theDerivScale = linearDerivScale;
-	} else if (t == RELU) {
-		theActivation = reluActivation;
-		theDerivScale = reluDerivScale;
-	} else if (t == LEAKYRELU) {
-		theActivation = leakyReluActivation;
-		theDerivScale = leakyReluDerivScale;
-	} else if (t == ELU_ACT) {
-		theActivation = eluActivation;
-		theDerivScale = eluDerivScale;
-	}
+    : Layer(nc, np, activationFromTag(t)) {}
+
+Layer::Layer(const uint nc, const uint np, Activation act)
+    : ncurr(nc), nprev(np), theType(activationToTag(act)), theAct(std::move(act)),
+      theWeights(ncurr * (nprev + 1), 0), theOutputs(ncurr, 0), theLocalGradients(ncurr, 0),
+      theGradients(ncurr * (nprev + 1), 0), theWeightUpdates(ncurr * (nprev + 1), 0),
+      theDropoutRate(0.0), theTraining(false), theDropoutMask(ncurr, 1.0),
+      theNormType(NormType::None), theGamma(ncurr, 1.0), theBeta(ncurr, 0.0),
+      theGammaGrad(ncurr, 0.0), theBetaGrad(ncurr, 0.0), theGammaUpdate(ncurr, 0.0),
+      theBetaUpdate(ncurr, 0.0), theRunningMean(ncurr, 0.0), theRunningVar(ncurr, 1.0),
+      theBNMomentum(0.1) {
 	regenerateWeights();
-}
-
-Layer::Layer(const Layer& layer) {
-	*this = layer;
-}
-
-Layer::~Layer() {}
-
-Layer& Layer::operator=(const Layer& layer) {
-	if (this != &layer) {
-		ncurr = layer.ncurr;
-		nprev = layer.nprev;
-		theType = layer.theType;
-		theWeights = layer.theWeights;
-		theOutputs = layer.theOutputs;
-		theLocalGradients = layer.theLocalGradients;
-		theGradients = layer.theGradients;
-		theWeightUpdates = layer.theWeightUpdates;
-		theDropoutRate = layer.theDropoutRate;
-		theTraining = layer.theTraining;
-		theDropoutMask = layer.theDropoutMask;
-		theNormType = layer.theNormType;
-		theGamma = layer.theGamma;
-		theBeta = layer.theBeta;
-		theGammaGrad = layer.theGammaGrad;
-		theBetaGrad = layer.theBetaGrad;
-		theGammaUpdate = layer.theGammaUpdate;
-		theBetaUpdate = layer.theBetaUpdate;
-		theRunningMean = layer.theRunningMean;
-		theRunningVar = layer.theRunningVar;
-		theBNMomentum = layer.theBNMomentum;
-		theActivation = layer.theActivation;
-		theDerivScale = layer.theDerivScale;
-	}
-	return *this;
 }
 
 double& Layer::operator[](const uint i) {
 	assert(i < theOutputs.size());
 	return theOutputs[i];
+}
+
+// Scalar activation API ------------------------------------------------------
+
+double Layer::fire(double lif) const {
+	return std::visit([lif](const auto& a) { return MultiLayerPerceptron::fire(a, lif); }, theAct);
+}
+
+double Layer::firePrime(double lif) const {
+	return std::visit([lif](const auto& a) { return MultiLayerPerceptron::firePrime(a, lif); },
+	                  theAct);
+}
+
+double Layer::firePrime(const uint i) const {
+	assert(i < theOutputs.size());
+	const double y = theOutputs[i];
+	return std::visit([y](const auto& a) { return firePrimeFromOutput(a, y); }, theAct);
+}
+
+double Layer::firePrimePrime(double lif) const {
+	return std::visit([lif](const auto& a) { return MultiLayerPerceptron::firePrimePrime(a, lif); },
+	                  theAct);
+}
+
+double Layer::firePrimePrime(const uint i) const {
+	assert(i < theOutputs.size());
+	const double y = theOutputs[i];
+	return std::visit([y](const auto& a) { return firePrimePrimeFromOutput(a, y); }, theAct);
 }
 
 // PRINTS
@@ -6914,7 +6575,9 @@ void Layer::regenerateWeights() {
 	// because that's what compensates for the half of inputs they zero out.
 	// Biases (the last column in each row of the [ncurr, nprev+1] flat
 	// layout) are zeroed.
-	const bool isRelu = (theType == RELU || theType == LEAKYRELU || theType == ELU_ACT);
+	const bool isRelu = std::holds_alternative<ReLU>(theAct) ||
+	                    std::holds_alternative<LeakyReLU>(theAct) ||
+	                    std::holds_alternative<ELU>(theAct);
 	const double a = isRelu ? std::sqrt(6.0 / static_cast<double>(nprev))
 	                        : std::sqrt(6.0 / static_cast<double>(nprev + ncurr));
 	for (uint o = 0; o < ncurr; ++o) {
@@ -6961,8 +6624,10 @@ vector<double>& Layer::propagate(const vector<double>& input, const double* prea
 		for (uint i = 0; i < ncurr; ++i)
 			out[i] += preactSkip[i];
 
-	// Phase 2: apply activation in a single vectorizable loop
-	theActivation(out, ncurr);
+	// Phase 2: apply activation in a single vectorizable loop. std::visit
+	// inlines applyActivation per-alternative so the compiler sees a
+	// concrete activation type at the inner-loop call site.
+	std::visit([out, this](const auto& a) { applyActivation(a, out, ncurr); }, theAct);
 
 	// Phase 3: inverted dropout
 	if (theTraining && theDropoutRate > 0.0) {
@@ -6977,7 +6642,9 @@ vector<double>& Layer::propagate(const vector<double>& input, const double* prea
 }
 
 void Layer::applyDerivative(vector<double>& deltas) {
-	theDerivScale(theOutputs.data(), deltas.data(), ncurr);
+	std::visit(
+	    [&](const auto& a) { applyDerivScale(a, theOutputs.data(), deltas.data(), ncurr); },
+	    theAct);
 	if (theTraining && theDropoutRate > 0.0)
 		for (uint i = 0; i < ncurr; ++i)
 			deltas[i] *= theDropoutMask[i];
@@ -7101,8 +6768,9 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 			out[i] += preactSkip[i];
 	}
 
-	// Apply activation to all B*ncurr elements
-	theActivation(out, B * ncurr);
+	// Apply activation to all B*ncurr elements. std::visit lets the compiler
+	// inline the per-element activation kernel inside each variant branch.
+	std::visit([out, B, this](const auto& a) { applyActivation(a, out, B * ncurr); }, theAct);
 
 	// Inverted dropout for batch
 	if (theTraining && theDropoutRate > 0.0) {
@@ -7119,7 +6787,11 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 }
 
 void Layer::applyDerivativeBatch(uint B) {
-	theDerivScale(theBatchOutputs.data(), theBatchLocalGradients.data(), B * ncurr);
+	std::visit(
+	    [B, this](const auto& a) {
+		    applyDerivScale(a, theBatchOutputs.data(), theBatchLocalGradients.data(), B * ncurr);
+	    },
+	    theAct);
 	if (theTraining && theDropoutRate > 0.0 && !theBatchDropoutMask.empty()) {
 		double* delta = theBatchLocalGradients.data();
 		const double* mask = theBatchDropoutMask.data();
@@ -7226,35 +6898,6 @@ void Layer::applyNormBackwardBatch(uint B) {
 	}
 }
 
-// ===== mlp/ELULayer.cc =====
-using namespace MultiLayerPerceptron;
-ELULayer::ELULayer(uint nc, uint np) : Layer(nc, np, ELU_ACT) {}
-ELULayer::~ELULayer() {}
-
-// ===== mlp/LeakyReLULayer.cc =====
-using namespace MultiLayerPerceptron;
-LeakyReLULayer::LeakyReLULayer(uint nc, uint np) : Layer(nc, np, LEAKYRELU) {}
-LeakyReLULayer::~LeakyReLULayer() {}
-
-// ===== mlp/LinearLayer.cc =====
-using namespace MultiLayerPerceptron;
-
-LinearLayer::LinearLayer(uint nc, uint np) : Layer(nc, np, LINEAR) {}
-
-LinearLayer::~LinearLayer() {}
-
-// ACCESSOR AND MUTATOR FUNCTIONS
-
-// ACCESSOR FUNCTIONS
-
-// COUNTS AND CRAP
-
-// PRINTS
-
-// UTILS
-
-// PRIVATE--------------------------------------------------------------------//
-
 // ===== mlp/Mlp.cc =====
 #include <cassert>
 #include <cmath>
@@ -7292,39 +6935,21 @@ Mlp::Mlp(const MlpModel& mlpmodel)
 	theSkipFrom.assign(theLayers.size(), -1);
 }
 
-Mlp::Mlp(const Mlp& mlp)
-    : theArch(mlp.theArch), theTypes(mlp.theTypes), theSoftmax(mlp.theSoftmax),
-      theSkipFrom(mlp.theSkipFrom) {
-	theLayers.reserve(mlp.theLayers.size());
-	for (const auto& l : mlp.theLayers)
-		theLayers.push_back(l->clone());
-}
+Mlp::Mlp(const Mlp& mlp) = default;
 
 Mlp::~Mlp() = default;
 
-Mlp& Mlp::operator=(const Mlp& mlp) {
-	if (this != &mlp) {
-		theArch = mlp.theArch;
-		theTypes = mlp.theTypes;
-		theSoftmax = mlp.theSoftmax;
-		theSkipFrom = mlp.theSkipFrom;
-		theLayers.clear();
-		theLayers.reserve(mlp.theLayers.size());
-		for (const auto& l : mlp.theLayers)
-			theLayers.push_back(l->clone());
-	}
-	return *this;
-}
+Mlp& Mlp::operator=(const Mlp& mlp) = default;
 
 Layer& Mlp::operator[](const uint i) {
 	assert(i < theLayers.size());
-	return *(theLayers[i]);
+	return theLayers[i];
 }
 
 vector<double> Mlp::weights() const {
 	vector<double> w;
 	for (const auto& l : theLayers) {
-		vector<double>& tmp = l->weights();
+		const vector<double>& tmp = l.weights();
 		w.insert(w.end(), tmp.begin(), tmp.end());
 	}
 	return w;
@@ -7334,7 +6959,7 @@ void Mlp::weights(vector<double>& w) {
 	assert(w.size() == nWeights());
 	auto itw = w.begin();
 	for (auto& l : theLayers) {
-		vector<double>& tmp = l->weights();
+		vector<double>& tmp = l.weights();
 		for (auto ittmp = tmp.begin(); ittmp != tmp.end(); ++ittmp, ++itw)
 			*ittmp = *itw;
 	}
@@ -7344,7 +6969,7 @@ vector<double> Mlp::gradients() const {
 	vector<double> g;
 	g.reserve(nWeights());
 	for (const auto& l : theLayers) {
-		vector<double>& tmp = l->gradients();
+		const vector<double>& tmp = l.gradients();
 		g.insert(g.end(), tmp.begin(), tmp.end());
 	}
 	return g;
@@ -7354,7 +6979,7 @@ void Mlp::gradients(vector<double>& g) {
 	assert(g.size() == nWeights());
 	auto itg = g.begin();
 	for (auto& l : theLayers) {
-		vector<double>& tmp = l->gradients();
+		vector<double>& tmp = l.gradients();
 		for (auto ittmp = tmp.begin(); ittmp != tmp.end(); ++ittmp, ++itg)
 			*ittmp = *itg;
 	}
@@ -7362,7 +6987,7 @@ void Mlp::gradients(vector<double>& g) {
 
 Layer& Mlp::layer(uint index) {
 	assert(index < theLayers.size());
-	return *(theLayers[index]);
+	return theLayers[index];
 }
 
 uint Mlp::nLayers() const {
@@ -7372,7 +6997,7 @@ uint Mlp::nLayers() const {
 uint Mlp::nWeights() const {
 	uint tmp = 0;
 	for (const auto& l : theLayers)
-		tmp += l->nWeights();
+		tmp += l.nWeights();
 	return tmp;
 }
 
@@ -7382,41 +7007,41 @@ uint Mlp::size() const {
 
 void Mlp::regenerateWeights() {
 	for (auto& l : theLayers)
-		l->regenerateWeights();
+		l.regenerateWeights();
 }
 
 void Mlp::initScheme(Layer::InitScheme s) {
 	for (auto& l : theLayers)
-		l->initScheme(s);
+		l.initScheme(s);
 }
 
 void Mlp::training(bool t) {
 	for (auto& l : theLayers)
-		l->training(t);
+		l.training(t);
 }
 
 void Mlp::dropoutRate(double rate) {
 	// Apply to hidden layers only, not the output layer
 	for (uint i = 0; i + 1 < theLayers.size(); ++i)
-		theLayers[i]->dropoutRate(rate);
+		theLayers[i].dropoutRate(rate);
 }
 
 void Mlp::normType(NormType nt) {
 	// Apply to hidden layers only, not the output layer
 	for (uint i = 0; i + 1 < theLayers.size(); ++i)
-		theLayers[i]->normType(nt);
+		theLayers[i].normType(nt);
 }
 
 const vector<double>& Mlp::propagate(const vector<double>& input) {
 	const vector<double>* inOut = &input;
 	for (uint i = 0; i < theLayers.size(); ++i) {
 		int src = theSkipFrom[i];
-		const double* skipPtr = (src >= 0) ? theLayers[src]->outputs().data() : nullptr;
-		inOut = &(theLayers[i]->propagate(*inOut, skipPtr));
+		const double* skipPtr = (src >= 0) ? theLayers[src].outputs().data() : nullptr;
+		inOut = &(theLayers[i].propagate(*inOut, skipPtr));
 	}
 	if (theSoftmax) {
-		auto& out = theLayers.back()->outputs();
-		softmaxRow(out.data(), theLayers.back()->nNeurons());
+		auto& out = theLayers.back().outputs();
+		softmaxRow(out.data(), theLayers.back().nNeurons());
 	}
 	return *inOut;
 }
@@ -7426,13 +7051,13 @@ const double* Mlp::propagateBatch(const double* input, uint B) {
 	uint n_in = theArch[0];
 	for (uint i = 0; i < theLayers.size(); ++i) {
 		int src = theSkipFrom[i];
-		const double* skipPtr = (src >= 0) ? theLayers[src]->batchOutputs().data() : nullptr;
-		layerInput = theLayers[i]->propagateBatch(layerInput, B, n_in, skipPtr);
-		n_in = theLayers[i]->nNeurons();
+		const double* skipPtr = (src >= 0) ? theLayers[src].batchOutputs().data() : nullptr;
+		layerInput = theLayers[i].propagateBatch(layerInput, B, n_in, skipPtr);
+		n_in = theLayers[i].nNeurons();
 	}
 	if (theSoftmax) {
-		const uint nO = theLayers.back()->nNeurons();
-		double* out = theLayers.back()->batchOutputs().data();
+		const uint nO = theLayers.back().nNeurons();
+		double* out = theLayers.back().batchOutputs().data();
 		for (uint b = 0; b < B; ++b)
 			softmaxRow(out + b * nO, nO);
 	}
@@ -7441,12 +7066,12 @@ const double* Mlp::propagateBatch(const double* input, uint B) {
 
 void Mlp::printWeights(ostream& os) const {
 	for (const auto& l : theLayers)
-		l->printWeights(os);
+		l.printWeights(os);
 }
 
 void Mlp::printGradients(ostream& os) const {
 	for (const auto& l : theLayers)
-		l->printGradients(os);
+		l.printGradients(os);
 }
 
 void Mlp::skipFrom(uint target, int source) {
@@ -7460,10 +7085,10 @@ void Mlp::skipFrom(uint target, int source) {
 		cerr << "Mlp::skipFrom: source " << s << " must be < target " << target << endl;
 		abort();
 	}
-	if (theLayers[s]->nNeurons() != theLayers[target]->nNeurons()) {
+	if (theLayers[s].nNeurons() != theLayers[target].nNeurons()) {
 		cerr << "Mlp::skipFrom: dim mismatch (source layer " << s << " has "
-		     << theLayers[s]->nNeurons() << " neurons, target layer " << target << " has "
-		     << theLayers[target]->nNeurons() << ")" << endl;
+		     << theLayers[s].nNeurons() << " neurons, target layer " << target << " has "
+		     << theLayers[target].nNeurons() << ")" << endl;
 		abort();
 	}
 	theSkipFrom[target] = source;
@@ -7477,23 +7102,10 @@ int Mlp::skipFrom(uint target) const {
 // PRIVATE--------------------------------------------------------------------//
 
 void Mlp::createLayers() {
-	auto it = theArch.begin();
 	int i = 0;
-
-	for (it = theArch.begin() + 1; it != theArch.end(); ++it, ++i) {
-		string t = theTypes.at(i);
-		if (t == SIGMOID)
-			theLayers.push_back(make_unique<SigmoidLayer>(*(it), *(it - 1)));
-		else if (t == TANHYP)
-			theLayers.push_back(make_unique<TanHypLayer>(*(it), *(it - 1)));
-		else if (t == LINEAR)
-			theLayers.push_back(make_unique<LinearLayer>(*(it), *(it - 1)));
-		else if (t == RELU)
-			theLayers.push_back(make_unique<ReLULayer>(*(it), *(it - 1)));
-		else if (t == LEAKYRELU)
-			theLayers.push_back(make_unique<LeakyReLULayer>(*(it), *(it - 1)));
-		else if (t == ELU_ACT)
-			theLayers.push_back(make_unique<ELULayer>(*(it), *(it - 1)));
+	for (auto it = theArch.begin() + 1; it != theArch.end(); ++it, ++i) {
+		const string& t = theTypes.at(i);
+		theLayers.emplace_back(*(it), *(it - 1), activationFromTag(t));
 	}
 }
 
@@ -9379,11 +8991,6 @@ void CrossEntropy::killGradients() {
 	}
 }
 
-// ===== mlp/ReLULayer.cc =====
-using namespace MultiLayerPerceptron;
-ReLULayer::ReLULayer(uint nc, uint np) : Layer(nc, np, RELU) {}
-ReLULayer::~ReLULayer() {}
-
 // ===== mlp/Serialization.cc =====
 #include <cstdint>
 #include <fstream>
@@ -9526,25 +9133,6 @@ unique_ptr<NeuralNetHack::Ensemble> MultiLayerPerceptron::loadEnsembleBinary(con
 	if (!is) throw runtime_error("Cannot open file for reading: " + path);
 	return loadEnsembleBinary(is);
 }
-
-// ===== mlp/SigmoidLayer.cc =====
-using namespace MultiLayerPerceptron;
-
-SigmoidLayer::SigmoidLayer(const uint nc, const uint np) : Layer(nc, np, SIGMOID) {}
-
-SigmoidLayer::~SigmoidLayer() {}
-
-// ACCESSOR AND MUTATOR FUNCTIONS
-
-// ACCESSOR FUNCTIONS
-
-// COUNTS AND CRAP
-
-// PRINTS
-
-// UTILS
-
-// PRIVATE--------------------------------------------------------------------//
 
 // ===== mlp/SummedSquare.cc =====
 #ifdef USE_BLAS
@@ -9825,27 +9413,6 @@ void SummedSquare::killGradients() {
 		}
 	}
 }
-
-// ===== mlp/TanHypLayer.cc =====
-#include <cassert>
-
-using namespace MultiLayerPerceptron;
-
-TanHypLayer::TanHypLayer(uint nc, uint np) : Layer(nc, np, TANHYP) {}
-
-TanHypLayer::~TanHypLayer() {}
-
-// ACCESSOR AND MUTATOR FUNCTIONS
-
-// ACCESSOR FUNCTIONS
-
-// COUNTS AND CRAP
-
-// PRINTS
-
-// UTILS
-
-// PRIVATE--------------------------------------------------------------------//
 
 // ===== mlp/Trainer.cc =====
 #include <cmath>
