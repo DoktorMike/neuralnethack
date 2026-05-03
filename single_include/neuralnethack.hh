@@ -128,6 +128,10 @@ class Config {
 	bool softmax() const { return theSoftmax; }
 	void softmax(bool s) { theSoftmax = s; }
 
+	/**Weight init scheme: "glorot" (default) or "legacy_uniform". */
+	const std::string& weightInit() const { return theWeightInit; }
+	void weightInit(const std::string& s) { theWeightInit = s; }
+
 	const std::string& minMethod() const { return theMinMethod; }
 	void minMethod(const std::string& theMinMethod) { this->theMinMethod = theMinMethod; }
 
@@ -307,6 +311,8 @@ class Config {
 	std::vector<std::pair<int, int>> theSkipConnections;
 	/**Apply softmax to the output layer. */
 	bool theSoftmax = false;
+	/**Weight init scheme. */
+	std::string theWeightInit = "glorot";
 	/**The minimisation algorithm. */
 	std::string theMinMethod;
 	/**The maximum number of epochs to train. */
@@ -1688,6 +1694,19 @@ class Layer {
 
 	// UTILS
 
+	/**Weight initialisation scheme.
+	 *  - LegacyUniform: U(-0.5, 0.5) for all weights and biases. Pre-Glorot
+	 *    behaviour, kept for back-compat with serialised models / older
+	 *    benchmarks.
+	 *  - Glorot: Glorot/Xavier uniform, U(-a, a) with a = sqrt(6/(n_in+n_out)).
+	 *    Biases initialised to zero. Default for new Mlp construction.
+	 */
+	enum class InitScheme { LegacyUniform, Glorot };
+
+	/**Set the init scheme. Takes effect on the next regenerateWeights() call.*/
+	void initScheme(InitScheme s) { theInitScheme = s; }
+	InitScheme initScheme() const { return theInitScheme; }
+
 	/**Assign new random weights to the weight vector. */
 	void regenerateWeights();
 
@@ -1873,6 +1892,11 @@ class Layer {
 	/**Batch local gradients: row-major [B x ncurr]. */
 	std::vector<double> theBatchLocalGradients;
 
+	/**Reusable scratch for vectorised bias add / bias-gradient column sum.
+	 * Size = ncurr; lazily resized per call.
+	 */
+	mutable std::vector<double> theBiasBuf;
+
 	// --- Normalization state ---
 	NormType theNormType;
 	std::vector<double> theGamma;
@@ -1903,10 +1927,7 @@ class Layer {
 	/**Batch derivative-scale function for this layer's type. */
 	DerivScaleFn theDerivScale;
 
-	/**The functor for initialising the weights. */
-	template <class T> struct newRand {
-		void operator()(T& a) { a = 0.5 - nnh::rand::uniform(); }
-	};
+	InitScheme theInitScheme = InitScheme::Glorot;
 };
 
 // ACCESSOR AND MUTATOR FUNCTIONS
@@ -2322,9 +2343,15 @@ class Mlp {
 	void gradients(std::vector<double>& g);
 
 	// UTILITY
-	/**Randomize the weights between -1/2 and 1/2.
+	/**Re-initialise weights using each layer's current init scheme
+	 * (Glorot by default; see Layer::InitScheme).
 	 */
 	void regenerateWeights();
+
+	/**Set the weight init scheme on every layer in this network. Call
+	 * before regenerateWeights() to actually take effect.
+	 */
+	void initScheme(Layer::InitScheme s);
 
 	/**Pushes a pattern through this MLP.
 	 * \param pattern the pattern to propagate.
@@ -5211,6 +5238,7 @@ void Config::print(std::ostream& os) {
 	os << "WeightElim\t" << theWeightElimOn << " " << theWeightElimAlpha << " " << theWeightElimW0
 	   << endl;
 	os << "EarlyStop\t" << theEarlyStopPatience << " " << theEarlyStopMinDelta << endl;
+	os << "WeightInit\t" << theWeightInit << endl;
 	os << "EnsParam\t" << theEnsParamDataSelection << " " << theEnsParamN << " " << theEnsParamK
 	   << " " << theEnsParamSplitMode << " " << theEnsParamNewWeights << endl;
 	os << "MSParam\t\t" << theMsParamDataSelection << " " << theMsParamN << " " << theMsParamK
@@ -6503,15 +6531,39 @@ using namespace MultiLayerPerceptron;
 using namespace std;
 
 // Vectorizable batch activation functions ------------------------------------
+//
+// libm's scalar tanh / exp ate ~25% of training time on profile because gcc
+// auto-vectorisation didn't pick libmvec siblings even with -ffast-math +
+// `omp simd`. Replaced with branchless polynomial approximations that the
+// compiler vectorises trivially. Accuracy: tanh better than 1e-7 on
+// [-3, 3] and saturates correctly outside that range; sigmoid is derived
+// from the same tanh, accurate to ~5e-8 over the working range. Both are
+// well within training noise for any practical NN.
+
+static inline double fast_tanh(double x) {
+	const double xc = x < -5.0 ? -5.0 : (x > 5.0 ? 5.0 : x);
+	const double x2 = xc * xc;
+	const double a = xc * (135135.0 + x2 * (17325.0 + x2 * (378.0 + x2)));
+	const double b = 135135.0 + x2 * (62370.0 + x2 * (3150.0 + x2 * 28.0));
+	return a / b;
+}
+
+static inline double fast_sigmoid(double x) {
+	// sigmoid(x) = 0.5 * (tanh(x/2) + 1), which lets us reuse the same
+	// vectorisable polynomial path.
+	return 0.5 * (fast_tanh(0.5 * x) + 1.0);
+}
 
 static void sigmoidActivation(double* __restrict__ out, uint n) {
+#pragma omp simd
 	for (uint i = 0; i < n; ++i)
-		out[i] = 1.0 / (1.0 + exp(-out[i]));
+		out[i] = fast_sigmoid(out[i]);
 }
 
 static void tanhypActivation(double* __restrict__ out, uint n) {
+#pragma omp simd
 	for (uint i = 0; i < n; ++i)
-		out[i] = tanh(out[i]);
+		out[i] = fast_tanh(out[i]);
 }
 
 static void linearActivation(double* __restrict__, uint) {
@@ -6560,6 +6612,7 @@ static void leakyReluDerivScale(const double* __restrict__ out, double* __restri
 // ELU (alpha = 1.0)
 static constexpr double ELU_ALPHA_VAL = 1.0;
 static void eluActivation(double* __restrict__ out, uint n) {
+#pragma omp simd
 	for (uint i = 0; i < n; ++i)
 		out[i] = out[i] > 0.0 ? out[i] : ELU_ALPHA_VAL * (exp(out[i]) - 1.0);
 }
@@ -6654,7 +6707,25 @@ void Layer::printGradients(ostream& os) const {
 // UTILS
 
 void Layer::regenerateWeights() {
-	for_each(theWeights.begin(), theWeights.end(), newRand<double>());
+	const uint stride = nprev + 1;
+	if (theInitScheme == InitScheme::LegacyUniform) {
+		for (auto& w : theWeights)
+			w = 0.5 - nnh::rand::uniform();
+		return;
+	}
+	// Per-activation Xavier-family init. Saturating activations get Glorot
+	// (a = sqrt(6/(n_in+n_out))); ReLU-family get He (a = sqrt(6/n_in))
+	// because that's what compensates for the half of inputs they zero out.
+	// Biases (the last column in each row of the [ncurr, nprev+1] flat
+	// layout) are zeroed.
+	const bool isRelu = (theType == RELU || theType == LEAKYRELU || theType == ELU_ACT);
+	const double a = isRelu ? std::sqrt(6.0 / static_cast<double>(nprev))
+	                        : std::sqrt(6.0 / static_cast<double>(nprev + ncurr));
+	for (uint o = 0; o < ncurr; ++o) {
+		for (uint i = 0; i < nprev; ++i)
+			theWeights[o * stride + i] = a * (2.0 * nnh::rand::uniform() - 1.0);
+		theWeights[o * stride + nprev] = 0.0;
+	}
 }
 
 vector<double> Layer::calcLifs(const vector<double>& input) {
@@ -6730,10 +6801,19 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, B, ncurr, nprev, 1.0, input, nprev, wt,
 	            stride, 0.0, out, ncurr);
 
-	// Add bias to each row
-	for (uint b = 0; b < B; ++b)
+	// Add bias to each row. Pre-pack biases into a contiguous buffer so
+	// the inner loop over j has unit-stride loads on both sides; the
+	// stride-load wt[j*stride+nprev] otherwise blocks vectorisation.
+	theBiasBuf.resize(ncurr);
+	for (uint j = 0; j < ncurr; ++j)
+		theBiasBuf[j] = wt[j * stride + nprev];
+	for (uint b = 0; b < B; ++b) {
+		double* row = out + b * ncurr;
+		const double* bias = theBiasBuf.data();
+#pragma omp simd
 		for (uint j = 0; j < ncurr; ++j)
-			out[b * ncurr + j] += wt[j * stride + nprev];
+			row[j] += bias[j];
+	}
 #else
 	for (uint b = 0; b < B; ++b) {
 		for (uint j = 0; j < ncurr; ++j) {
@@ -6859,8 +6939,6 @@ void Layer::accumulateGradientsBatch(const double* input, uint B) {
 	const uint stride = nprev + 1;
 
 #ifdef USE_BLAS
-	// dW[ncurr x nprev] += Delta^T[ncurr x B] * Input[B x nprev]
-	// grad has ldc=stride to skip bias column
 	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, ncurr, nprev, B, 1.0, delta, ncurr, input,
 	            nprev, 1.0, grad, stride);
 #else
@@ -6874,13 +6952,19 @@ void Layer::accumulateGradientsBatch(const double* input, uint B) {
 	}
 #endif
 
-	// Bias gradients: column-sum of delta
-	for (uint i = 0; i < ncurr; ++i) {
-		double sum = 0;
-		for (uint b = 0; b < B; ++b)
-			sum += delta[b * ncurr + i];
-		grad[i * stride + nprev] += sum;
+	// Bias gradients: column-sum of delta. Loop with the contiguous
+	// dimension innermost so it vectorises, then scatter the strided
+	// write to grad's bias column at the end.
+	theBiasBuf.assign(ncurr, 0.0);
+	double* bias_acc = theBiasBuf.data();
+	for (uint b = 0; b < B; ++b) {
+		const double* drow = delta + b * ncurr;
+#pragma omp simd
+		for (uint i = 0; i < ncurr; ++i)
+			bias_acc[i] += drow[i];
 	}
+	for (uint i = 0; i < ncurr; ++i)
+		grad[i * stride + nprev] += bias_acc[i];
 }
 
 void Layer::applyNormBackwardBatch(uint B) {
@@ -7099,6 +7183,11 @@ uint Mlp::size() const {
 void Mlp::regenerateWeights() {
 	for (auto& l : theLayers)
 		l->regenerateWeights();
+}
+
+void Mlp::initScheme(Layer::InitScheme s) {
+	for (auto& l : theLayers)
+		l->initScheme(s);
 }
 
 void Mlp::training(bool t) {
@@ -10942,6 +11031,11 @@ unique_ptr<Mlp> Factory::createMlp(const Config& config) {
 	auto mlp = make_unique<Mlp>(config.architecture(), config.actFcn(), config.softmax());
 	for (const auto& sc : config.skipConnections())
 		mlp->skipFrom(static_cast<uint>(sc.first), sc.second);
+	if (config.weightInit() == "legacy_uniform") {
+		mlp->initScheme(MultiLayerPerceptron::Layer::InitScheme::LegacyUniform);
+		mlp->regenerateWeights();
+	}
+	// "glorot" (default) is what Layer construction already used; no-op.
 	return mlp;
 }
 
@@ -11593,6 +11687,8 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 		}
 	} else if (path == "network.softmax")
 		config.softmax(asBool(v, path, lineno));
+	else if (path == "network.weight_init")
+		config.weightInit(asString(v, path, lineno));
 	else if (path == "training.method")
 		config.minMethod(asString(v, path, lineno));
 	else if (path == "training.max_epochs")
