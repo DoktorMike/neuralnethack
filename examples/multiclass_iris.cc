@@ -1,11 +1,11 @@
 // Softmax MLP on the UCI Iris dataset (3 classes, 4 features).
 //
-// Loads test/iris/iris.{trn,tst}.tab (tab-separated; col 1 = id, cols 2-5
+// Loads datasets/iris/iris.{trn,tst}.tab (tab-separated; col 1 = id, cols 2-5
 // = features, cols 6-8 = one-hot target), Z-normalises features, trains
 // a softmax + cross-entropy MLP, reports train/test accuracy.
 //
 // Build:   cmake --build build --target multiclass_iris
-// Run:     ./build/multiclass_iris [path-to-test/iris-dir]
+// Run:     ./build/multiclass_iris [path-to-datasets/iris-dir]
 
 #include "datatools/CoreDataSet.hh"
 #include "datatools/DataSet.hh"
@@ -65,7 +65,7 @@ double accuracy(Mlp& mlp, DataSet& ds) {
 } // namespace
 
 int main(int argc, char** argv) {
-	const std::string dir = (argc > 1) ? argv[1] : "test/iris";
+	const std::string dir = (argc > 1) ? argv[1] : "datasets/iris";
 
 	srand(7);
 	nnh::rand::seed(7);

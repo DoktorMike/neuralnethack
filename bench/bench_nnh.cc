@@ -45,7 +45,7 @@ DataSet toDataSet(const bench::Pima& p) {
 } // namespace
 
 int main(int argc, char** argv) {
-	const std::string root = (argc > 1) ? argv[1] : "test/pima-indians-diabetes";
+	const std::string root = (argc > 1) ? argv[1] : "datasets/pima";
 	const int epochs = (argc > 2) ? std::atoi(argv[2]) : 100;
 	const int batch = (argc > 3) ? std::atoi(argv[3]) : 32;
 	const int trials = (argc > 4) ? std::atoi(argv[4]) : 10;

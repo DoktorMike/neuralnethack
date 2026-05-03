@@ -124,8 +124,8 @@ int main(int argc, char** argv) {
 	const uint epochs = 1500;
 	const uint baseSeed = 17;
 
-	DataSet trn = loadPetal("test/iris/iris.trn.tab");
-	DataSet tst = loadPetal("test/iris/iris.tst.tab");
+	DataSet trn = loadPetal("datasets/iris/iris.trn.tab");
+	DataSet tst = loadPetal("datasets/iris/iris.tst.tab");
 
 	Normaliser norm;
 	norm.calcAndNormalise(trn, true);

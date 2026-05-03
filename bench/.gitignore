@@ -5,4 +5,3 @@ bench_nnh_covtype
 bench_tinydnn_covtype
 bench_mlpack_covtype
 third_party/
-datasets/covtype/

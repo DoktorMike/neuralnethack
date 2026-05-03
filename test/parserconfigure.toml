@@ -4,14 +4,14 @@ normalization = "Z"
 problem_type = "regr"
 
 [data.train]
-file = "./pima-indians-diabetes/pima.tab"
+file = "../datasets/pima/pima.tab"
 id_col = 0
 in_cols = "1-8"
 out_cols = "9"
 row_range = "17"
 
 [data.test]
-file = "./pima-indians-diabetes/pima.tab"
+file = "../datasets/pima/pima.tab"
 id_col = 0
 in_cols = "1-8"
 out_cols = "9"

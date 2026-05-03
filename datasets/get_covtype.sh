@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fetch the UCI Covertype dataset (~7 MB compressed, ~70 MB uncompressed)
-# and write a simple 80/20 train/test split to bench/datasets/covtype/.
+# and write a simple 80/20 train/test split to datasets/covtype/.
 # Idempotent: re-running is a no-op if the splits already exist.
 set -euo pipefail
 

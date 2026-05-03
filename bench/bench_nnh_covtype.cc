@@ -53,7 +53,7 @@ uint argmax(const std::vector<double>& v) {
 } // namespace
 
 int main(int argc, char** argv) {
-	const std::string root = (argc > 1) ? argv[1] : "bench/datasets/covtype";
+	const std::string root = (argc > 1) ? argv[1] : "datasets/covtype";
 	const int epochs = (argc > 2) ? std::atoi(argv[2]) : 5;
 	const int batch = (argc > 3) ? std::atoi(argv[3]) : 32;
 	const int trials = (argc > 4) ? std::atoi(argv[4]) : 3;

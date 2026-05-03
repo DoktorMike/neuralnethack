@@ -1,10 +1,10 @@
 Suffix		001
-Filename	./pima-indians-diabetes/pima.tab
+Filename	../datasets/pima/pima.tab
 IdCol		0
 InCol		1,2,3,4,5,6,7,8
 OutCol		9
 RowRange	17
-FilenameT	./pima-indians-diabetes/pima.tab
+FilenameT	../datasets/pima/pima.tab
 IdColT		0
 InColT		1,2,3,4,5,6,7,8
 OutColT		9

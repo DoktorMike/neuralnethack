@@ -1,11 +1,11 @@
 // Softmax MLP on the UCI Wine dataset (3 classes, 13 features).
 //
-// Loads test/wine/wine.{trn,tst}.tab (tab-separated; col 1 = id, cols
+// Loads datasets/wine/wine.{trn,tst}.tab (tab-separated; col 1 = id, cols
 // 2-14 = features, cols 15-17 = one-hot target), Z-normalises features,
 // trains a softmax + cross-entropy MLP, reports train/test accuracy.
 //
 // Build:   cmake --build build --target multiclass_wine
-// Run:     ./build/multiclass_wine [path-to-test/wine-dir]
+// Run:     ./build/multiclass_wine [path-to-datasets/wine-dir]
 
 #include "datatools/CoreDataSet.hh"
 #include "datatools/DataSet.hh"
@@ -66,7 +66,7 @@ double accuracy(Mlp& mlp, DataSet& ds) {
 } // namespace
 
 int main(int argc, char** argv) {
-	const std::string dir = (argc > 1) ? argv[1] : "test/wine";
+	const std::string dir = (argc > 1) ? argv[1] : "datasets/wine";
 
 	srand(7);
 	nnh::rand::seed(7);

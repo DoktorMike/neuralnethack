@@ -242,7 +242,7 @@ The ensemble examples take an optional positional argument: the number of ensemb
 | `residual_ensemble_uncertainty.cc` | Ensemble of 7 residual MLPs trained on `x ∈ [-3, 3]` and evaluated on `x ∈ [-6, 6]`. Inside the training range the members agree (std ≈ 0.01); outside it they extrapolate to wildly different functions (std ≈ 0.5, 30× wider). The growing spread is epistemic uncertainty, made visible. |
 | `cubic_ensemble_uncertainty.cc` | Same uncertainty story on the canonical Amini *Deep Evidential Regression* cubic benchmark: `y = x^3 + N(0, 3)` trained on `x ∈ [-4, 4]` and evaluated on `x ∈ [-6, 6]`. ReLU members extrapolate piecewise-linearly into OOD where the truth is super-linear, so the mean prediction undershoots dramatically and the spread balloons. |
 | `multiclass_synthetic.cc` | Tiny softmax demo on a synthetic 3-region planar split. No data files, no fuss. Prints train/test accuracy. |
-| `multiclass_iris.cc` | Softmax MLP on the UCI Iris dataset (3 classes, 4 features). Loads `test/iris/iris.{trn,tst}.tab`, Z-normalises, trains, reports accuracy. |
+| `multiclass_iris.cc` | Softmax MLP on the UCI Iris dataset (3 classes, 4 features). Loads `datasets/iris/iris.{trn,tst}.tab`, Z-normalises, trains, reports accuracy. |
 | `multiclass_wine.cc` | Same for the UCI Wine dataset (3 classes, 13 features). |
 | `iris_ensemble_uncertainty.cc` | Ensemble of softmax MLPs on the petal-length / petal-width pair, with the full Depeweg et al. 2018 entropy decomposition: total, aleatoric, and epistemic per grid point. Plot via `scripts/plotexamplesresultdata.r`. |
 | `spiral_ensemble_uncertainty.cc` | Three-arm Archimedean spiral, same decomposition. Useful as a sanity check that the network is doing what you think it's doing. |
@@ -255,18 +255,18 @@ Don't want to write any C++? You don't have to. The `neuralnethack` binary takes
 ./build/neuralnethack config.toml
 ```
 
-There's a working example under `test/pima-indians-diabetes/` if you want something to run right now:
+There's a working example under `datasets/pima/` if you want something to run right now:
 
 ```sh
-cd test/pima-indians-diabetes
+cd datasets/pima
 ../../build/neuralnethack config-pima.toml
 ```
 
 For multi-class classification, similar configs ship with the iris and wine datasets:
 
 ```sh
-cd test/iris   && ../../build/neuralnethack config-iris.toml
-cd test/wine   && ../../build/neuralnethack config-wine.toml
+cd datasets/iris   && ../../build/neuralnethack config-iris.toml
+cd datasets/wine   && ../../build/neuralnethack config-wine.toml
 ```
 
 Every output file is suffixed with whatever you put in the `suffix` field, so you can run a few experiments side by side without clobbering each other:
@@ -349,7 +349,7 @@ save_output_list = true
 # learning_curve_file = "curve.dat"   # optional, per-member files <stem>_NNN.<ext>
 ```
 
-See `test/pima-indians-diabetes/config-pima.toml` for a fully commented version with every field.
+See `datasets/pima/config-pima.toml` for a fully commented version with every field.
 
 #### Migrating from the legacy format
 

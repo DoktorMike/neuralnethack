@@ -23,8 +23,8 @@ DATASETS="${DATASETS:-pima covtype}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BENCH="$ROOT/bench"
 LIB="$ROOT/build/libneuralnethack.a"
-PIMA_DIR="$ROOT/test/pima-indians-diabetes"
-COVTYPE_DIR="$BENCH/datasets/covtype"
+PIMA_DIR="$ROOT/datasets/pima"
+COVTYPE_DIR="$ROOT/datasets/covtype"
 
 if [[ ! -f "$LIB" ]]; then
     echo "missing $LIB. Run 'make' from repo root first." >&2
@@ -93,8 +93,8 @@ for dset in $DATASETS; do
             ;;
         covtype)
             if [[ ! -f "$COVTYPE_DIR/covtype.trn.csv" ]]; then
-                echo "covtype splits missing; running bench/datasets/get_covtype.sh ..." >&2
-                "$BENCH/datasets/get_covtype.sh"
+                echo "covtype splits missing; running datasets/get_covtype.sh ..." >&2
+                "$ROOT/datasets/get_covtype.sh"
             fi
             build_covtype
             "$BENCH/bench_nnh_covtype" "$COVTYPE_DIR" "$EPOCHS_COVTYPE" "$BATCH" \

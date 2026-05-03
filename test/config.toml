@@ -6,14 +6,14 @@ normalization = "Z"          # "Z" or "no"
 problem_type = "class"       # "class" or "regr"
 
 [data.train]
-file = "./pima-indians-diabetes/pima.trn.tab"
+file = "../datasets/pima/pima.trn.tab"
 id_col = 0                   # 0 = no id column
 in_cols = "1-8"              # range string, 1-indexed
 out_cols = "9"
 row_range = "0"              # "0" = all rows
 
 [data.test]
-file = "./pima-indians-diabetes/pima.tst.tab"
+file = "../datasets/pima/pima.tst.tab"
 id_col = 0
 in_cols = "1-8"
 out_cols = "9"

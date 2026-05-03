@@ -1,0 +1,3 @@
+# Covertype is fetched on demand by datasets/get_covtype.sh; the
+# ~70 MB extract and the train/test splits don't belong in git.
+covtype/
