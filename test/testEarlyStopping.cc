@@ -9,6 +9,8 @@
 //   3. Weights are restored to the best-val snapshot: final val loss
 //      equals the per-epoch minimum recorded in the learning-curve file.
 
+#include "Config.hh"
+#include "Factory.hh"
 #include "Random.hh"
 #include "datatools/CoreDataSet.hh"
 #include "datatools/DataSet.hh"
@@ -16,6 +18,7 @@
 #include "mlp/Adam.hh"
 #include "mlp/Mlp.hh"
 #include "mlp/SummedSquare.hh"
+#include "parser/Parser.hh"
 
 #include <cmath>
 #include <cstdio>
@@ -176,6 +179,67 @@ bool testBestWeightsRestored() {
 	return true;
 }
 
+bool testConfigWiring() {
+	std::cout << "Test: TOML training.early_stopping plumbs into Config + trainer ... ";
+	const char* toml =
+	    "suffix = \"x\"\n"
+	    "seed = 1\n"
+	    "normalization = \"no\"\n"
+	    "problem_type = \"regr\"\n"
+	    "[data.train]\n"
+	    "file = \"x\"\nid_col = 0\nin_cols = \"1\"\nout_cols = \"2\"\nrow_range = \"0\"\n"
+	    "[data.test]\n"
+	    "file = \"x\"\nid_col = 0\nin_cols = \"1\"\nout_cols = \"2\"\nrow_range = \"0\"\n"
+	    "[network]\n"
+	    "size = [1, 4, 1]\n"
+	    "activations = [\"tansig\", \"purelin\"]\n"
+	    "error_fcn = \"sumsqr\"\n"
+	    "[training]\n"
+	    "method = \"adam\"\n"
+	    "max_epochs = 10\n"
+	    "[training.gd]\nbatch_size = 4\nlearning_rate = 0.1\nlr_decay = 0.99\nmomentum = 0.0\n"
+	    "[training.early_stopping]\n"
+	    "patience = 7\n"
+	    "min_delta = 0.0025\n"
+	    "[ensemble]\nmethod = \"none\"\nruns = 1\nparts = 1\nsplit = \"ser\"\nvary_weights = false\n"
+	    "[model_selection]\nmethod = \"none\"\nruns = 1\nparts = 1\nsplit = \"ser\"\nfraction = 0.5\n"
+	    "[output]\nsave_session = false\nsave_output_list = false\n";
+
+	std::istringstream in(toml);
+	NeuralNetHack::Config cfg;
+	NeuralNetHack::Parser::readConfigurationFile(in, cfg);
+
+	if (cfg.earlyStopPatience() != 7) {
+		std::cerr << "FAIL (patience=" << cfg.earlyStopPatience() << ", expected 7)\n";
+		return false;
+	}
+	if (std::fabs(cfg.earlyStopMinDelta() - 0.0025) > 1e-12) {
+		std::cerr << "FAIL (min_delta=" << cfg.earlyStopMinDelta() << ", expected 0.0025)\n";
+		return false;
+	}
+
+	// Tiny dummy dataset just to satisfy createTrainer's signature.
+	auto core = std::make_shared<CoreDataSet>();
+	std::vector<double> ix = {0.0};
+	std::vector<double> iy = {0.0};
+	core->addPattern(Pattern("0", ix, iy));
+	DataSet ds;
+	ds.coreDataSet(core);
+	auto trainer = NeuralNetHack::Factory::createTrainer(cfg, ds);
+
+	if (trainer->earlyStoppingPatience() != 7) {
+		std::cerr << "FAIL (Factory did not wire patience: trainer reports "
+		          << trainer->earlyStoppingPatience() << ")\n";
+		return false;
+	}
+	if (std::fabs(trainer->earlyStoppingMinDelta() - 0.0025) > 1e-12) {
+		std::cerr << "FAIL (trainer min_delta=" << trainer->earlyStoppingMinDelta() << ")\n";
+		return false;
+	}
+	std::cout << "PASS\n";
+	return true;
+}
+
 } // namespace
 
 int main() {
@@ -184,6 +248,7 @@ int main() {
 	allPass &= testNoEarlyStop();
 	allPass &= testEarlyStopTriggers();
 	allPass &= testBestWeightsRestored();
+	allPass &= testConfigWiring();
 	std::cout << "\n";
 	if (allPass) {
 		std::cout << "All tests PASSED.\n";

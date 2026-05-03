@@ -303,6 +303,10 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 		config.adamEpsilon(asNumber(v, path, lineno));
 	else if (path == "training.adam.weight_decay")
 		config.adamWeightDecay(asNumber(v, path, lineno));
+	else if (path == "training.early_stopping.patience")
+		config.earlyStopPatience(static_cast<uint>(asInt(v, path, lineno)));
+	else if (path == "training.early_stopping.min_delta")
+		config.earlyStopMinDelta(asNumber(v, path, lineno));
 	else if (path == "regularization.weight_elim.enabled")
 		config.weightElimOn(asBool(v, path, lineno));
 	else if (path == "regularization.weight_elim.alpha")

@@ -127,6 +127,16 @@ class Config {
 	const double& adamWeightDecay() const { return adamParam.theWeightDecay; }
 	void adamWeightDecay(const double& v) { adamParam.theWeightDecay = v; }
 
+	/**Validation-loss early-stopping patience for the trainer. 0 disables.
+	 * When > 0, EnsembleBuilder always plumbs the held-out fold as
+	 * validation data so the trainer can monitor val loss.
+	 */
+	uint earlyStopPatience() const { return theEarlyStopPatience; }
+	void earlyStopPatience(uint p) { theEarlyStopPatience = p; }
+
+	double earlyStopMinDelta() const { return theEarlyStopMinDelta; }
+	void earlyStopMinDelta(double d) { theEarlyStopMinDelta = d; }
+
 	bool weightElimOn() const { return theWeightElimOn; }
 	void weightElimOn(const bool& theWeightElimOn) { this->theWeightElimOn = theWeightElimOn; }
 
@@ -284,6 +294,10 @@ class Config {
 		double theEpsilon = 1e-8;
 		double theWeightDecay = 0.0;
 	} adamParam;
+	/**Validation-loss early-stopping patience. 0 disables. */
+	uint theEarlyStopPatience = 0;
+	/**Minimum val-loss improvement to count as progress. */
+	double theEarlyStopMinDelta = 0.0;
 	/**Controls whether to use weight elimination or not. */
 	bool theWeightElimOn;
 	/**The importance of the weight elimination term. */

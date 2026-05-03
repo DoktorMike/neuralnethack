@@ -88,6 +88,8 @@ unique_ptr<Trainer> Factory::createTrainer(const Config& config, DataSet& data) 
 		trainer = make_unique<QuasiNewton>(std::move(error), data, MAX_ERROR, config.batchSize());
 	}
 	trainer->numEpochs(config.maxEpochs());
+	if (config.earlyStopPatience() > 0)
+		trainer->earlyStopping(config.earlyStopPatience(), config.earlyStopMinDelta());
 	return trainer;
 }
 

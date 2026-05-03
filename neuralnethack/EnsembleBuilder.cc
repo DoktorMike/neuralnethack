@@ -110,10 +110,10 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 		for (int i = 0; i < N; ++i) {
 			nnh::rand::seed(theBaseSeed + static_cast<uint64_t>(i));
 			auto trainer = theTrainerFactory(samples[i].first);
-			if (!theLearningCurvePathBase.empty()) {
+			if (!theLearningCurvePathBase.empty())
 				trainer->learningCurveFile(makeMemberPath(theLearningCurvePathBase, i + 1));
+			if (!theLearningCurvePathBase.empty() || trainer->earlyStoppingPatience() > 0)
 				trainer->validationData(&samples[i].second);
-			}
 			ostringstream local;
 			trained[i] = trainer->trainNew(samples[i].first, local);
 			sessions[i] = Session(std::make_unique<Ensemble>(*trained[i], 1),
@@ -126,10 +126,10 @@ Ensemble* EnsembleBuilder::buildEnsemble() {
 		// Serial fallback for callers that haven't supplied a factory.
 		for (int i = 0; i < N; ++i) {
 			cout << "Building MLP " << (i + 1) << " of " << N << endl;
-			if (!theLearningCurvePathBase.empty()) {
+			if (!theLearningCurvePathBase.empty())
 				theTrainer->learningCurveFile(makeMemberPath(theLearningCurvePathBase, i + 1));
+			if (!theLearningCurvePathBase.empty() || theTrainer->earlyStoppingPatience() > 0)
 				theTrainer->validationData(&samples[i].second);
-			}
 			trained[i] = theTrainer->trainNew(samples[i].first, cout);
 			sessions[i] = Session(std::make_unique<Ensemble>(*trained[i], 1),
 			                      std::make_unique<DataSet>(samples[i].first),

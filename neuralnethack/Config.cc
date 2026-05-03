@@ -69,6 +69,7 @@ void Config::print(std::ostream& os) {
 	   << endl;
 	os << "WeightElim\t" << theWeightElimOn << " " << theWeightElimAlpha << " " << theWeightElimW0
 	   << endl;
+	os << "EarlyStop\t" << theEarlyStopPatience << " " << theEarlyStopMinDelta << endl;
 	os << "EnsParam\t" << theEnsParamDataSelection << " " << theEnsParamN << " " << theEnsParamK
 	   << " " << theEnsParamSplitMode << " " << theEnsParamNewWeights << endl;
 	os << "MSParam\t\t" << theMsParamDataSelection << " " << theMsParamN << " " << theMsParamK
