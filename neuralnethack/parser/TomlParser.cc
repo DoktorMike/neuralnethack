@@ -281,6 +281,8 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 		}
 	} else if (path == "network.softmax")
 		config.softmax(asBool(v, path, lineno));
+	else if (path == "network.weight_init")
+		config.weightInit(asString(v, path, lineno));
 	else if (path == "training.method")
 		config.minMethod(asString(v, path, lineno));
 	else if (path == "training.max_epochs")

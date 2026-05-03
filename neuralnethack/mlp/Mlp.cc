@@ -135,6 +135,11 @@ void Mlp::regenerateWeights() {
 		l->regenerateWeights();
 }
 
+void Mlp::initScheme(Layer::InitScheme s) {
+	for (auto& l : theLayers)
+		l->initScheme(s);
+}
+
 void Mlp::training(bool t) {
 	for (auto& l : theLayers)
 		l->training(t);

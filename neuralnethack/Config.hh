@@ -94,6 +94,10 @@ class Config {
 	bool softmax() const { return theSoftmax; }
 	void softmax(bool s) { theSoftmax = s; }
 
+	/**Weight init scheme: "glorot" (default) or "legacy_uniform". */
+	const std::string& weightInit() const { return theWeightInit; }
+	void weightInit(const std::string& s) { theWeightInit = s; }
+
 	const std::string& minMethod() const { return theMinMethod; }
 	void minMethod(const std::string& theMinMethod) { this->theMinMethod = theMinMethod; }
 
@@ -273,6 +277,8 @@ class Config {
 	std::vector<std::pair<int, int>> theSkipConnections;
 	/**Apply softmax to the output layer. */
 	bool theSoftmax = false;
+	/**Weight init scheme. */
+	std::string theWeightInit = "glorot";
 	/**The minimisation algorithm. */
 	std::string theMinMethod;
 	/**The maximum number of epochs to train. */

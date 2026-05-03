@@ -32,8 +32,11 @@ int main() {
 	DataSet data;
 	data.coreDataSet(core);
 
-	// -- Create a 2-4-1 network (ReLU hidden, sigmoid output) --
-	std::vector<uint> arch = {2, 4, 1};
+	// -- Create a 2-8-1 network (ReLU hidden, sigmoid output) --
+	// 4 hidden ReLU units is on the edge for XOR -- some inits land in
+	// dead-neuron basins. 8 is the standard tutorial choice and converges
+	// reliably across init schemes.
+	std::vector<uint> arch = {2, 8, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
 

@@ -54,6 +54,11 @@ unique_ptr<Mlp> Factory::createMlp(const Config& config) {
 	auto mlp = make_unique<Mlp>(config.architecture(), config.actFcn(), config.softmax());
 	for (const auto& sc : config.skipConnections())
 		mlp->skipFrom(static_cast<uint>(sc.first), sc.second);
+	if (config.weightInit() == "legacy_uniform") {
+		mlp->initScheme(MultiLayerPerceptron::Layer::InitScheme::LegacyUniform);
+		mlp->regenerateWeights();
+	}
+	// "glorot" (default) is what Layer construction already used; no-op.
 	return mlp;
 }
 

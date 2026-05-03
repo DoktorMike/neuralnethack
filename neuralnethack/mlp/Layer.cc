@@ -173,7 +173,24 @@ void Layer::printGradients(ostream& os) const {
 // UTILS
 
 void Layer::regenerateWeights() {
-	for_each(theWeights.begin(), theWeights.end(), newRand<double>());
+	const uint stride = nprev + 1;
+	if (theInitScheme == InitScheme::LegacyUniform) {
+		for (auto& w : theWeights) w = 0.5 - nnh::rand::uniform();
+		return;
+	}
+	// Per-activation Xavier-family init. Saturating activations get Glorot
+	// (a = sqrt(6/(n_in+n_out))); ReLU-family get He (a = sqrt(6/n_in))
+	// because that's what compensates for the half of inputs they zero out.
+	// Biases (the last column in each row of the [ncurr, nprev+1] flat
+	// layout) are zeroed.
+	const bool isRelu = (theType == RELU || theType == LEAKYRELU || theType == ELU_ACT);
+	const double a = isRelu ? std::sqrt(6.0 / static_cast<double>(nprev))
+	                        : std::sqrt(6.0 / static_cast<double>(nprev + ncurr));
+	for (uint o = 0; o < ncurr; ++o) {
+		for (uint i = 0; i < nprev; ++i)
+			theWeights[o * stride + i] = a * (2.0 * nnh::rand::uniform() - 1.0);
+		theWeights[o * stride + nprev] = 0.0;
+	}
 }
 
 vector<double> Layer::calcLifs(const vector<double>& input) {

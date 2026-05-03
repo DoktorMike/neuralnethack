@@ -112,9 +112,15 @@ class Mlp {
 	void gradients(std::vector<double>& g);
 
 	// UTILITY
-	/**Randomize the weights between -1/2 and 1/2.
+	/**Re-initialise weights using each layer's current init scheme
+	 * (Glorot by default; see Layer::InitScheme).
 	 */
 	void regenerateWeights();
+
+	/**Set the weight init scheme on every layer in this network. Call
+	 * before regenerateWeights() to actually take effect.
+	 */
+	void initScheme(Layer::InitScheme s);
 
 	/**Pushes a pattern through this MLP.
 	 * \param pattern the pattern to propagate.

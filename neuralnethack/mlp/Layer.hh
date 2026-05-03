@@ -179,6 +179,19 @@ class Layer {
 
 	// UTILS
 
+	/**Weight initialisation scheme.
+	 *  - LegacyUniform: U(-0.5, 0.5) for all weights and biases. Pre-Glorot
+	 *    behaviour, kept for back-compat with serialised models / older
+	 *    benchmarks.
+	 *  - Glorot: Glorot/Xavier uniform, U(-a, a) with a = sqrt(6/(n_in+n_out)).
+	 *    Biases initialised to zero. Default for new Mlp construction.
+	 */
+	enum class InitScheme { LegacyUniform, Glorot };
+
+	/**Set the init scheme. Takes effect on the next regenerateWeights() call.*/
+	void initScheme(InitScheme s) { theInitScheme = s; }
+	InitScheme initScheme() const { return theInitScheme; }
+
 	/**Assign new random weights to the weight vector. */
 	void regenerateWeights();
 
@@ -394,10 +407,7 @@ class Layer {
 	/**Batch derivative-scale function for this layer's type. */
 	DerivScaleFn theDerivScale;
 
-	/**The functor for initialising the weights. */
-	template <class T> struct newRand {
-		void operator()(T& a) { a = 0.5 - nnh::rand::uniform(); }
-	};
+	InitScheme theInitScheme = InitScheme::Glorot;
 };
 
 // ACCESSOR AND MUTATOR FUNCTIONS

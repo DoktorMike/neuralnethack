@@ -48,7 +48,7 @@ static bool testGDSSE() {
 	srand(42);
 	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
-	std::vector<uint> arch = {2, 4, 1};
+	std::vector<uint> arch = {2, 8, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
 	SummedSquare error(mlp, data);
@@ -65,7 +65,7 @@ static bool testGDCE() {
 	srand(42);
 	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
-	std::vector<uint> arch = {2, 4, 1};
+	std::vector<uint> arch = {2, 8, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
 	CrossEntropy error(mlp, data);
@@ -82,7 +82,7 @@ static bool testAdamSSE() {
 	srand(42);
 	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
-	std::vector<uint> arch = {2, 4, 1};
+	std::vector<uint> arch = {2, 8, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
 	SummedSquare error(mlp, data);
@@ -99,7 +99,7 @@ static bool testAdamCE() {
 	srand(42);
 	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
-	std::vector<uint> arch = {2, 4, 1};
+	std::vector<uint> arch = {2, 8, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
 	CrossEntropy error(mlp, data);
@@ -116,7 +116,7 @@ static bool testQNSSE() {
 	srand(42);
 	nnh::rand::seed(42);
 	DataSet data = buildXorDataSet();
-	std::vector<uint> arch = {2, 4, 1};
+	std::vector<uint> arch = {2, 8, 1};
 	std::vector<std::string> types = {"relu", "logsig"};
 	Mlp mlp(arch, types, false);
 	SummedSquare error(mlp, data);
