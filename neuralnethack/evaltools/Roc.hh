@@ -3,6 +3,7 @@
 
 #include "EvalTools.hh"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <utility>
@@ -27,6 +28,16 @@ class Evaluator;
 class Roc {
 
   public:
+	/**Result of a bootstrap AUC analysis. */
+	struct AucCI {
+		double auc;    ///< point estimate (WMW-fast) on the full sample
+		double lower;  ///< lower percentile bound of the CI
+		double upper;  ///< upper percentile bound of the CI
+		double pValue; ///< one-sided bootstrap p-value for H0: AUC <= 0.5
+		uint nBoot;    ///< number of bootstrap resamples actually used
+		double alpha;  ///< miscoverage (CI is the central 1 - alpha interval)
+	};
+
 	/**Basic constructor. */
 	Roc();
 
@@ -96,6 +107,24 @@ class Roc {
 	 */
 	double calcAucTrapezoidal(std::vector<double>& out, std::vector<uint>& dout);
 
+	/**Bootstrap confidence interval and one-sided p-value for the AUC.
+	 * Resamples the (out, dout) pairs with replacement nBoot times,
+	 * recomputes the WMW-fast AUC for each resample, and returns the central
+	 * (1 - alpha) percentile interval together with a one-sided p-value
+	 * testing H0: AUC <= 0.5 (classifier no better than chance). Resamples
+	 * in which one class is absent are skipped. Uses a local RNG so it does
+	 * not disturb the global nnh::rand stream. Sets theAuc to the full-sample
+	 * point estimate as a side effect.
+	 * \param out the model outputs.
+	 * \param dout the binary targets.
+	 * \param nBoot the number of bootstrap resamples (default 2000).
+	 * \param alpha the miscoverage rate (default 0.05 -> 95% CI).
+	 * \param seed RNG seed for reproducibility (default 0).
+	 * \return the AUC point estimate, CI bounds, p-value, and resample count.
+	 */
+	AucCI aucBootstrapCI(std::vector<double>& out, std::vector<uint>& dout, uint nBoot = 2000,
+	                     double alpha = 0.05, std::uint64_t seed = 0);
+
 	/**Create a FPF,TPF pair for each value in out.
 	 * This basically generate a (1-specificity), sensitivity
 	 * pair for each output.
@@ -117,6 +146,12 @@ class Roc {
 	std::vector<std::pair<double, double>> theRoc;
 
 	template <class T> void printVector(std::vector<T>& vec);
+
+	/**WMW-fast AUC over a bootstrap index sample (with replacement). Returns
+	 * NaN if the sample is missing one of the two classes.
+	 */
+	static double aucWmwFastSample(const std::vector<double>& out, const std::vector<uint>& dout,
+	                               const std::vector<uint>& idx);
 
 	/**The area under the ROC curve. */
 	double theAuc;

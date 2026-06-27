@@ -499,6 +499,125 @@ static bool testRocPrint() {
 }
 
 // ---------------------------------------------------------------------------
+// Test 18: aucBootstrapCI - perfect separation gives tight CI and small p
+// ---------------------------------------------------------------------------
+static bool testAucBootstrapPerfect() {
+	std::cout << "Test: Roc::aucBootstrapCI perfect separation ... ";
+
+	std::vector<double> out = {0.10, 0.15, 0.20, 0.25, 0.30, 0.70, 0.75, 0.80, 0.85, 0.90};
+	std::vector<uint> dout = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1};
+
+	EvalTools::Roc roc;
+	auto ci = roc.aucBootstrapCI(out, dout, 2000, 0.05, 1);
+
+	bool ok = true;
+	if (std::fabs(ci.auc - 1.0) > 1e-9) {
+		std::cerr << "FAIL (point AUC expected 1.0, got " << ci.auc << ")" << std::endl;
+		ok = false;
+	}
+	// Every resample with both classes present yields AUC = 1.0 -> tight CI.
+	if (ci.lower < 0.99 || ci.upper > 1.0 + 1e-9) {
+		std::cerr << "FAIL (CI not tight: [" << ci.lower << ", " << ci.upper << "])" << std::endl;
+		ok = false;
+	}
+	if (ci.pValue >= 0.05) {
+		std::cerr << "FAIL (p-value should be significant, got " << ci.pValue << ")" << std::endl;
+		ok = false;
+	}
+	if (ci.nBoot == 0) {
+		std::cerr << "FAIL (no usable resamples)" << std::endl;
+		ok = false;
+	}
+	if (ok)
+		std::cout << "PASS (AUC=" << ci.auc << ", CI=[" << ci.lower << "," << ci.upper
+		          << "], p=" << ci.pValue << ")" << std::endl;
+	return ok;
+}
+
+// ---------------------------------------------------------------------------
+// Test 19: aucBootstrapCI - CI brackets the point estimate, p in [0,1]
+// ---------------------------------------------------------------------------
+static bool testAucBootstrapBrackets() {
+	std::cout << "Test: Roc::aucBootstrapCI brackets point estimate ... ";
+
+	std::vector<double> out = {0.2, 0.4, 0.35, 0.6, 0.55, 0.8, 0.5, 0.7, 0.45, 0.65};
+	std::vector<uint> dout = {0, 0, 1, 0, 1, 1, 0, 1, 0, 1};
+
+	EvalTools::Roc roc;
+	auto ci = roc.aucBootstrapCI(out, dout, 2000, 0.05, 7);
+
+	bool ok = true;
+	if (!(ci.lower <= ci.auc + 1e-9 && ci.auc <= ci.upper + 1e-9)) {
+		std::cerr << "FAIL (point " << ci.auc << " outside CI [" << ci.lower << "," << ci.upper
+		          << "])" << std::endl;
+		ok = false;
+	}
+	if (ci.lower < 0.0 || ci.upper > 1.0 + 1e-9) {
+		std::cerr << "FAIL (CI out of [0,1])" << std::endl;
+		ok = false;
+	}
+	if (ci.pValue < 0.0 || ci.pValue > 1.0) {
+		std::cerr << "FAIL (p-value out of [0,1]: " << ci.pValue << ")" << std::endl;
+		ok = false;
+	}
+	if (ok)
+		std::cout << "PASS (AUC=" << ci.auc << ", CI=[" << ci.lower << "," << ci.upper
+		          << "], p=" << ci.pValue << ")" << std::endl;
+	return ok;
+}
+
+// ---------------------------------------------------------------------------
+// Test 20: aucBootstrapCI - reproducible for a fixed seed
+// ---------------------------------------------------------------------------
+static bool testAucBootstrapReproducible() {
+	std::cout << "Test: Roc::aucBootstrapCI reproducible ... ";
+
+	std::vector<double> out = {0.2, 0.4, 0.35, 0.6, 0.55, 0.8, 0.5, 0.7, 0.45, 0.65};
+	std::vector<uint> dout = {0, 0, 1, 0, 1, 1, 0, 1, 0, 1};
+
+	EvalTools::Roc r1, r2;
+	auto a = r1.aucBootstrapCI(out, dout, 1000, 0.05, 123);
+	auto b = r2.aucBootstrapCI(out, dout, 1000, 0.05, 123);
+
+	bool ok = (std::fabs(a.lower - b.lower) < 1e-12 && std::fabs(a.upper - b.upper) < 1e-12 &&
+	           std::fabs(a.pValue - b.pValue) < 1e-12 && a.nBoot == b.nBoot);
+	if (!ok) {
+		std::cerr << "FAIL (same seed gave different results)" << std::endl;
+		return false;
+	}
+	std::cout << "PASS" << std::endl;
+	return true;
+}
+
+// ---------------------------------------------------------------------------
+// Test 21: aucBootstrapCI - near-chance data is not significant
+// ---------------------------------------------------------------------------
+static bool testAucBootstrapChance() {
+	std::cout << "Test: Roc::aucBootstrapCI near-chance not significant ... ";
+
+	// Each negative sits just above its paired positive => AUC well below 0.5,
+	// so the one-sided test for AUC > 0.5 must NOT be significant.
+	std::vector<double> out;
+	std::vector<uint> dout;
+	for (uint i = 0; i < 8; ++i) {
+		out.push_back(2.0 * i);
+		dout.push_back(1);
+		out.push_back(2.0 * i + 1.0);
+		dout.push_back(0);
+	}
+
+	EvalTools::Roc roc;
+	auto ci = roc.aucBootstrapCI(out, dout, 2000, 0.05, 5);
+
+	if (ci.pValue <= 0.05) {
+		std::cerr << "FAIL (should not be significant, p=" << ci.pValue << ")" << std::endl;
+		return false;
+	}
+	std::cout << "PASS (AUC=" << ci.auc << ", p=" << ci.pValue << ")" << std::endl;
+	return true;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 int main() {
@@ -516,6 +635,12 @@ int main() {
 	allPass &= testRocAucAccessor();
 	allPass &= testRocCopyAndAssign();
 	allPass &= testRocPrint();
+
+	// Bootstrap AUC confidence interval / p-value
+	allPass &= testAucBootstrapPerfect();
+	allPass &= testAucBootstrapBrackets();
+	allPass &= testAucBootstrapReproducible();
+	allPass &= testAucBootstrapChance();
 
 	// Evaluator tests
 	allPass &= testEvaluator();

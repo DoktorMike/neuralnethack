@@ -2,11 +2,13 @@
 #include "Evaluator.hh"
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <cassert>
 #include <ostream>
 #include <iterator>
+#include <random>
 
 using namespace EvalTools;
 using std::cerr;
@@ -97,6 +99,77 @@ double Roc::calcAucTrapezoidal(vector<double>& out, vector<uint>& dout) {
 		area += (x2 - x1) * 0.5 * (y1 + y2);
 	}
 	return theAuc = area;
+}
+
+double Roc::aucWmwFastSample(const vector<double>& out, const vector<uint>& dout,
+                            const vector<uint>& idx) {
+	uint m = 0;
+	uint n = 0;
+	vector<pair<double, uint>> rank;
+	rank.reserve(idx.size());
+	for (uint k = 0; k < idx.size(); ++k) {
+		const uint i = idx[k];
+		if (dout[i] > 0)
+			m++;
+		else
+			n++;
+		rank.push_back(pair<double, uint>(out[i], dout[i]));
+	}
+	if (m == 0 || n == 0) return std::nan(""); // degenerate resample
+	sort(rank.begin(), rank.end());
+	double r = 0;
+	for (uint i = 0; i < rank.size(); ++i)
+		if (rank[i].second > 0) r += i;
+	return (r - m * (m - 1.0) * 0.5) / (double)(m * n);
+}
+
+Roc::AucCI Roc::aucBootstrapCI(vector<double>& out, vector<uint>& dout, uint nBoot, double alpha,
+                               std::uint64_t seed) {
+	if (out.size() != dout.size()) {
+		cerr << "Error: output and target vectors must have the same size" << endl;
+		abort();
+	}
+	const uint N = out.size();
+
+	AucCI res;
+	res.alpha = alpha;
+	res.auc = calcAucWmwFast(out, dout); // full-sample point estimate
+
+	std::mt19937_64 gen(seed);
+	std::uniform_int_distribution<uint> pick(0, N - 1);
+
+	vector<double> boot;
+	boot.reserve(nBoot);
+	vector<uint> idx(N);
+	uint nBelow = 0; // resamples with AUC <= 0.5, for the one-sided p-value
+	for (uint b = 0; b < nBoot; ++b) {
+		for (uint i = 0; i < N; ++i)
+			idx[i] = pick(gen);
+		const double a = aucWmwFastSample(out, dout, idx);
+		if (std::isnan(a)) continue;
+		boot.push_back(a);
+		if (a <= 0.5) ++nBelow;
+	}
+
+	res.nBoot = boot.size();
+	if (boot.empty()) { // pathological: every resample dropped a class
+		res.lower = res.upper = res.auc;
+		res.pValue = 1.0;
+		return res;
+	}
+	sort(boot.begin(), boot.end());
+	auto pct = [&boot](double q) {
+		const double pos = q * (boot.size() - 1);
+		const uint lo = (uint)std::floor(pos);
+		const uint hi = (uint)std::ceil(pos);
+		const double frac = pos - lo;
+		return boot[lo] * (1.0 - frac) + boot[hi] * frac;
+	};
+	res.lower = pct(alpha / 2.0);
+	res.upper = pct(1.0 - alpha / 2.0);
+	// +1 smoothing so the p-value is never exactly 0
+	res.pValue = (nBelow + 1.0) / (res.nBoot + 1.0);
+	return res;
 }
 
 void Roc::calcRoc(vector<double>& out, vector<uint>& dout) {
