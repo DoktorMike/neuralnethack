@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.3.0](https://github.com/DoktorMike/neuralnethack/compare/v4.2.0...v4.3.0) (2026-06-27)
+
+
+### Features
+
+* **eval:** bootstrap CI and p-value for AUC ([76505a1](https://github.com/DoktorMike/neuralnethack/commit/76505a1f6c0c02528cab26fcb8bd65f47e7ee757))
+* **eval:** ensemble uncertainty decomposition ([a53c8c1](https://github.com/DoktorMike/neuralnethack/commit/a53c8c1c09397742a2cb5676a71d9e00bf1e9f22))
+* **mlp:** per-class weights in cross-entropy and summed-square ([c732c51](https://github.com/DoktorMike/neuralnethack/commit/c732c51334ad047d6c19f28c3eb39c342bc8f435))
+
+
+### Other
+
+* **examples:** use library uncertainty decomposition ([b9ee34c](https://github.com/DoktorMike/neuralnethack/commit/b9ee34ca5f1e9b2630e62fcaac654727d50e510d))
+* update badges [skip ci] ([3807133](https://github.com/DoktorMike/neuralnethack/commit/38071337c139d064056b8e6e5e27e5bb4e2fe00d))
+
+
+### Documentation
+
+* **readme:** document uncertainty, class weights, auc ci ([94814e1](https://github.com/DoktorMike/neuralnethack/commit/94814e10da9b404062e023594e89da0f3b3123b2))
+
 ## [4.2.0](https://github.com/DoktorMike/neuralnethack/compare/v4.1.1...v4.2.0) (2026-06-27)
 
 
