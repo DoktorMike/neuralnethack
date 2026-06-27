@@ -31,7 +31,7 @@ static bool nearly(double a, double b, double tol = 1e-9) {
 	} while (0)
 
 // Test 1: forward pass identity through skip.
-// arch = [2, 2, 2], two LinearLayers. Layer 0 = identity, layer 1 = zero.
+// arch = [2, 2, 2], two purelin (Linear) layers. Layer 0 = identity, layer 1 = zero.
 // Skip 0 -> 1. Output should equal input.
 static void testForwardIdentity() {
 	vector<uint> arch = {2, 2, 2};
