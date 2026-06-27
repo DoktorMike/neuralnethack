@@ -3213,6 +3213,64 @@ inline std::vector<std::pair<double, double>>& Roc::roc() {
 
 } // namespace EvalTools
 
+// ===== evaltools/Uncertainty.hh =====
+#include <vector>
+
+namespace EvalTools {
+
+/**Predictive-uncertainty utilities for ensembles of classifiers.
+ *
+ * The information-theoretic decomposition follows Depeweg et al. (2018):
+ * given an ensemble whose members each output a categorical distribution
+ * \f$p_i\f$ over the same K classes, the entropy of the ensemble-mean
+ * prediction splits into an aleatoric and an epistemic part,
+ * \f[ \underbrace{H(\bar p)}_{\text{total}}
+ *     = \underbrace{\tfrac1M\sum_i H(p_i)}_{\text{aleatoric}}
+ *     + \underbrace{I(y; i)}_{\text{epistemic}}, \f]
+ * where the epistemic term is the mutual information between the class and
+ * the member identity (a.k.a. BALD). Aleatoric uncertainty reflects genuine
+ * class overlap (irreducible noise); epistemic uncertainty reflects member
+ * disagreement and grows out of distribution.
+ */
+namespace Uncertainty {
+
+/**Result of decomposing an ensemble's predictive entropy. */
+struct EntropyDecomposition {
+	double total;     ///< H(mean prediction)
+	double aleatoric; ///< mean of per-member entropies
+	double epistemic; ///< total - aleatoric (clamped at 0); mutual information
+};
+
+/**Shannon entropy (natural log) of a probability vector. Entries <= 0 are
+ * skipped, so an unnormalised or sparse vector is handled gracefully.
+ * \param p a categorical distribution.
+ * \return the entropy in nats.
+ */
+double predictiveEntropy(const std::vector<double>& p);
+
+/**Decompose the predictive entropy over a set of per-member probability
+ * vectors. Members are weighted uniformly (as in the cited literature).
+ * \param memberProbs one categorical distribution per member, all of equal
+ * length K.
+ * \return the total / aleatoric / epistemic decomposition.
+ */
+EntropyDecomposition decomposeEntropy(const std::vector<std::vector<double>>& memberProbs);
+
+/**Convenience overload: propagate the input through every ensemble member,
+ * collect each member's predictive distribution, and decompose. A
+ * single-output (sigmoid) member with value p is treated as the categorical
+ * {1 - p, p}. Members are weighted uniformly; ensemble scales are ignored,
+ * matching the uncertainty-decomposition literature.
+ * \param ensemble the ensemble to query.
+ * \param input the input pattern.
+ * \return the total / aleatoric / epistemic decomposition.
+ */
+EntropyDecomposition decomposeEntropy(NeuralNetHack::Ensemble& ensemble,
+                                      const std::vector<double>& input);
+
+} // namespace Uncertainty
+} // namespace EvalTools
+
 // ===== mlp/Error.hh =====
 #include <memory>
 #include <vector>
@@ -8677,6 +8735,66 @@ template <class T> void Roc::printVector(vector<T>& vec) {
 		cout << *it << " ";
 	cout << endl;
 }
+
+// ===== evaltools/Uncertainty.cc =====
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+
+using namespace NeuralNetHack;
+using std::vector;
+
+namespace EvalTools {
+namespace Uncertainty {
+
+double predictiveEntropy(const vector<double>& p) {
+	double h = 0;
+	for (double q : p)
+		if (q > 1e-12) h -= q * std::log(q);
+	return h;
+}
+
+EntropyDecomposition decomposeEntropy(const vector<vector<double>>& memberProbs) {
+	assert(!memberProbs.empty());
+	const std::size_t M = memberProbs.size();
+	const std::size_t K = memberProbs[0].size();
+
+	vector<double> mean(K, 0.0);
+	double aleatoric = 0.0;
+	for (const auto& p : memberProbs) {
+		assert(p.size() == K);
+		for (std::size_t k = 0; k < K; ++k)
+			mean[k] += p[k];
+		aleatoric += predictiveEntropy(p);
+	}
+	const double inv = 1.0 / (double)M;
+	for (double& v : mean)
+		v *= inv;
+	aleatoric *= inv;
+
+	EntropyDecomposition d;
+	d.total = predictiveEntropy(mean);
+	d.aleatoric = aleatoric;
+	d.epistemic = std::max(0.0, d.total - d.aleatoric);
+	return d;
+}
+
+EntropyDecomposition decomposeEntropy(Ensemble& ensemble, const vector<double>& input) {
+	vector<vector<double>> probs;
+	probs.reserve(ensemble.size());
+	for (uint i = 0; i < ensemble.size(); ++i) {
+		vector<double> p = ensemble.mlp(i).propagate(input); // copy: propagate returns a ref
+		if (p.size() == 1) {
+			const double v = p[0];
+			p = {1.0 - v, v};
+		}
+		probs.push_back(std::move(p));
+	}
+	return decomposeEntropy(probs);
+}
+
+} // namespace Uncertainty
+} // namespace EvalTools
 
 // ===== mlp/Error.cc =====
 #include <vector>
