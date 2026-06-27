@@ -3045,6 +3045,7 @@ class Evaluator {
 } // namespace EvalTools
 
 // ===== evaltools/Roc.hh =====
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <utility>
@@ -3069,6 +3070,16 @@ class Evaluator;
 class Roc {
 
   public:
+	/**Result of a bootstrap AUC analysis. */
+	struct AucCI {
+		double auc;    ///< point estimate (WMW-fast) on the full sample
+		double lower;  ///< lower percentile bound of the CI
+		double upper;  ///< upper percentile bound of the CI
+		double pValue; ///< one-sided bootstrap p-value for H0: AUC <= 0.5
+		uint nBoot;    ///< number of bootstrap resamples actually used
+		double alpha;  ///< miscoverage (CI is the central 1 - alpha interval)
+	};
+
 	/**Basic constructor. */
 	Roc();
 
@@ -3138,6 +3149,24 @@ class Roc {
 	 */
 	double calcAucTrapezoidal(std::vector<double>& out, std::vector<uint>& dout);
 
+	/**Bootstrap confidence interval and one-sided p-value for the AUC.
+	 * Resamples the (out, dout) pairs with replacement nBoot times,
+	 * recomputes the WMW-fast AUC for each resample, and returns the central
+	 * (1 - alpha) percentile interval together with a one-sided p-value
+	 * testing H0: AUC <= 0.5 (classifier no better than chance). Resamples
+	 * in which one class is absent are skipped. Uses a local RNG so it does
+	 * not disturb the global nnh::rand stream. Sets theAuc to the full-sample
+	 * point estimate as a side effect.
+	 * \param out the model outputs.
+	 * \param dout the binary targets.
+	 * \param nBoot the number of bootstrap resamples (default 2000).
+	 * \param alpha the miscoverage rate (default 0.05 -> 95% CI).
+	 * \param seed RNG seed for reproducibility (default 0).
+	 * \return the AUC point estimate, CI bounds, p-value, and resample count.
+	 */
+	AucCI aucBootstrapCI(std::vector<double>& out, std::vector<uint>& dout, uint nBoot = 2000,
+	                     double alpha = 0.05, std::uint64_t seed = 0);
+
 	/**Create a FPF,TPF pair for each value in out.
 	 * This basically generate a (1-specificity), sensitivity
 	 * pair for each output.
@@ -3159,6 +3188,12 @@ class Roc {
 	std::vector<std::pair<double, double>> theRoc;
 
 	template <class T> void printVector(std::vector<T>& vec);
+
+	/**WMW-fast AUC over a bootstrap index sample (with replacement). Returns
+	 * NaN if the sample is missing one of the two classes.
+	 */
+	static double aucWmwFastSample(const std::vector<double>& out, const std::vector<uint>& dout,
+	                               const std::vector<uint>& idx);
 
 	/**The area under the ROC curve. */
 	double theAuc;
@@ -3273,6 +3308,19 @@ class Error {
 	 */
 	void weightElimW0(double w0);
 
+	/**Set per-class weights that scale each pattern's gradient contribution.
+	 * For a single sigmoid output the vector is {w_neg, w_pos} (size 2); for
+	 * multi-class softmax it is one weight per output neuron (size nOut).
+	 * Pass an empty vector to disable (uniform weighting). Useful on
+	 * imbalanced data as an alternative to resampling. Only the training
+	 * gradient/error is weighted; outputError() stays unweighted.
+	 * \param w the per-class weights.
+	 */
+	void classWeights(const std::vector<double>& w);
+
+	/**Accessor for the per-class weights (empty when disabled). */
+	const std::vector<double>& classWeights() const;
+
   protected:
 	/**Non-owning constructor: caller keeps the Mlp alive. */
 	Error(MultiLayerPerceptron::Mlp& mlp, DataTools::DataSet& dset);
@@ -3342,6 +3390,18 @@ class Error {
 	 */
 	void packBatch(DataTools::DataSet& dset) const;
 
+	/**Compute per-pattern weights from theClassWeights and the packed target
+	 * matrix (call after packBatch). When no class weights are set, pw is
+	 * left empty and denom is the batch size, so callers skip per-pattern
+	 * scaling. Otherwise pw[b] is the weight of pattern b's class and denom
+	 * is the sum over the batch, making the gradient a weighted mean.
+	 * \param bs the batch size.
+	 * \param nOut the number of output neurons.
+	 * \param pw output: per-pattern weights (empty if disabled).
+	 * \param denom output: normalisation denominator.
+	 */
+	void patternWeights(uint bs, uint nOut, std::vector<double>& pw, double& denom) const;
+
 	/**Reusable batch input buffer, populated by packBatch. */
 	mutable std::vector<double> theInputMatrix;
 
@@ -3369,6 +3429,9 @@ class Error {
 
 	/**Scaling factor typically set to unity. */
 	double theWeightElimW0;
+
+	/**Optional per-class weights (empty = uniform). \sa classWeights. */
+	std::vector<double> theClassWeights;
 
   private:
 	/**Copy constructor. */
@@ -8411,11 +8474,13 @@ void Evaluator::calcRates() {
 
 // ===== evaltools/Roc.cc =====
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <cassert>
 #include <ostream>
 #include <iterator>
+#include <random>
 
 using namespace EvalTools;
 using std::cerr;
@@ -8508,6 +8573,77 @@ double Roc::calcAucTrapezoidal(vector<double>& out, vector<uint>& dout) {
 	return theAuc = area;
 }
 
+double Roc::aucWmwFastSample(const vector<double>& out, const vector<uint>& dout,
+                            const vector<uint>& idx) {
+	uint m = 0;
+	uint n = 0;
+	vector<pair<double, uint>> rank;
+	rank.reserve(idx.size());
+	for (uint k = 0; k < idx.size(); ++k) {
+		const uint i = idx[k];
+		if (dout[i] > 0)
+			m++;
+		else
+			n++;
+		rank.push_back(pair<double, uint>(out[i], dout[i]));
+	}
+	if (m == 0 || n == 0) return std::nan(""); // degenerate resample
+	sort(rank.begin(), rank.end());
+	double r = 0;
+	for (uint i = 0; i < rank.size(); ++i)
+		if (rank[i].second > 0) r += i;
+	return (r - m * (m - 1.0) * 0.5) / (double)(m * n);
+}
+
+Roc::AucCI Roc::aucBootstrapCI(vector<double>& out, vector<uint>& dout, uint nBoot, double alpha,
+                               std::uint64_t seed) {
+	if (out.size() != dout.size()) {
+		cerr << "Error: output and target vectors must have the same size" << endl;
+		abort();
+	}
+	const uint N = out.size();
+
+	AucCI res;
+	res.alpha = alpha;
+	res.auc = calcAucWmwFast(out, dout); // full-sample point estimate
+
+	std::mt19937_64 gen(seed);
+	std::uniform_int_distribution<uint> pick(0, N - 1);
+
+	vector<double> boot;
+	boot.reserve(nBoot);
+	vector<uint> idx(N);
+	uint nBelow = 0; // resamples with AUC <= 0.5, for the one-sided p-value
+	for (uint b = 0; b < nBoot; ++b) {
+		for (uint i = 0; i < N; ++i)
+			idx[i] = pick(gen);
+		const double a = aucWmwFastSample(out, dout, idx);
+		if (std::isnan(a)) continue;
+		boot.push_back(a);
+		if (a <= 0.5) ++nBelow;
+	}
+
+	res.nBoot = boot.size();
+	if (boot.empty()) { // pathological: every resample dropped a class
+		res.lower = res.upper = res.auc;
+		res.pValue = 1.0;
+		return res;
+	}
+	sort(boot.begin(), boot.end());
+	auto pct = [&boot](double q) {
+		const double pos = q * (boot.size() - 1);
+		const uint lo = (uint)std::floor(pos);
+		const uint hi = (uint)std::ceil(pos);
+		const double frac = pos - lo;
+		return boot[lo] * (1.0 - frac) + boot[hi] * frac;
+	};
+	res.lower = pct(alpha / 2.0);
+	res.upper = pct(1.0 - alpha / 2.0);
+	// +1 smoothing so the p-value is never exactly 0
+	res.pValue = (nBelow + 1.0) / (res.nBoot + 1.0);
+	return res;
+}
+
 void Roc::calcRoc(vector<double>& out, vector<uint>& dout) {
 	theRoc = vector<pair<double, double>>(0);
 	pair<double, double> tmp;
@@ -8597,6 +8733,14 @@ void Error::weightElimW0(double w0) {
 	theWeightElimW0 = w0;
 }
 
+void Error::classWeights(const vector<double>& w) {
+	theClassWeights = w;
+}
+
+const vector<double>& Error::classWeights() const {
+	return theClassWeights;
+}
+
 // PROTECTED
 
 Error::Error(Mlp& mlp, DataSet& dset)
@@ -8678,6 +8822,36 @@ void Error::packBatch(DataSet& dset) const {
 	}
 }
 
+void Error::patternWeights(uint bs, uint nOut, vector<double>& pw, double& denom) const {
+	if (theClassWeights.empty()) {
+		pw.clear();
+		denom = (double)bs;
+		return;
+	}
+	const uint nClasses = (nOut == 1) ? 2 : nOut;
+	assert(theClassWeights.size() == nClasses);
+	pw.resize(bs);
+	denom = 0;
+	const double* t = theTargetMatrix.data();
+	for (uint b = 0; b < bs; ++b) {
+		uint cls;
+		if (nOut == 1) {
+			cls = (t[b] != 0.0) ? 1u : 0u;
+		} else {
+			cls = 0;
+			double best = t[b * nOut];
+			for (uint j = 1; j < nOut; ++j)
+				if (t[b * nOut + j] > best) {
+					best = t[b * nOut + j];
+					cls = j;
+				}
+		}
+		pw[b] = theClassWeights[cls];
+		denom += pw[b];
+	}
+	if (denom <= 0.0) denom = (double)bs; // guard degenerate weights
+}
+
 // PRIVATE--------------------------------------------------------------------//
 
 Error::Error(const Error& err) {
@@ -8688,6 +8862,7 @@ Error& Error::operator=(const Error& err) {
 	if (this != &err) {
 		theMlp = err.theMlp;
 		theDset = err.theDset;
+		theClassWeights = err.theClassWeights;
 	}
 	return *this;
 }
@@ -8730,6 +8905,11 @@ double CrossEntropy::gradient() {
 	// Pack dataset into reusable Error-owned batch matrices
 	packBatch(*theDset);
 
+	// Optional per-class weighting (empty pw => uniform, denom == bs)
+	vector<double> pw;
+	double denom;
+	patternWeights(bs, nOut, pw, denom);
+
 	// Batch forward pass (one GEMM per layer)
 	const double* batchOut = theMlp->propagateBatch(theInputMatrix.data(), bs);
 
@@ -8748,6 +8928,10 @@ double CrossEntropy::gradient() {
 		const double* o = batchOut;
 		for (uint i = 0; i < bs * nOut; ++i)
 			delta[i] = t[i] - o[i];
+		if (!pw.empty())
+			for (uint b = 0; b < bs; ++b)
+				for (uint j = 0; j < nOut; ++j)
+					delta[b * nOut + j] *= pw[b];
 	}
 	if (theMlp->skipFrom(lastIdx) >= 0) {
 		int src = theMlp->skipFrom(lastIdx);
@@ -8818,34 +9002,36 @@ double CrossEntropy::gradient() {
 		const double power = -20;
 		const double tiny = exp(power);
 		for (uint b = 0; b < bs; ++b) {
+			double pe = 0;
 			if (nOut == 1) {
 				if (t[b] == 0.0)
-					err += (1.0 - o[b] > tiny) ? log(1.0 - o[b]) : power;
+					pe += (1.0 - o[b] > tiny) ? log(1.0 - o[b]) : power;
 				else
-					err += (o[b] > tiny) ? log(o[b]) : power;
+					pe += (o[b] > tiny) ? log(o[b]) : power;
 			} else {
 				for (uint j = 0; j < nOut; ++j) {
 					uint idx = b * nOut + j;
-					if (t[idx] != 0.0) err += (o[idx] > tiny) ? log(o[idx]) : power;
+					if (t[idx] != 0.0) pe += (o[idx] > tiny) ? log(o[idx]) : power;
 				}
 			}
+			err += pw.empty() ? pe : pw[b] * pe;
 		}
 	}
 
-	// Divide gradients by -bs and apply weight elimination
+	// Divide gradients by -denom (== -bs when unweighted) and apply weight elim
 	for (uint l = 0; l < theMlp->nLayers(); ++l) {
 		Layer& layer = theMlp->layer(l);
 		vector<double>& g = layer.gradients();
-		div(g, -(double)bs);
+		div(g, -denom);
 		if (theWeightElimOn == true)
 			weightElimGradLayer(g, layer.weights(), layer.nNeurons(), layer.nPrevious());
 		if (layer.normType() != NormType::None) {
-			div(layer.gammaGradients(), -(double)bs);
-			div(layer.betaGradients(), -(double)bs);
+			div(layer.gammaGradients(), -denom);
+			div(layer.betaGradients(), -denom);
 		}
 	}
 
-	return -err / (double)bs;
+	return -err / denom;
 }
 
 double CrossEntropy::outputError(Mlp& mlp, DataSet& dset) {
@@ -9172,6 +9358,11 @@ double SummedSquare::gradient() {
 	// Pack dataset into reusable Error-owned batch matrices
 	packBatch(*theDset);
 
+	// Optional per-class weighting (empty pw => uniform, denom == bs)
+	vector<double> pw;
+	double denom;
+	patternWeights(bs, nOut, pw, denom);
+
 	// Batch forward pass (one GEMM per layer)
 	const double* batchOut = theMlp->propagateBatch(theInputMatrix.data(), bs);
 
@@ -9193,6 +9384,10 @@ double SummedSquare::gradient() {
 		const double* o = batchOut;
 		for (uint i = 0; i < bs * nOut; ++i)
 			delta[i] = t[i] - o[i];
+		if (!pw.empty())
+			for (uint b = 0; b < bs; ++b)
+				for (uint j = 0; j < nOut; ++j)
+					delta[b * nOut + j] *= pw[b];
 	}
 	// SummedSquare applies derivative to output layer (unlike CrossEntropy)
 	last.applyDerivativeBatch(bs);
@@ -9267,31 +9462,34 @@ double SummedSquare::gradient() {
 	{
 		const double* o = batchOut;
 		const double* t = theTargetMatrix.data();
-		for (uint b = 0; b < bs; ++b)
+		for (uint b = 0; b < bs; ++b) {
+			double pe = 0;
 			for (uint j = 0; j < nOut; ++j) {
 				double diff = t[b * nOut + j] - o[b * nOut + j];
-				err += diff * diff;
+				pe += diff * diff;
 			}
+			err += pw.empty() ? pe : pw[b] * pe;
+		}
 	}
 
-	// Divide gradients by -bs and apply weight elimination
+	// Divide gradients by -denom (== -bs when unweighted) and apply weight elim
 	for (uint l = 0; l < theMlp->nLayers(); ++l) {
 		Layer& layer = theMlp->layer(l);
 		vector<double>& g = layer.gradients();
-		std::transform(g.begin(), g.end(), g.begin(), [bs](double v) { return v / -(double)bs; });
+		std::transform(g.begin(), g.end(), g.begin(), [denom](double v) { return v / -denom; });
 		if (theWeightElimOn == true)
 			weightElimGradLayer(g, layer.weights(), layer.nNeurons(), layer.nPrevious());
 		if (layer.normType() != NormType::None) {
 			auto& gg = layer.gammaGradients();
 			std::transform(gg.begin(), gg.end(), gg.begin(),
-			               [bs](double v) { return v / -(double)bs; });
+			               [denom](double v) { return v / -denom; });
 			auto& bg = layer.betaGradients();
 			std::transform(bg.begin(), bg.end(), bg.begin(),
-			               [bs](double v) { return v / -(double)bs; });
+			               [denom](double v) { return v / -denom; });
 		}
 	}
 
-	return err / (double)bs;
+	return err / denom;
 }
 
 double SummedSquare::outputError(Mlp& mlp, DataSet& dset) {
