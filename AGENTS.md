@@ -19,14 +19,9 @@ Requires a C++23 compiler (GCC 13+ or Clang 17+). Optional: cblas/openblas for B
 ```
 neuralnethack/
   mlp/               Core MLP engine
-    Layer.hh/cc         Base layer with batch GEMM propagation, function-pointer activations, dropout
-    SigmoidLayer        logsig activation
-    TanHypLayer         tansig activation
-    LinearLayer         purelin activation
-    ReLULayer           relu activation
-    LeakyReLULayer      leakyrelu activation (alpha=0.01)
-    ELULayer            elu activation (alpha=1.0)
-    Mlp.hh/cc           MLP container (unique_ptr<Layer> ownership, batch propagate)
+    Activation.hh/cc    Activation tags (Sigmoid/TanH/Linear/ReLU/LeakyReLU/ELU) as a std::variant; scalar + batch free functions; tag<->string round-trip
+    Layer.hh/cc         Concrete layer with batch GEMM propagation, std::visit activation dispatch, dropout
+    Mlp.hh/cc           MLP container (vector<Layer>, batch propagate)
     Trainer.hh/cc       Abstract trainer base (trainNew returns unique_ptr<Mlp>)
     GradientDescent     SGD with momentum and adaptive learning rate
     Adam                Adam/AdamW optimizer with per-weight moments
@@ -60,11 +55,11 @@ test/               Test suite (7 tests)
 
 ## Key design decisions
 
-**Activation functions** are devirtualized on the hot path. Layer stores function pointers (`ActivationFn`, `DerivScaleFn`) set at construction time. Virtual `fire()`/`firePrime()` methods remain for per-element access (used by Saliency). The batch path uses the function pointers exclusively.
+**Activation functions** are a `std::variant` tag (`Activation = variant<Sigmoid, TanH, Linear, ReLU, LeakyReLU, ELU>`), not a class hierarchy. Each `Layer` holds one `Activation`. Dispatch goes through `std::visit`, so the compiler inlines the per-element kernel inside each branch. Scalar (`fire`/`firePrime`/`firePrimePrime` + `*FromOutput`) and batch (`applyActivation`/`applyDerivScale`) overloads live as free functions in `Activation.hh/cc`. Parameterized activations carry their own params (`LeakyReLU::alpha=0.01`, `ELU::alpha=1.0`).
 
 **Training uses batch GEMM.** `CrossEntropy::gradient()` and `SummedSquare::gradient()` pack the DataSet into contiguous matrices, then use `cblas_dgemm` for forward pass, backpropagation, and gradient accumulation (one call per layer per phase). Non-BLAS fallback uses triple loops. Single-pattern `propagate()` is retained for inference and line search.
 
-**Ownership uses unique_ptr.** Mlp owns its Layers, Ensemble owns its Mlps, Session owns its Ensemble and DataSets. Trainer/Error hold non-owning raw pointers to their collaborators. `trainNew()` and `clone()` return `unique_ptr`.
+**Ownership uses unique_ptr.** Mlp holds its Layers by value (`vector<Layer>`); Ensemble owns its Mlps, Session owns its Ensemble and DataSets via `unique_ptr`. Trainer/Error hold non-owning raw pointers to their collaborators. `trainNew()` and `clone()` return `unique_ptr`.
 
 **L-BFGS** replaces full BFGS. Stores the last 20 (s,y) pairs in a circular buffer. O(mn) memory and compute instead of O(n^2). The two-loop recursion computes H*g without materializing the inverse Hessian.
 
@@ -113,11 +108,21 @@ Binary format: magic bytes + architecture + type strings + softmax flag + weight
 ## Adding a new activation function
 
 1. Add type string to `MultiLayerPerceptron.hh` (e.g. `#define MYACT "myact"`)
-2. Add static `myactActivation` and `myactDerivScale` functions in `Layer.cc`
-3. Wire them in the `Layer` constructor's if-chain
-4. Create `MyActLayer.hh/cc` (copy from `ReLULayer`, change the math)
-5. Add `make_unique<MyActLayer>` case in `Mlp::createLayers()`
-6. Add to `Makefile.am`
+2. Add a tag `struct MyAct {};` to `Activation.hh` and add it to the `Activation` variant
+3. Declare the `fire`/`firePrime`/`firePrimePrime` (+ `*FromOutput`) and `applyActivation`/`applyDerivScale` overloads for `MyAct` in `Activation.hh`
+4. Implement those overloads in `Activation.cc`, with the math
+5. Wire the tag into `activationFromTag` / `activationToTag` in `Activation.cc`
+6. No Layer subclass or Mlp change needed: `createLayers()` builds layers via `activationFromTag`, and `std::visit` picks up the new variant alternative automatically
+
+## Commits
+
+Always use Conventional Commits in the caveman-commit style:
+
+- Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `style`, `revert`.
+- Imperative-mood subject, no trailing period. Aim ≤50 chars, hard cap 72.
+- Body only when the *why* isn't obvious from the diff. Skip it when the subject says enough.
+- Always include a body for breaking changes, reverts, and anything with non-obvious rationale.
+- No multi-paragraph "this commit does X" prose.
 
 ## License
 
