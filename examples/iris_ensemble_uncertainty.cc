@@ -52,6 +52,7 @@
 #include "mlp/Adam.hh"
 #include "mlp/CrossEntropy.hh"
 #include "mlp/Mlp.hh"
+#include "evaltools/Uncertainty.hh"
 
 #include <algorithm>
 #include <cmath>
@@ -111,12 +112,6 @@ uint argmax(const std::vector<double>& v) {
 	return a;
 }
 
-double predictiveEntropy(const std::vector<double>& p) {
-	double h = 0;
-	for (double q : p)
-		if (q > 1e-12) h -= q * std::log(q);
-	return h;
-}
 } // namespace
 
 int main(int argc, char** argv) {
@@ -153,18 +148,18 @@ int main(int argc, char** argv) {
 	//   epistemic  = total - aleatoric -- mutual information between class
 	//                                     and member identity (BALD)
 	auto ensemblePredict = [&](const std::vector<double>& x) {
+		std::vector<std::vector<double>> probs;
+		probs.reserve(members.size());
 		std::vector<double> mean(K, 0.0);
-		double aleatoric = 0.0;
 		for (auto& m : members) {
 			const auto& p = m->propagate(x);
+			probs.emplace_back(p.begin(), p.end());
 			for (uint k = 0; k < K; ++k) mean[k] += p[k];
-			aleatoric += predictiveEntropy(p);
 		}
-		const double inv = 1.0 / nMembers;
+		const double inv = 1.0 / members.size();
 		for (double& v : mean) v *= inv;
-		aleatoric *= inv;
-		const double total = predictiveEntropy(mean);
-		return std::tuple<std::vector<double>, double, double>{mean, total, aleatoric};
+		auto d = EvalTools::Uncertainty::decomposeEntropy(probs);
+		return std::tuple<std::vector<double>, double, double>{mean, d.total, d.aleatoric};
 	};
 
 	// Decision-surface grid. Pad past training extent so OOD regions show.
