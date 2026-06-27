@@ -14,6 +14,7 @@ extern "C" {
 #include <algorithm>
 #include <iostream>
 #include <iterator>
+#include <numeric>
 
 using namespace MatrixTools;
 using namespace std;

@@ -135,8 +135,3 @@ Plausible further wins (not yet attempted):
   rewrites Mlp/Factory/parser/serialisation. Loses the runtime-arch
   property. Reach for this only if the benchmark gap is biting a real
   user.
-
-Pre-existing build bug while we're at it: `Layer.cc` and
-`MatrixTools.cc` call `cblas_ddot` / `cblas_dcopy` without `#ifdef
-USE_BLAS` guards, so `NNH_USE_BLAS=OFF` doesn't link. Easy fix when
-someone needs a BLAS-free build.

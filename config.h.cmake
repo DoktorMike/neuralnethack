@@ -7,6 +7,6 @@
 #define PACKAGE_VERSION "${PROJECT_VERSION}"
 #define PACKAGE_STRING "${PROJECT_NAME} ${PROJECT_VERSION}"
 
-#cmakedefine01 USE_BLAS
+#cmakedefine USE_BLAS
 
 #endif
