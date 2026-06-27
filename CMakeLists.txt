@@ -117,6 +117,7 @@ set(LIB_SOURCES
     neuralnethack/evaltools/Roc.cc
     neuralnethack/evaltools/ConfusionMatrix.cc
     neuralnethack/evaltools/Conformal.cc
+    neuralnethack/evaltools/Uncertainty.cc
     # matrixtools
     neuralnethack/matrixtools/MatrixTools.cc
     # parser
@@ -190,7 +191,7 @@ add_custom_target(nnh_examples DEPENDS ${EXAMPLES})
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve testConformal testEarlyStopping testEnsembleBuilder testClassWeights)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve testConformal testEarlyStopping testEnsembleBuilder testClassWeights testUncertainty)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)
