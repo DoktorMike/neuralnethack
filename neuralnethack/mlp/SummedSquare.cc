@@ -44,6 +44,11 @@ double SummedSquare::gradient() {
 	// Pack dataset into reusable Error-owned batch matrices
 	packBatch(*theDset);
 
+	// Optional per-class weighting (empty pw => uniform, denom == bs)
+	vector<double> pw;
+	double denom;
+	patternWeights(bs, nOut, pw, denom);
+
 	// Batch forward pass (one GEMM per layer)
 	const double* batchOut = theMlp->propagateBatch(theInputMatrix.data(), bs);
 
@@ -65,6 +70,10 @@ double SummedSquare::gradient() {
 		const double* o = batchOut;
 		for (uint i = 0; i < bs * nOut; ++i)
 			delta[i] = t[i] - o[i];
+		if (!pw.empty())
+			for (uint b = 0; b < bs; ++b)
+				for (uint j = 0; j < nOut; ++j)
+					delta[b * nOut + j] *= pw[b];
 	}
 	// SummedSquare applies derivative to output layer (unlike CrossEntropy)
 	last.applyDerivativeBatch(bs);
@@ -139,31 +148,34 @@ double SummedSquare::gradient() {
 	{
 		const double* o = batchOut;
 		const double* t = theTargetMatrix.data();
-		for (uint b = 0; b < bs; ++b)
+		for (uint b = 0; b < bs; ++b) {
+			double pe = 0;
 			for (uint j = 0; j < nOut; ++j) {
 				double diff = t[b * nOut + j] - o[b * nOut + j];
-				err += diff * diff;
+				pe += diff * diff;
 			}
+			err += pw.empty() ? pe : pw[b] * pe;
+		}
 	}
 
-	// Divide gradients by -bs and apply weight elimination
+	// Divide gradients by -denom (== -bs when unweighted) and apply weight elim
 	for (uint l = 0; l < theMlp->nLayers(); ++l) {
 		Layer& layer = theMlp->layer(l);
 		vector<double>& g = layer.gradients();
-		std::transform(g.begin(), g.end(), g.begin(), [bs](double v) { return v / -(double)bs; });
+		std::transform(g.begin(), g.end(), g.begin(), [denom](double v) { return v / -denom; });
 		if (theWeightElimOn == true)
 			weightElimGradLayer(g, layer.weights(), layer.nNeurons(), layer.nPrevious());
 		if (layer.normType() != NormType::None) {
 			auto& gg = layer.gammaGradients();
 			std::transform(gg.begin(), gg.end(), gg.begin(),
-			               [bs](double v) { return v / -(double)bs; });
+			               [denom](double v) { return v / -denom; });
 			auto& bg = layer.betaGradients();
 			std::transform(bg.begin(), bg.end(), bg.begin(),
-			               [bs](double v) { return v / -(double)bs; });
+			               [denom](double v) { return v / -denom; });
 		}
 	}
 
-	return err / (double)bs;
+	return err / denom;
 }
 
 double SummedSquare::outputError(Mlp& mlp, DataSet& dset) {

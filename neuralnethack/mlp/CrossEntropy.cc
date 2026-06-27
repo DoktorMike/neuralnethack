@@ -43,6 +43,11 @@ double CrossEntropy::gradient() {
 	// Pack dataset into reusable Error-owned batch matrices
 	packBatch(*theDset);
 
+	// Optional per-class weighting (empty pw => uniform, denom == bs)
+	vector<double> pw;
+	double denom;
+	patternWeights(bs, nOut, pw, denom);
+
 	// Batch forward pass (one GEMM per layer)
 	const double* batchOut = theMlp->propagateBatch(theInputMatrix.data(), bs);
 
@@ -61,6 +66,10 @@ double CrossEntropy::gradient() {
 		const double* o = batchOut;
 		for (uint i = 0; i < bs * nOut; ++i)
 			delta[i] = t[i] - o[i];
+		if (!pw.empty())
+			for (uint b = 0; b < bs; ++b)
+				for (uint j = 0; j < nOut; ++j)
+					delta[b * nOut + j] *= pw[b];
 	}
 	if (theMlp->skipFrom(lastIdx) >= 0) {
 		int src = theMlp->skipFrom(lastIdx);
@@ -131,34 +140,36 @@ double CrossEntropy::gradient() {
 		const double power = -20;
 		const double tiny = exp(power);
 		for (uint b = 0; b < bs; ++b) {
+			double pe = 0;
 			if (nOut == 1) {
 				if (t[b] == 0.0)
-					err += (1.0 - o[b] > tiny) ? log(1.0 - o[b]) : power;
+					pe += (1.0 - o[b] > tiny) ? log(1.0 - o[b]) : power;
 				else
-					err += (o[b] > tiny) ? log(o[b]) : power;
+					pe += (o[b] > tiny) ? log(o[b]) : power;
 			} else {
 				for (uint j = 0; j < nOut; ++j) {
 					uint idx = b * nOut + j;
-					if (t[idx] != 0.0) err += (o[idx] > tiny) ? log(o[idx]) : power;
+					if (t[idx] != 0.0) pe += (o[idx] > tiny) ? log(o[idx]) : power;
 				}
 			}
+			err += pw.empty() ? pe : pw[b] * pe;
 		}
 	}
 
-	// Divide gradients by -bs and apply weight elimination
+	// Divide gradients by -denom (== -bs when unweighted) and apply weight elim
 	for (uint l = 0; l < theMlp->nLayers(); ++l) {
 		Layer& layer = theMlp->layer(l);
 		vector<double>& g = layer.gradients();
-		div(g, -(double)bs);
+		div(g, -denom);
 		if (theWeightElimOn == true)
 			weightElimGradLayer(g, layer.weights(), layer.nNeurons(), layer.nPrevious());
 		if (layer.normType() != NormType::None) {
-			div(layer.gammaGradients(), -(double)bs);
-			div(layer.betaGradients(), -(double)bs);
+			div(layer.gammaGradients(), -denom);
+			div(layer.betaGradients(), -denom);
 		}
 	}
 
-	return -err / (double)bs;
+	return -err / denom;
 }
 
 double CrossEntropy::outputError(Mlp& mlp, DataSet& dset) {

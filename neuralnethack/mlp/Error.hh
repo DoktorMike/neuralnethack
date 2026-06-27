@@ -98,6 +98,19 @@ class Error {
 	 */
 	void weightElimW0(double w0);
 
+	/**Set per-class weights that scale each pattern's gradient contribution.
+	 * For a single sigmoid output the vector is {w_neg, w_pos} (size 2); for
+	 * multi-class softmax it is one weight per output neuron (size nOut).
+	 * Pass an empty vector to disable (uniform weighting). Useful on
+	 * imbalanced data as an alternative to resampling. Only the training
+	 * gradient/error is weighted; outputError() stays unweighted.
+	 * \param w the per-class weights.
+	 */
+	void classWeights(const std::vector<double>& w);
+
+	/**Accessor for the per-class weights (empty when disabled). */
+	const std::vector<double>& classWeights() const;
+
   protected:
 	/**Non-owning constructor: caller keeps the Mlp alive. */
 	Error(MultiLayerPerceptron::Mlp& mlp, DataTools::DataSet& dset);
@@ -167,6 +180,18 @@ class Error {
 	 */
 	void packBatch(DataTools::DataSet& dset) const;
 
+	/**Compute per-pattern weights from theClassWeights and the packed target
+	 * matrix (call after packBatch). When no class weights are set, pw is
+	 * left empty and denom is the batch size, so callers skip per-pattern
+	 * scaling. Otherwise pw[b] is the weight of pattern b's class and denom
+	 * is the sum over the batch, making the gradient a weighted mean.
+	 * \param bs the batch size.
+	 * \param nOut the number of output neurons.
+	 * \param pw output: per-pattern weights (empty if disabled).
+	 * \param denom output: normalisation denominator.
+	 */
+	void patternWeights(uint bs, uint nOut, std::vector<double>& pw, double& denom) const;
+
 	/**Reusable batch input buffer, populated by packBatch. */
 	mutable std::vector<double> theInputMatrix;
 
@@ -194,6 +219,9 @@ class Error {
 
 	/**Scaling factor typically set to unity. */
 	double theWeightElimW0;
+
+	/**Optional per-class weights (empty = uniform). \sa classWeights. */
+	std::vector<double> theClassWeights;
 
   private:
 	/**Copy constructor. */

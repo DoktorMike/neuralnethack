@@ -55,6 +55,14 @@ void Error::weightElimW0(double w0) {
 	theWeightElimW0 = w0;
 }
 
+void Error::classWeights(const vector<double>& w) {
+	theClassWeights = w;
+}
+
+const vector<double>& Error::classWeights() const {
+	return theClassWeights;
+}
+
 // PROTECTED
 
 Error::Error(Mlp& mlp, DataSet& dset)
@@ -136,6 +144,36 @@ void Error::packBatch(DataSet& dset) const {
 	}
 }
 
+void Error::patternWeights(uint bs, uint nOut, vector<double>& pw, double& denom) const {
+	if (theClassWeights.empty()) {
+		pw.clear();
+		denom = (double)bs;
+		return;
+	}
+	const uint nClasses = (nOut == 1) ? 2 : nOut;
+	assert(theClassWeights.size() == nClasses);
+	pw.resize(bs);
+	denom = 0;
+	const double* t = theTargetMatrix.data();
+	for (uint b = 0; b < bs; ++b) {
+		uint cls;
+		if (nOut == 1) {
+			cls = (t[b] != 0.0) ? 1u : 0u;
+		} else {
+			cls = 0;
+			double best = t[b * nOut];
+			for (uint j = 1; j < nOut; ++j)
+				if (t[b * nOut + j] > best) {
+					best = t[b * nOut + j];
+					cls = j;
+				}
+		}
+		pw[b] = theClassWeights[cls];
+		denom += pw[b];
+	}
+	if (denom <= 0.0) denom = (double)bs; // guard degenerate weights
+}
+
 // PRIVATE--------------------------------------------------------------------//
 
 Error::Error(const Error& err) {
@@ -146,6 +184,7 @@ Error& Error::operator=(const Error& err) {
 	if (this != &err) {
 		theMlp = err.theMlp;
 		theDset = err.theDset;
+		theClassWeights = err.theClassWeights;
 	}
 	return *this;
 }
