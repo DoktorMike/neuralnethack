@@ -14,13 +14,14 @@ This is the MLP and ensemble-of-MLPs library I've kept maintained, however infre
 - **Topology**: sequential MLP with optional residual (skip) connections, merged pre-activation between same-width layers
 - **Output heads**: linear or sigmoid output, plus optional softmax for multi-class classification
 - **Optimizers**: SGD with momentum, Adam/AdamW, L-BFGS
-- **Loss functions**: cross-entropy, summed square error
+- **Loss functions**: cross-entropy, summed square error, with optional per-class weights for imbalanced data
 - **Normalization**: batch normalization, layer normalization
 - **Regularization**: dropout (inverted), weight elimination
 - **Ensembles**: weighted ensemble of MLPs with bootstrap, cross-split, or hold-out sampling, trained in parallel via OpenMP
 - **Model selection**: grid search over regularization with cross-validation
 - **Feature selection**: backward elimination via saliency / clamping
-- **Evaluation**: ROC/AUC, Hosmer-Lemeshow goodness of fit, confusion matrix (binary and multi-class) with accuracy / precision / recall / F1 / MCC / balanced accuracy / macro variants, regression metrics (MAE, MAPE, sMAPE, RMSE, R²)
+- **Evaluation**: ROC/AUC (with bootstrap confidence interval and a one-sided p-value), Hosmer-Lemeshow goodness of fit, confusion matrix (binary and multi-class) with accuracy / precision / recall / F1 / MCC / balanced accuracy / macro variants, regression metrics (MAE, MAPE, sMAPE, RMSE, R²)
+- **Uncertainty**: ensemble spread, total/aleatoric/epistemic entropy decomposition (Depeweg et al. 2018), and split-conformal prediction sets and intervals with coverage guarantees
 - **Diagnostics**: per-trainer learning-curve files (train and validation error per epoch), gnuplot-friendly
 - **Serialization**: binary save/load for models and ensembles
 - **Performance**: BLAS-accelerated batch GEMM training, devirtualized activations, SIMD-friendly loops
@@ -222,6 +223,44 @@ error_fcn = "kullback"
 ```
 
 Targets should be one-hot encoded (one column per class in the data file, `out_cols = "6-8"` for example). Worked examples in `examples/multiclass_iris.cc`, `examples/multiclass_wine.cc`, and `examples/multiclass_synthetic.cc`.
+
+## Uncertainty quantification
+
+A point prediction without a sense of how much to trust it is half an answer.
+NeuralNetHack treats uncertainty as a first-class output, not an afterthought.
+
+**Epistemic vs aleatoric.** For an ensemble of classifiers, the entropy of
+the averaged prediction decomposes into the part that comes from genuine class
+overlap (aleatoric, irreducible) and the part that comes from the members
+disagreeing (epistemic, which shrinks with more data and grows out of
+distribution). This is the Depeweg et al. 2018 decomposition:
+
+```cpp
+#include "evaltools/Uncertainty.hh"
+using namespace EvalTools::Uncertainty;
+
+// Per-member probability vectors (e.g. softmax outputs), or pass an Ensemble.
+auto d = decomposeEntropy(ensemble, input);
+std::cout << "total=" << d.total
+          << " aleatoric=" << d.aleatoric
+          << " epistemic=" << d.epistemic << "\n";
+```
+
+High epistemic with low aleatoric is the classic "the model is guessing
+because it has not seen anything like this" signal. See
+`examples/iris_ensemble_uncertainty.cc` and `spiral_ensemble_uncertainty.cc`
+for the full per-grid-point version, and `cubic_ensemble_uncertainty.cc` for
+the regression-spread analogue.
+
+**Conformal prediction.** When you need a distribution-free coverage
+guarantee rather than a heuristic score, calibrate a `Conformal` predictor on
+held-out data and get prediction sets (classification) or intervals
+(regression) that contain the truth at the requested rate. See
+`evaltools/Conformal.hh`.
+
+**AUC confidence.** `Roc::aucBootstrapCI` resamples the evaluation set to put
+a confidence interval and a one-sided p-value around the AUC, so "0.82" comes
+with "and here is how sure we are it beats chance."
 
 ## Examples
 
