@@ -9,5 +9,8 @@
     {"type": "perf", "hidden": false, "section": "Other"},
     {"type": "ci", "hidden": false, "section": "Other"},
     {"type": "test", "hidden": false, "section": "Other"}
+],
+"bumpFiles": [
+    {"filename": "CMakeLists.txt", "updater": "scripts/cmake-version-updater.js"}
 ]
 }

@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [Unreleased](https://github.com/DoktorMike/neuralnethack/compare/v4.1.1...HEAD)
+## [4.2.0](https://github.com/DoktorMike/neuralnethack/compare/v4.1.1...v4.2.0) (2026-06-27)
 
 
 ### Bug Fixes
@@ -10,27 +10,19 @@ All notable changes to this project will be documented in this file. See [standa
 * **build:** make NNH_USE_BLAS=OFF actually link ([4d212c0](https://github.com/DoktorMike/neuralnethack/commit/4d212c06701a91abd37e30feac556b4a3ac8fea0))
 
 
-### Code Refactoring
+### Other
 
+* formatting ([5d954bf](https://github.com/DoktorMike/neuralnethack/commit/5d954bf6496ecaae8d3a1c65ab3d9fa08cb17777))
 * **mlp:** replace Layer hierarchy with std::variant + free fns ([19ed3e8](https://github.com/DoktorMike/neuralnethack/commit/19ed3e83c785187801526119254642753e74e086))
+* update badges [skip ci] ([d2e8da6](https://github.com/DoktorMike/neuralnethack/commit/d2e8da61debc733b72b12347333eba190c762b5b))
+* update badges [skip ci] ([6a92904](https://github.com/DoktorMike/neuralnethack/commit/6a929042350027fac1341e8880d9f5576c03b16c))
 
 
 ### Documentation
 
-* **design:** replace stale UML models with Mermaid arch doc ([1c33624](https://github.com/DoktorMike/neuralnethack/commit/1c33624a5e9c9bcecd68c9dc1ceb3adeb12d31d2))
 * **agents:** sync activation arch to variant; add commit rules ([de66f27](https://github.com/DoktorMike/neuralnethack/commit/de66f277b550b5f648eb8e07fd526d68679cd0c5))
+* **design:** replace stale UML models with Mermaid arch doc ([1c33624](https://github.com/DoktorMike/neuralnethack/commit/1c33624a5e9c9bcecd68c9dc1ceb3adeb12d31d2))
 * **todo:** scope a functional-style refactor with caveats ([4690012](https://github.com/DoktorMike/neuralnethack/commit/4690012be06107e38904b0b435f689517c92af74))
-
-
-### Other
-
-* regenerate amalgamation ([9623ab5](https://github.com/DoktorMike/neuralnethack/commit/9623ab51aeb78950696053e1fc8dadcd3766f7c2))
-* sync stale refs to variant refactor ([7283cfc](https://github.com/DoktorMike/neuralnethack/commit/7283cfcf66d074b92edeb4b89da3d8ffb297723d))
-* remove obsolete example input file ([6c7d63e](https://github.com/DoktorMike/neuralnethack/commit/6c7d63e0a9e2692205a1285d6eb83521b047ad05))
-* drop dormant Doxygen tooling ([6c9ee0b](https://github.com/DoktorMike/neuralnethack/commit/6c9ee0b52df80b6467b8e8f6b61e47dfee7a7343))
-* formatting ([5d954bf](https://github.com/DoktorMike/neuralnethack/commit/5d954bf6496ecaae8d3a1c65ab3d9fa08cb17777))
-* update badges [skip ci] ([6a92904](https://github.com/DoktorMike/neuralnethack/commit/6a929042350027fac1341e8880d9f5576c03b16c))
-* update badges [skip ci] ([d2e8da6](https://github.com/DoktorMike/neuralnethack/commit/d2e8da61debc733b72b12347333eba190c762b5b))
 
 ### [4.1.1](https://github.com/DoktorMike/neuralnethack/compare/v4.1.0...v4.1.1) (2026-05-03)
 
