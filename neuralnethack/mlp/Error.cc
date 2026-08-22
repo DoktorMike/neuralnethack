@@ -160,8 +160,8 @@ void Error::chainAdstock(uint bs) const {
 	if (nnh::smallgemm::small(bs, nin, n0))
 		nnh::smallgemm::gemmNN(bs, nin, n0, lg, n0, wt, stride, din, nin);
 	else
-		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, bs, nin, n0, 1.0, lg, n0, wt,
-		            stride, 0.0, din, nin);
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, bs, nin, n0, 1.0, lg, n0, wt, stride,
+		            0.0, din, nin);
 #else
 	for (uint b = 0; b < bs; ++b)
 		for (uint j = 0; j < nin; ++j) {

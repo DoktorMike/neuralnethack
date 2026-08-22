@@ -190,8 +190,8 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 	if (nnh::smallgemm::small(B, ncurr, nprev))
 		nnh::smallgemm::gemmNT(B, ncurr, nprev, input, nprev, wt, stride, out, ncurr);
 	else
-		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, B, ncurr, nprev, 1.0, input, nprev,
-		            wt, stride, 0.0, out, ncurr);
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, B, ncurr, nprev, 1.0, input, nprev, wt,
+		            stride, 0.0, out, ncurr);
 
 	// Add bias to each row. Pre-pack biases into a contiguous buffer so
 	// the inner loop over j has unit-stride loads on both sides; the

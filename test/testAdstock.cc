@@ -300,8 +300,7 @@ bool gradientCheckBoxed(Adstock::Kernel kernel, bool hillOn, const char* name) {
 	DataSet ds = buildRandom(24, C, L, P);
 
 	Mlp mlp({C + P, 4, 1}, {"tansig", "purelin"}, false);
-	Adstock ads(C, L, P, kernel, K,
-	            hillOn ? Adstock::Saturation::Hill : Adstock::Saturation::None);
+	Adstock ads(C, L, P, kernel, K, hillOn ? Adstock::Saturation::Hill : Adstock::Saturation::None);
 	// Nudge every param off symmetric/default values
 	for (uint j = 0; j < ads.nParams(); ++j)
 		ads.params()[j] += 0.05 * (static_cast<int>(j % 7) - 3);
@@ -423,8 +422,8 @@ bool boxedRecovery() {
 		          << ", min max-pi " << minMaxPi << ")" << std::endl;
 		return false;
 	}
-	std::cout << "PASS (" << correct << "/12 routed, lambda err " << maxLambdaErr
-	          << ", min max-pi " << minMaxPi << ")" << std::endl;
+	std::cout << "PASS (" << correct << "/12 routed, lambda err " << maxLambdaErr << ", min max-pi "
+	          << minMaxPi << ")" << std::endl;
 	return true;
 }
 
@@ -569,8 +568,8 @@ bool boxedSerialization() {
 	const double y0 = mlp.propagate(x)[0];
 	const double y1 = loaded->propagate(x)[0];
 	const Adstock* la = loaded->adstock();
-	if (!la || !la->boxed() || la->nBoxes() != K ||
-	    la->saturation() != Adstock::Saturation::Hill || la->temperature() != 0.7 || y0 != y1) {
+	if (!la || !la->boxed() || la->nBoxes() != K || la->saturation() != Adstock::Saturation::Hill ||
+	    la->temperature() != 0.7 || y0 != y1) {
 		std::cerr << "FAIL (y0 " << y0 << " y1 " << y1 << ")" << std::endl;
 		return false;
 	}

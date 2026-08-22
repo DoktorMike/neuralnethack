@@ -102,7 +102,7 @@ double Roc::calcAucTrapezoidal(vector<double>& out, vector<uint>& dout) {
 }
 
 double Roc::aucWmwFastSample(const vector<double>& out, const vector<uint>& dout,
-                            const vector<uint>& idx) {
+                             const vector<uint>& idx) {
 	uint m = 0;
 	uint n = 0;
 	vector<pair<double, uint>> rank;

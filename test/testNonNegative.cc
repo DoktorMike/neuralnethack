@@ -25,8 +25,7 @@ namespace {
 DataSet buildData(uint n) {
 	auto core = std::make_shared<CoreDataSet>();
 	for (uint i = 0; i < n; ++i) {
-		std::vector<double> in = {nnh::rand::uniform(), nnh::rand::uniform(),
-		                          nnh::rand::uniform()};
+		std::vector<double> in = {nnh::rand::uniform(), nnh::rand::uniform(), nnh::rand::uniform()};
 		std::vector<double> out = {1.0 * in[0] - 1.0 * in[1] + 0.5 * in[2] +
 		                           0.01 * (2.0 * nnh::rand::uniform() - 1.0)};
 		core->addPattern(Pattern(std::to_string(i), in, out));

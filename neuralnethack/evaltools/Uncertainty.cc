@@ -82,8 +82,8 @@ AdstockSummary summarizeAdstock(Ensemble& ensemble, double alpha) {
 	const auto family = first->kernel();
 
 	// Gather per-member kernels and natural params
-	vector<vector<vector<double>>> w(M);   // [M][C][L]
-	vector<vector<double>> nat(M);         // [M][C*ppc]
+	vector<vector<vector<double>>> w(M); // [M][C][L]
+	vector<vector<double>> nat(M);       // [M][C*ppc]
 	for (uint m = 0; m < M; ++m) {
 		const MultiLayerPerceptron::Adstock* a = ensemble.mlp(m).adstock();
 		if (!a || a->nChannels() != C || a->nLags() != L || a->kernel() != family)
@@ -150,10 +150,10 @@ BoxedAdstockSummary summarizeBoxedAdstock(Ensemble& ensemble, double alpha) {
 
 	// Per member: canonical box order (by mean carryover lag), then
 	// remapped kernels, params, and routing.
-	vector<vector<vector<double>>> kern(M);  // [M][K][L] canonical
-	vector<vector<double>> par(M);           // [M][K*ppb] natural, canonical
-	vector<vector<double>> sat(M), expo(M);  // [M][K] canonical (hill)
-	vector<vector<vector<double>>> rout(M);  // [M][C][K] canonical
+	vector<vector<vector<double>>> kern(M); // [M][K][L] canonical
+	vector<vector<double>> par(M);          // [M][K*ppb] natural, canonical
+	vector<vector<double>> sat(M), expo(M); // [M][K] canonical (hill)
+	vector<vector<vector<double>>> rout(M); // [M][C][K] canonical
 
 	for (uint m = 0; m < M; ++m) {
 		const Adstock* a = ensemble.mlp(m).adstock();

@@ -182,8 +182,7 @@ double SummedSquare::gradient() {
 	}
 	if (Adstock* a = theMlp->adstock()) {
 		auto& ag = a->gradients();
-		std::transform(ag.begin(), ag.end(), ag.begin(),
-		               [denom](double v) { return v / -denom; });
+		std::transform(ag.begin(), ag.end(), ag.begin(), [denom](double v) { return v / -denom; });
 		a->applyEntropyPenaltyGradient();
 	}
 

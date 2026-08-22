@@ -95,8 +95,7 @@ static bool testDisagreementEpistemic() {
 // ---------------------------------------------------------------------------
 static bool testInvariants() {
 	std::cout << "Test: total >= aleatoric, epistemic >= 0 ... ";
-	std::vector<std::vector<double>> probs = {
-	    {0.6, 0.4}, {0.3, 0.7}, {0.5, 0.5}, {0.8, 0.2}};
+	std::vector<std::vector<double>> probs = {{0.6, 0.4}, {0.3, 0.7}, {0.5, 0.5}, {0.8, 0.2}};
 	EntropyDecomposition d = decomposeEntropy(probs);
 	if (d.total < d.aleatoric - 1e-12 || d.epistemic < -1e-12) {
 		std::cerr << "FAIL (total=" << d.total << ", ale=" << d.aleatoric << ", epi=" << d.epistemic

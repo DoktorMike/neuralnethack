@@ -8,8 +8,8 @@ using namespace MultiLayerPerceptron;
 using std::vector;
 
 Adstock::Adstock(uint channels, uint lags, uint passthrough, Kernel k)
-    : theChannels(channels), theLags(lags), thePassthrough(passthrough), theKernel(k),
-      theNBoxes(0), theSaturation(Saturation::None) {
+    : theChannels(channels), theLags(lags), thePassthrough(passthrough), theKernel(k), theNBoxes(0),
+      theSaturation(Saturation::None) {
 	assert(channels > 0 && lags > 0);
 	theParams.assign(nParams(), 0.0);
 	theGradients.assign(nParams(), 0.0);
