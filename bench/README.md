@@ -36,6 +36,20 @@ TRIALS=20 EPOCHS=200 ./bench/run.sh    # override
 
 Per-trial CSV goes to stdout, then a median ± stdev summary table.
 
+## Width sweep (PyTorch crossover)
+
+```sh
+./bench/sweep.sh                       # IN=64, widths 32..4096, batch 64
+WIDTHS="128 256 512" ./bench/sweep.sh  # override
+```
+
+Synthetic IN-H-1 regression, identical Adam + MSE protocol on both
+sides, emits `lib,in,H,epoch_s,infer_us`. Locates where CPU PyTorch's
+per-step dispatch tax amortizes and its multithreaded fused kernels
+overtake nnh on training time. Measured on Zen 5: training crossover
+at roughly H 150-250 (~10-30k params); batch-1 inference had no
+crossover up to H=4096 (nnh still 1.6x ahead).
+
 ## What the numbers mean
 
 The published comparison-doc table claims neuralnethack is in the
