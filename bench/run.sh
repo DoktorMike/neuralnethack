@@ -76,6 +76,16 @@ else
     HAS_MLPACK=0
 fi
 
+# PyTorch: system install if present, else an ephemeral uv env (CPU wheels).
+if python3 -c 'import torch' 2>/dev/null; then
+    PYRUN=(python3)
+elif command -v uv >/dev/null; then
+    PYRUN=(uv run --quiet --with torch --with numpy python)
+else
+    echo "neither torch nor uv found; skipping bench_pytorch." >&2
+    PYRUN=()
+fi
+
 RAW="$(mktemp)"
 trap 'rm -f "$RAW"' EXIT
 echo "lib,dataset,arch,epochs,batch,threads,blas,trial,train_s,infer_us,test_acc" | tee "$RAW"
@@ -89,6 +99,10 @@ for dset in $DATASETS; do
             if [[ "$HAS_MLPACK" == 1 ]]; then
                 "$BENCH/bench_mlpack" "$PIMA_DIR" "$EPOCHS_PIMA" "$BATCH" "$TRIALS_PIMA" \
                     | tee -a "$RAW"
+            fi
+            if [[ ${#PYRUN[@]} -gt 0 ]]; then
+                "${PYRUN[@]}" "$BENCH/bench_pytorch.py" pima "$PIMA_DIR" "$EPOCHS_PIMA" \
+                    "$BATCH" "$TRIALS_PIMA" | tee -a "$RAW"
             fi
             ;;
         covtype)
@@ -104,6 +118,10 @@ for dset in $DATASETS; do
             if [[ "$HAS_MLPACK" == 1 ]]; then
                 "$BENCH/bench_mlpack_covtype" "$COVTYPE_DIR" "$EPOCHS_COVTYPE" "$BATCH" \
                     "$TRIALS_COVTYPE" | tee -a "$RAW"
+            fi
+            if [[ ${#PYRUN[@]} -gt 0 ]]; then
+                "${PYRUN[@]}" "$BENCH/bench_pytorch.py" covtype "$COVTYPE_DIR" \
+                    "$EPOCHS_COVTYPE" "$BATCH" "$TRIALS_COVTYPE" | tee -a "$RAW"
             fi
             ;;
         *)

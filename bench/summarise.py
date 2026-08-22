@@ -38,7 +38,7 @@ def main() -> int:
         return f"{med:.{pct}f} ± {std:.{pct}f}"
 
     cols = [
-        ("dataset", 9), ("lib", 15), ("arch", 12), ("threads", 8), ("blas", 9),
+        ("dataset", 9), ("lib", 17), ("arch", 12), ("threads", 8), ("blas", 9),
         ("train_s", 22), ("infer_us", 22), ("test_acc", 22),
     ]
     print("  ".join(f"{name:<{w}}" for name, w in cols))
@@ -49,7 +49,7 @@ def main() -> int:
         last_dataset = dataset
         print("  ".join([
             f"{dataset:<9}",
-            f"{lib:<15}",
+            f"{lib:<17}",
             f"{d['arch']:<12}",
             f"{d['threads']:<8}",
             f"{d['blas']:<9}",
