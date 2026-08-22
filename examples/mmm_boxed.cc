@@ -235,15 +235,25 @@ int main() {
 	// Routing table: media x message -> canonical box; count correct.
 	const std::vector<uint> assign = a->boxAssignments();
 	uint correct = 0, within1 = 0;
-	std::printf("\nRouting (rows = media, cols = messages; value = canonical box, "
-	            "expected = media regime):\n");
+	// One row per media; the 5 cells are that media's messages (so each
+	// cell is one of the 50 insertion types). A cell shows the box the
+	// model routed that insertion type into, boxes numbered 0..K-1 from
+	// fastest to slowest carryover. Carryover is a property of the media,
+	// so every cell in a row should equal the row's expected box.
+	std::printf("\nRouting: cell = box the model chose for that media x message "
+	            "(0 = fastest carryover ... %u = slowest, '.' = matches expected)\n",
+	            K - 1);
+	std::printf("%-8s %-12s %s\n", "media", "expected box", "message 0..4");
 	for (uint media = 0; media < MEDIA; ++media) {
-		std::printf("media %u (regime %u): ", media, canonOfTrue[regimeOf(media)]);
+		const uint want = canonOfTrue[regimeOf(media)];
+		std::printf("%-8u %-12u ", media, want);
 		for (uint msg = 0; msg < MSGS; ++msg) {
 			const uint c = media * MSGS + msg;
 			const uint got = canonOfRec[assign[c]];
-			std::printf("%u ", got);
-			const uint want = canonOfTrue[regimeOf(media)];
+			if (got == want)
+				std::printf(".  ");
+			else
+				std::printf("%u  ", got);
 			if (got == want) ++correct;
 			if (got == want || got + 1 == want || want + 1 == got) ++within1;
 		}
