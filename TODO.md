@@ -13,6 +13,15 @@ and nobody reports this. Platt scaling, temperature scaling, reliability
 diagram, ECE / MCE. ~200 LOC. Pairs naturally with the existing uncertainty
 decomposition (calibrated total uncertainty is what users actually want).
 
+### Adstock / parametric lag kernels — DONE
+Shipped: `mlp/Adstock` differentiable input stage (geometric + Weibull
+kernels, normalized over the window), params trained jointly by
+Adam/GD/L-BFGS, NNH2 serialization, `examples/mmm_adstock.cc` recovers
+known kernels through a saturating net (holdout R^2 0.98). Possible
+follow-ups if a user asks: per-channel kernel families, delayed
+geometric, kernel-parameter uncertainty via the existing ensemble
+machinery.
+
 ## Statistics
 - Calculate a P-value for the ROC curve. Bootstrap CI on AUC is the
   cheap version (resample dataset → recompute AUC many times → percentile

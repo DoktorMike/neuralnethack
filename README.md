@@ -12,6 +12,7 @@ This is the MLP and ensemble-of-MLPs library I've kept maintained, however infre
 
 - **Activations**: Sigmoid, TanH, Linear, ReLU, Leaky ReLU, ELU
 - **Topology**: sequential MLP with optional residual (skip) connections, merged pre-activation between same-width layers
+- **Lag structure (adstock)**: optional differentiable input stage collapsing per-channel lag windows through parametric carryover kernels (geometric or Weibull), 1-2 trained parameters per channel — built for marketing-mix-style time-series regression
 - **Output heads**: linear or sigmoid output, plus optional softmax for multi-class classification
 - **Optimizers**: SGD with momentum, Adam/AdamW, L-BFGS
 - **Loss functions**: cross-entropy, summed square error, with optional per-class weights for imbalanced data
@@ -257,6 +258,29 @@ error_fcn = "kullback"
 ```
 
 Targets should be one-hot encoded (one column per class in the data file, `out_cols = "6-8"` for example). Worked examples in `examples/multiclass_iris.cc`, `examples/multiclass_wine.cc`, and `examples/multiclass_synthetic.cc`.
+
+## Lag structures / adstock (marketing-mix models)
+
+Time-series regression where today's input keeps affecting the response for many periods (ad spend, promotions, pricing) usually gets modeled by feeding L lags per channel into the network — L free weights per channel per neuron that then need pruning. The `Adstock` stage collapses each channel's lag window through a **normalized parametric carryover kernel** instead, with the kernel parameters trained jointly with the weights by any of the optimizers:
+
+```cpp
+#include "mlp/Adstock.hh"
+
+// Input per pattern: [c0 lag0..lag13, c1 lag0..lag13, c2 lag0..lag13, seasonality]
+// arch[0] = channels + passthrough covariates = 4
+Mlp mlp({4, 8, 1}, {"tansig", "purelin"}, false);
+mlp.adstock(Adstock(/*channels=*/3, /*lags=*/14, /*passthrough=*/1,
+                    Adstock::Kernel::Geometric)); // or Kernel::Weibull
+
+// train exactly as usual -- Adam / SGD / L-BFGS all update the kernel params
+SummedSquare loss(mlp, data);
+Adam opt(mlp, data, loss, 0.0, 32, 0.01);
+opt.train(std::cout);
+
+auto w = mlp.adstock()->kernelWeights(0); // fitted carryover curve, channel 0
+```
+
+Kernels: **geometric** (1 param/channel, monotone decay) and **Weibull** (2 params/channel, allows a delayed peak). 42 lagged inputs above cost 3 trained lag parameters instead of hundreds of free weights — nothing to prune, and the fitted kernels are directly interpretable as carryover curves. The MLP behind the stage learns saturation and channel interactions. Gradients flow through one extra GEMM; the stage serializes with the model (`NNH2` format, old `NNH1` files still load). Worked example with recovered kernels and holdout R²: `examples/mmm_adstock.cc`.
 
 ## Uncertainty quantification
 

@@ -29,8 +29,9 @@ neuralnethack/
     Error.hh/cc         Abstract error base (packBatch utility)
     CrossEntropy        Cross-entropy loss (batch GEMM gradient)
     SummedSquare        Summed square error loss (batch GEMM gradient)
-    Serialization       Binary save/load for Mlp and Ensemble
+    Serialization       Binary save/load for Mlp and Ensemble (NNH1; NNH2 adds adstock block)
     Weights             Weight storage (value semantics)
+    Adstock             Differentiable parametric lag-kernel input stage (geometric/Weibull), params train jointly via all optimizers
   datatools/          Data handling
     DataSet             Index-based view into CoreDataSet
     Pattern             Single input/output pair
@@ -62,6 +63,8 @@ test/               Test suite (7 tests)
 **Ownership uses unique_ptr.** Mlp holds its Layers by value (`vector<Layer>`); Ensemble owns its Mlps, Session owns its Ensemble and DataSets via `unique_ptr`. Trainer/Error hold non-owning raw pointers to their collaborators. `trainNew()` and `clone()` return `unique_ptr`.
 
 **L-BFGS** replaces full BFGS. Stores the last 20 (s,y) pairs in a circular buffer. O(mn) memory and compute instead of O(n^2). The two-loop recursion computes H*g without materializing the inverse Hessian.
+
+**Adstock** is an optional `std::optional<Adstock>` stage on Mlp: raw input carries `channels*lags + passthrough` values, the stage collapses each channel's lag window through a normalized parametric kernel (1-2 unconstrained params per channel), output feeds `arch[0]`. Params are appended to `Mlp::weights()/gradients()` (L-BFGS support for free); Adam and GD have explicit update blocks. `Error::chainAdstock()` backpropagates into the stage via one extra GEMM (deltas w.r.t. layer-0 inputs). Library gradient convention is (1/2) dE/dparam for SSE (delta = t - o, no factor 2) — the adstock grads match it (see testAdstock gradient check).
 
 **Dropout** uses inverted dropout (scale by `1/(1-p)` during training). Applied after activation in both single-pattern and batch paths. Mask is propagated through backprop. Only applied to hidden layers. Toggled via `Mlp::training(bool)`.
 
