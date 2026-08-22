@@ -20,8 +20,12 @@ Adam/GD/L-BFGS, NNH2 serialization, `examples/mmm_adstock.cc` recovers
 known kernels through a saturating net. Kernel-parameter uncertainty
 shipped too: `EvalTools::Uncertainty::summarizeAdstock` gives percentile
 bands over ensemble members for the natural-scale params and the per-lag
-carryover curves. Possible follow-ups if a user asks: per-channel kernel
-families, delayed geometric.
+carryover curves. Boxed mode shipped as well (doc/spec-boxed-adstock.md):
+K shared kernel+Hill-saturation boxes with learned softmax routing,
+entropy-penalty hardening (warmup required), NNH3 serialization, and
+`summarizeBoxedAdstock` with label-switching-safe bands and assignment
+stability. Remaining follow-ups: V2 feature-based routing (+ K-selection
+helper), per-channel kernel families, delayed geometric.
 
 ## Statistics
 - Calculate a P-value for the ROC curve. Bootstrap CI on AUC is the

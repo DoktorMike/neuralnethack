@@ -1,6 +1,11 @@
 # Spec: Boxed adstock — routed carryover and saturation
 
-Status: DRAFT for review.
+Status: ACCEPTED (2026-08-22) with decisions:
+1. Hill exponent is a trainable per-box parameter, init 1 — n > 1 gives
+   the S-shape; without it a plain tanh response would do as well.
+2. No per-channel Hill mode.
+3. Entropy penalty (not post-hoc snap-and-refit).
+4. K-selection recipe documented in V1; a helper ships with V2.
 Depends on: the shipped `mlp/Adstock` stage (geometric/Weibull kernels,
 joint training, NNH2 serialization, ensemble summaries).
 
@@ -27,9 +32,11 @@ K boxes (K is an architectural choice, like layer width):
 
 - `theta_k`: box kernel params — geometric lambda_k, or Weibull (k_k,
   s_k). Family is shared across boxes, chosen at construction (as today).
-- `hill(a; s) = a / (a + s)` with half-saturation `s_k = exp(sigma_k)`
-  per box. Saturation gating is optional (`Saturation::None` keeps
-  today's behavior of letting the MLP learn it).
+- `hill(a; s, n) = a^n / (a^n + s^n)` with half-saturation
+  `s_k = exp(sigma_k)` and exponent `n_k = exp(nu_k)` per box, `nu`
+  initialized to 0 (n = 1, plain diminishing returns); n > 1 yields the
+  S-shaped response. Saturation gating is optional (`Saturation::None`
+  keeps today's behavior of letting the MLP learn it).
 - One routing `pi_c` gates BOTH carryover and saturation: a channel is
   one insertion type, so it gets one regime end to end.
 - The channel's effect scale (beta) stays in the dense layer behind the
@@ -53,6 +60,13 @@ K boxes (K is an architectural choice, like layer width):
 - Entropy penalty `beta_H * sum_c H(pi_c)` added to the loss, pushing
   routing toward one-hot. Off by default. Implemented alongside the
   existing weight-elimination hook in `Error`.
+  IMPLEMENTATION FINDING: the penalty must NOT be on from step one — it
+  creates positive feedback toward the nearest vertex and hardens the
+  routing before the boxes separate (measured: 12/12 channels routed
+  correctly with a warmup, chance-level without one). Correct schedule:
+  train with beta = 0 until routing stabilizes, then enable beta to
+  harden (measured 0.82 -> 1.00 max pi without losing a single
+  assignment). Documented in the class docs and exercised by the test.
 - The dense head behind the stage is the real overfitting risk at
   T=156, C=100 — recommend linear head or tiny H plus weight
   elimination. The spec does not change the head; document the
@@ -63,7 +77,8 @@ K boxes (K is an architectural choice, like layer width):
 Same chaining as today (`Error::chainAdstock`, one extra GEMM gives
 `dE/d out_c` per pattern). Then:
 
-- d out_c / d sigma_k    = pi_ck * dhill/ds (a_c; s_k)
+- d out_c / d sigma_k    = pi_ck * dhill/ds (a_c; s_k, n_k) * s_k
+- d out_c / d nu_k       = pi_ck * dhill/dn (a_c; s_k, n_k) * n_k
 - d out_c / d theta_k    = [sum_j pi_cj * dhill/da(a_c; s_j)] *
                            pi_ck * sum_l dw/dtheta_k[l] * x_{c,t-l}
 - d out_c / d logit_cj   = softmax Jacobian applied to the vector of
@@ -123,12 +138,18 @@ the client-facing statement.
    output.
 6. NNH3 round-trip.
 
+### K selection (recipe, V1)
+
+Fit K = 2..5. Compare (a) holdout error, (b) assignment stability across
+ensemble members, (c) whether any box receives < ~C/(3K) channels
+(collapsed box = K too large). Prefer the smallest K whose stability
+holds; a helper automating this ships with V2.
+
 ### Out of scope for V1
 
 - Routing from channel features (V2).
 - Per-box kernel families (all boxes share one family).
 - Learned temperature schedule.
-- Hill exponent (fixed at 1; add if a real fit demands it).
 
 ## V2: amortized routing (feature-based, attention-ready)
 
@@ -158,14 +179,11 @@ alongside the lag window), routing-net gradients (plain backprop through
 box/gating math unchanged — only the source of the logits changes, so
 V1 is not throwaway.
 
-## Open questions for review
+## Resolved questions
 
-1. Hill with free exponent per box, or fixed at 1? (V1 says fixed.)
-2. Should saturation gating be available without boxed routing
-   (per-channel Hill, K=C degenerate case)? V1 says no — keep the matrix
-   small.
-3. Entropy penalty inside Error (like weight elim) vs a post-hoc
-   hardening pass (fit soft, snap to argmax, refit box params only)?
-   V1 spec says penalty; the refit pass is a cheap fallback.
-4. K selection guidance: fit K=2..5, compare holdout + assignment
-   stability across ensemble members. Document, or ship a helper?
+1. Hill exponent: trainable per box, init 1. (S-shape needs n > 1;
+   fixed n = 1 would make plain tanh just as good a response.)
+2. Per-channel Hill without boxing: no.
+3. Entropy penalty inside Error (weight-elim precedent); snap-and-refit
+   kept as fallback idea only.
+4. K selection: recipe documented in V1 (above); helper in V2.

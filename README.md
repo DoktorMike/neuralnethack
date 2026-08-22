@@ -280,6 +280,26 @@ opt.train(std::cout);
 auto w = mlp.adstock()->kernelWeights(0); // fitted carryover curve, channel 0
 ```
 
+**Boxed mode** scales this to many channels (say 100 channels, 156 weekly observations — where 100 free lambdas would be hopeless): K shared kernel "boxes" (short / medium / long carryover) plus a learned per-channel routing `pi_c = softmax(logits_c / tau)` that mixes the boxes. One routing gates both the carryover kernel and an optional per-box Hill saturation `a^n / (a^n + s^n)` (trainable half-saturation and exponent; n > 1 learns an S-shaped response), so 100 media insertion types collapse to K effective ones. Each box's parameters pool ~C/K channels' worth of data — the pooling is the prior:
+
+```cpp
+Mlp mlp({100 + P, 1}, {"purelin"}, false);
+mlp.adstock(Adstock(/*channels=*/100, /*lags=*/28, /*passthrough=*/P,
+                    Adstock::Kernel::Weibull, /*nBoxes=*/3,
+                    Adstock::Saturation::Hill));
+
+// train with the entropy penalty OFF until routing stabilizes...
+opt.train(std::cout);
+// ...then enable it to harden the assignments toward one-hot
+mlp.adstock()->entropyPenalty(0.01);
+opt.train(std::cout);
+
+auto box = mlp.adstock()->boxAssignments(); // channel -> box
+auto pi  = mlp.adstock()->routingProbs(7);  // soft routing, channel 7
+```
+
+Do not enable the entropy penalty from the first epoch — it hardens the routing before the boxes separate and locks in chance-level assignments; warm up with it off (measured: 12/12 channels routed correctly with warmup, chance without). `summarizeBoxedAdstock` extends the ensemble summary to boxed stages with label-switching-safe box bands plus **assignment stability** — "channel 7 routed long in 9/10 members". Design rationale and V2 (feature-based routing) in [`doc/spec-boxed-adstock.md`](doc/spec-boxed-adstock.md).
+
 Kernel-parameter uncertainty comes from the ensemble machinery: train members on bootstrap resamples, then summarize the spread of fitted kernels across members:
 
 ```cpp

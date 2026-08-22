@@ -31,7 +31,7 @@ neuralnethack/
     SummedSquare        Summed square error loss (batch GEMM gradient)
     Serialization       Binary save/load for Mlp and Ensemble (NNH1; NNH2 adds adstock block)
     Weights             Weight storage (value semantics)
-    Adstock             Differentiable parametric lag-kernel input stage (geometric/Weibull), params train jointly via all optimizers
+    Adstock             Differentiable parametric lag-kernel input stage (geometric/Weibull), params train jointly via all optimizers; boxed mode routes C channels into K shared kernel+saturation boxes via softmax routing (see doc/spec-boxed-adstock.md)
   datatools/          Data handling
     DataSet             Index-based view into CoreDataSet
     Pattern             Single input/output pair
