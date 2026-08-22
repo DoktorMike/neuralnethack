@@ -1647,6 +1647,121 @@ void applyDerivScale(ELU a, const double* out, double* deltas, ActivationSize n)
 
 } // namespace MultiLayerPerceptron
 
+// ===== mlp/Adstock.hh =====
+#include <string>
+#include <vector>
+
+namespace MultiLayerPerceptron {
+
+using uint = unsigned int;
+
+/**A differentiable, parametric lag-structure input stage (adstock).
+ *
+ * Motivated by marketing-mix models: an investment today affects the
+ * response over many future days. Feeding L raw lags per channel into a
+ * dense layer creates L free weights per channel per neuron that must be
+ * regularized or pruned; instead this stage collapses each channel's lag
+ * window through a normalized parametric kernel with 1-2 free parameters
+ * per channel, trained jointly with the network by the existing
+ * optimizers.
+ *
+ * Input layout per pattern (channel-major):
+ *   [c0 lag0..lagL-1, c1 lag0..lagL-1, ..., passthrough covariates]
+ * where lag0 is "today". Output layout:
+ *   [c0 adstocked, c1 adstocked, ..., passthrough copied through]
+ *
+ * Kernels (weights normalized to sum to 1 over the window; overall scale
+ * belongs to the dense layers behind this stage):
+ *   Geometric: w_l ~ lambda^l, lambda = sigmoid(rho). 1 param/channel.
+ *              Monotone decay from today.
+ *   Weibull:   w_l ~ z^(k-1) exp(-z^k), z = (l+1)/s, k = exp(kappa),
+ *              s = exp(sigma). 2 params/channel. Allows a delayed peak.
+ * All free parameters are unconstrained reals; the positivity/interval
+ * constraints live in the transform, so any gradient trainer works.
+ */
+class Adstock {
+  public:
+	enum class Kernel { Geometric, Weibull };
+
+	/**\param channels number of media channels (lagged inputs).
+	 * \param lags window length L per channel (lag 0 = today).
+	 * \param passthrough trailing covariates copied through untouched.
+	 * \param k kernel family, shared by all channels (params per channel).
+	 */
+	Adstock(uint channels, uint lags, uint passthrough, Kernel k = Kernel::Geometric);
+
+	uint nChannels() const { return theChannels; }
+	uint nLags() const { return theLags; }
+	uint nPassthrough() const { return thePassthrough; }
+	Kernel kernel() const { return theKernel; }
+
+	/**Expected raw input dimension: channels*lags + passthrough. */
+	uint inputDim() const { return theChannels * theLags + thePassthrough; }
+	/**Produced output dimension: channels + passthrough. */
+	uint outputDim() const { return theChannels + thePassthrough; }
+
+	uint nParamsPerChannel() const { return theKernel == Kernel::Geometric ? 1u : 2u; }
+	uint nParams() const { return theChannels * nParamsPerChannel(); }
+
+	/**Unconstrained trainable parameters, channel-major. */
+	std::vector<double>& params() { return theParams; }
+	const std::vector<double>& params() const { return theParams; }
+	/**Accumulated gradients, same layout as params(). */
+	std::vector<double>& gradients() { return theGradients; }
+	const std::vector<double>& gradients() const { return theGradients; }
+
+	/**Momentum buffer for SGD-style trainers (mirrors Layer's
+	 * weightUpdates). */
+	std::vector<double>& paramUpdates() { return theUpdates; }
+
+	void killGradients();
+	/**Reset parameters to family defaults (geometric lambda=0.5;
+	 * Weibull k=2, scale=L/3). */
+	void initParams();
+
+	/**The normalized kernel weights for channel c at the current
+	 * parameters (length L). For inspection/reporting. */
+	std::vector<double> kernelWeights(uint c) const;
+
+	/**Transform a batch [B x inputDim] row-major; returns pointer to the
+	 * internal output buffer [B x outputDim]. Also refreshes the cached
+	 * kernels used by accumulateGradients. */
+	const double* transformBatch(const double* in, uint B);
+
+	/**The output buffer filled by the last transformBatch call. */
+	const std::vector<double>& outputs() const { return theOutputs; }
+
+	/**Transform a single pattern into out (size outputDim). */
+	void transform(const double* in, double* out) const;
+
+	/**Accumulate parameter gradients given the raw batch input passed to
+	 * transformBatch and the error deltas w.r.t. this stage's outputs
+	 * [B x outputDim]. Uses the kernels cached by transformBatch. */
+	void accumulateGradients(const double* rawIn, const double* outDelta, uint B);
+
+  private:
+	/**Recompute theW [C x L] and theDw [C x ppc x L] from theParams. */
+	void computeKernels() const;
+	void channelKernel(uint c, double* w, double* dw) const;
+
+	uint theChannels, theLags, thePassthrough;
+	Kernel theKernel;
+	std::vector<double> theParams;
+	std::vector<double> theGradients;
+	std::vector<double> theUpdates;
+	std::vector<double> theOutputs;
+	mutable std::vector<double> theW;  ///< cached kernel weights [C x L]
+	mutable std::vector<double> theDw; ///< cached dw/dparam [C x ppc x L]
+	mutable std::vector<double> theCachedParams; ///< params the cache was built from
+	mutable bool theKernelsFresh = false;
+};
+
+/**Round-trip helpers for serialization / config. */
+std::string kernelToTag(Adstock::Kernel k);
+Adstock::Kernel kernelFromTag(const std::string& tag);
+
+} // namespace MultiLayerPerceptron
+
 // ===== mlp/MultiLayerPerceptron.hh =====
 /**This namespace encloses the MultiLayerPerceptron library.
  * It contains all classes and methods needed to create an MLP.
@@ -2053,6 +2168,8 @@ inline uint Layer::index(const uint i, const uint j) const {
 } // namespace MultiLayerPerceptron
 
 // ===== mlp/Mlp.hh =====
+#include <optional>
+
 namespace MultiLayerPerceptron {
 /**A struct representing the model for a multilayer perceptron. */
 struct MlpModel {
@@ -2203,11 +2320,23 @@ class Mlp {
 	int skipFrom(uint target) const;
 
 	/**Propagate a batch of inputs through the entire MLP using GEMM.
-	 * \param input pointer to row-major input batch [B x arch[0]].
+	 * \param input pointer to row-major input batch [B x arch[0]]
+	 *        (or [B x adstock inputDim] when an adstock stage is set).
 	 * \param B the batch size.
 	 * \return pointer to output batch [B x arch[last]].
 	 */
 	const double* propagateBatch(const double* input, uint B);
+
+	/**Attach a differentiable adstock (parametric lag kernel) input
+	 * stage. Its outputDim() must equal arch[0]; raw inputs then carry
+	 * inputDim() values per pattern. Parameters train jointly with the
+	 * weights (they are appended to weights()/gradients()).
+	 */
+	void adstock(const Adstock& a);
+
+	/**The adstock stage, or nullptr when none is attached. */
+	Adstock* adstock();
+	const Adstock* adstock() const;
 
 	// SIZE etc
 	/**Return the number of layers contained in this MLP.
@@ -2255,6 +2384,12 @@ class Mlp {
 
 	/**Skip-connection source per layer; -1 = no skip. */
 	std::vector<int> theSkipFrom;
+
+	/**Optional adstock input stage (value type, so copies stay default). */
+	std::optional<Adstock> theAdstock;
+
+	/**Scratch for single-pattern adstock transforms. */
+	std::vector<double> theAdstockOut;
 };
 
 // INLINES
@@ -3496,8 +3631,26 @@ class Error {
 	 */
 	void patternWeights(uint bs, uint nOut, std::vector<double>& pw, double& denom) const;
 
+	/**The input the first dense layer actually saw in the last batch
+	 * forward pass: the adstock stage's outputs when one is attached,
+	 * otherwise the packed raw input matrix.
+	 */
+	const double* firstLayerInput() const;
+
+	/**Chain the backpropagated error into the adstock stage, if any:
+	 * compute the deltas w.r.t. the first dense layer's inputs (one GEMM
+	 * against its weights, bias column skipped) and accumulate the
+	 * adstock parameter gradients from the raw packed input. Call after
+	 * layer 0's batch local gradients are final. No-op without adstock.
+	 * \param bs the batch size.
+	 */
+	void chainAdstock(uint bs) const;
+
 	/**Reusable batch input buffer, populated by packBatch. */
 	mutable std::vector<double> theInputMatrix;
+
+	/**Reusable buffer for deltas w.r.t. the first layer's inputs. */
+	mutable std::vector<double> theInputDelta;
 
 	/**Reusable batch target buffer, populated by packBatch. */
 	mutable std::vector<double> theTargetMatrix;
@@ -6853,6 +7006,177 @@ void applyDerivScale(ELU a, const double* __restrict__ out, double* __restrict__
 
 } // namespace MultiLayerPerceptron
 
+// ===== mlp/Adstock.cc =====
+#include <cassert>
+#include <cmath>
+#include <stdexcept>
+
+using namespace MultiLayerPerceptron;
+using std::vector;
+
+Adstock::Adstock(uint channels, uint lags, uint passthrough, Kernel k)
+    : theChannels(channels), theLags(lags), thePassthrough(passthrough), theKernel(k),
+      theParams(nParams(), 0.0), theGradients(nParams(), 0.0), theUpdates(nParams(), 0.0),
+      theW(static_cast<size_t>(channels) * lags, 0.0),
+      theDw(static_cast<size_t>(channels) * nParamsPerChannel() * lags, 0.0) {
+	assert(channels > 0 && lags > 0);
+	initParams();
+}
+
+void Adstock::killGradients() {
+	theGradients.assign(theGradients.size(), 0.0);
+}
+
+void Adstock::initParams() {
+	const uint ppc = nParamsPerChannel();
+	for (uint c = 0; c < theChannels; ++c) {
+		if (theKernel == Kernel::Geometric) {
+			theParams[c] = 0.0; // sigmoid(0) = 0.5
+		} else {
+			theParams[c * ppc + 0] = std::log(2.0);              // k = 2
+			theParams[c * ppc + 1] = std::log(theLags / 3.0 + 1e-12); // scale = L/3
+		}
+	}
+	theKernelsFresh = false;
+}
+
+// Per-channel kernel weights + derivatives w.r.t. the unconstrained
+// parameters. Weights are normalized to sum to 1 over the window, so
+// dw_l/dtheta = w_l * (dlogg_l/dtheta - sum_j w_j dlogg_j/dtheta).
+void Adstock::channelKernel(uint c, double* w, double* dw) const {
+	const uint L = theLags;
+	const uint ppc = nParamsPerChannel();
+
+	if (theKernel == Kernel::Geometric) {
+		const double rho = theParams[c];
+		const double lambda = 1.0 / (1.0 + std::exp(-rho));
+		// g_l = lambda^l; S = sum g; S' = sum l lambda^(l-1)
+		double S = 0.0, Sp = 0.0, pl = 1.0 /* lambda^l */, plm = 0.0 /* l*lambda^(l-1) */;
+		for (uint l = 0; l < L; ++l) {
+			w[l] = pl;
+			dw[l] = plm; // temporarily dg_l/dlambda
+			S += pl;
+			Sp += plm;
+			plm = (l + 1) * pl;
+			pl *= lambda;
+		}
+		const double sig = lambda * (1.0 - lambda); // dlambda/drho
+		for (uint l = 0; l < L; ++l) {
+			const double g = w[l], dg = dw[l];
+			dw[l] = sig * (dg * S - g * Sp) / (S * S);
+			w[l] = g / S;
+		}
+		return;
+	}
+
+	// Weibull: k = exp(kappa), s = exp(sigma); z_l = (l+1)/s, u_l = log z_l
+	// log g_l = (k-1) u_l - z_l^k
+	// dlogg/dkappa = k * u_l * (1 - z_l^k)
+	// dlogg/dsigma = -(k-1) + k z_l^k
+	const double kappa = theParams[c * ppc + 0];
+	const double sigma = theParams[c * ppc + 1];
+	const double k = std::exp(kappa);
+	vector<double> logg(L), dk(L), ds(L);
+	double maxlg = -1e300;
+	for (uint l = 0; l < L; ++l) {
+		const double u = std::log(static_cast<double>(l + 1)) - sigma;
+		const double zk = std::exp(k * u); // z^k
+		logg[l] = (k - 1.0) * u - zk;
+		dk[l] = k * u * (1.0 - zk);
+		ds[l] = -(k - 1.0) + k * zk;
+		if (logg[l] > maxlg) maxlg = logg[l];
+	}
+	double S = 0.0;
+	for (uint l = 0; l < L; ++l) {
+		w[l] = std::exp(logg[l] - maxlg);
+		S += w[l];
+	}
+	double mk = 0.0, ms = 0.0; // sum_j w_j dlogg_j
+	for (uint l = 0; l < L; ++l) {
+		w[l] /= S;
+		mk += w[l] * dk[l];
+		ms += w[l] * ds[l];
+	}
+	double* dwk = dw;
+	double* dws = dw + L;
+	for (uint l = 0; l < L; ++l) {
+		dwk[l] = w[l] * (dk[l] - mk);
+		dws[l] = w[l] * (ds[l] - ms);
+	}
+}
+
+void Adstock::computeKernels() const {
+	// Trainers mutate params() in place, so freshness = "kernels were
+	// computed from exactly these parameter values".
+	if (theKernelsFresh && theCachedParams == theParams) return;
+	const uint L = theLags, ppc = nParamsPerChannel();
+	for (uint c = 0; c < theChannels; ++c)
+		channelKernel(c, theW.data() + c * L, theDw.data() + static_cast<size_t>(c) * ppc * L);
+	theCachedParams = theParams;
+	theKernelsFresh = true;
+}
+
+vector<double> Adstock::kernelWeights(uint c) const {
+	assert(c < theChannels);
+	vector<double> w(theLags), dw(static_cast<size_t>(nParamsPerChannel()) * theLags);
+	channelKernel(c, w.data(), dw.data());
+	return w;
+}
+
+void Adstock::transform(const double* in, double* out) const {
+	computeKernels();
+	const uint L = theLags;
+	for (uint c = 0; c < theChannels; ++c) {
+		const double* w = theW.data() + c * L;
+		const double* x = in + c * L;
+		double s = 0.0;
+		for (uint l = 0; l < L; ++l)
+			s += w[l] * x[l];
+		out[c] = s;
+	}
+	for (uint p = 0; p < thePassthrough; ++p)
+		out[theChannels + p] = in[theChannels * L + p];
+}
+
+const double* Adstock::transformBatch(const double* in, uint B) {
+	computeKernels();
+	const uint din = inputDim(), dout = outputDim();
+	theOutputs.resize(static_cast<size_t>(B) * dout);
+	for (uint b = 0; b < B; ++b)
+		transform(in + static_cast<size_t>(b) * din, theOutputs.data() + static_cast<size_t>(b) * dout);
+	return theOutputs.data();
+}
+
+void Adstock::accumulateGradients(const double* rawIn, const double* outDelta, uint B) {
+	computeKernels();
+	const uint L = theLags, ppc = nParamsPerChannel(), din = inputDim(), dout = outputDim();
+	for (uint c = 0; c < theChannels; ++c) {
+		const double* dwc = theDw.data() + static_cast<size_t>(c) * ppc * L;
+		for (uint p = 0; p < ppc; ++p) {
+			const double* dw = dwc + p * L;
+			double acc = 0.0;
+			for (uint b = 0; b < B; ++b) {
+				const double* x = rawIn + static_cast<size_t>(b) * din + c * L;
+				double s = 0.0;
+				for (uint l = 0; l < L; ++l)
+					s += dw[l] * x[l];
+				acc += outDelta[static_cast<size_t>(b) * dout + c] * s;
+			}
+			theGradients[c * ppc + p] += acc;
+		}
+	}
+}
+
+std::string MultiLayerPerceptron::kernelToTag(Adstock::Kernel k) {
+	return k == Adstock::Kernel::Geometric ? "geometric" : "weibull";
+}
+
+Adstock::Kernel MultiLayerPerceptron::kernelFromTag(const std::string& tag) {
+	if (tag == "geometric") return Adstock::Kernel::Geometric;
+	if (tag == "weibull") return Adstock::Kernel::Weibull;
+	throw std::invalid_argument("unknown adstock kernel: " + tag);
+}
+
 // ===== mlp/MultiLayerPerceptron.cc =====
 // DEBUGGING-------------------------------------------------------------------//
 
@@ -7336,6 +7660,10 @@ vector<double> Mlp::weights() const {
 		const vector<double>& tmp = l.weights();
 		w.insert(w.end(), tmp.begin(), tmp.end());
 	}
+	if (theAdstock) {
+		const vector<double>& p = theAdstock->params();
+		w.insert(w.end(), p.begin(), p.end());
+	}
 	return w;
 }
 
@@ -7347,6 +7675,9 @@ void Mlp::weights(vector<double>& w) {
 		for (auto ittmp = tmp.begin(); ittmp != tmp.end(); ++ittmp, ++itw)
 			*ittmp = *itw;
 	}
+	if (theAdstock)
+		for (auto& p : theAdstock->params())
+			p = *itw++;
 }
 
 vector<double> Mlp::gradients() const {
@@ -7355,6 +7686,10 @@ vector<double> Mlp::gradients() const {
 	for (const auto& l : theLayers) {
 		const vector<double>& tmp = l.gradients();
 		g.insert(g.end(), tmp.begin(), tmp.end());
+	}
+	if (theAdstock) {
+		const vector<double>& ag = theAdstock->gradients();
+		g.insert(g.end(), ag.begin(), ag.end());
 	}
 	return g;
 }
@@ -7367,6 +7702,9 @@ void Mlp::gradients(vector<double>& g) {
 		for (auto ittmp = tmp.begin(); ittmp != tmp.end(); ++ittmp, ++itg)
 			*ittmp = *itg;
 	}
+	if (theAdstock)
+		for (auto& p : theAdstock->gradients())
+			p = *itg++;
 }
 
 Layer& Mlp::layer(uint index) {
@@ -7382,7 +7720,21 @@ uint Mlp::nWeights() const {
 	uint tmp = 0;
 	for (const auto& l : theLayers)
 		tmp += l.nWeights();
+	if (theAdstock) tmp += theAdstock->nParams();
 	return tmp;
+}
+
+void Mlp::adstock(const Adstock& a) {
+	assert(a.outputDim() == theArch[0]);
+	theAdstock = a;
+}
+
+Adstock* Mlp::adstock() {
+	return theAdstock ? &*theAdstock : nullptr;
+}
+
+const Adstock* Mlp::adstock() const {
+	return theAdstock ? &*theAdstock : nullptr;
 }
 
 uint Mlp::size() const {
@@ -7392,6 +7744,7 @@ uint Mlp::size() const {
 void Mlp::regenerateWeights() {
 	for (auto& l : theLayers)
 		l.regenerateWeights();
+	if (theAdstock) theAdstock->initParams();
 }
 
 void Mlp::initScheme(Layer::InitScheme s) {
@@ -7418,6 +7771,12 @@ void Mlp::normType(NormType nt) {
 
 const vector<double>& Mlp::propagate(const vector<double>& input) {
 	const vector<double>* inOut = &input;
+	if (theAdstock) {
+		assert(input.size() == theAdstock->inputDim());
+		theAdstockOut.resize(theAdstock->outputDim());
+		theAdstock->transform(input.data(), theAdstockOut.data());
+		inOut = &theAdstockOut;
+	}
 	for (uint i = 0; i < theLayers.size(); ++i) {
 		int src = theSkipFrom[i];
 		const double* skipPtr = (src >= 0) ? theLayers[src].outputs().data() : nullptr;
@@ -7433,6 +7792,7 @@ const vector<double>& Mlp::propagate(const vector<double>& input) {
 const double* Mlp::propagateBatch(const double* input, uint B) {
 	const double* layerInput = input;
 	uint n_in = theArch[0];
+	if (theAdstock) layerInput = theAdstock->transformBatch(input, B);
 	for (uint i = 0; i < theLayers.size(); ++i) {
 		int src = theSkipFrom[i];
 		const double* skipPtr = (src >= 0) ? theLayers[src].batchOutputs().data() : nullptr;
@@ -9061,6 +9421,12 @@ EntropyDecomposition decomposeEntropy(Ensemble& ensemble, const vector<double>& 
 } // namespace EvalTools
 
 // ===== mlp/Error.cc =====
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
+
 #include <vector>
 #include <cmath>
 #include <cassert>
@@ -9185,6 +9551,43 @@ double Error::weightElim() const {
 		we += wisqr / (w0sqr + wisqr);
 	}
 	return we;
+}
+
+const double* Error::firstLayerInput() const {
+	const Adstock* a = theMlp->adstock();
+	return a ? a->outputs().data() : theInputMatrix.data();
+}
+
+void Error::chainAdstock(uint bs) const {
+	Adstock* a = theMlp->adstock();
+	if (!a) return;
+	Layer& l0 = theMlp->layer(0);
+	const uint n0 = l0.nNeurons();
+	const uint nin = l0.nPrevious();
+	const uint stride = nin + 1;
+	const double* lg = l0.batchLocalGradients().data();
+	const double* wt = l0.weights().data();
+	theInputDelta.resize(static_cast<size_t>(bs) * nin);
+	double* din = theInputDelta.data();
+
+	// delta_in[B x nin] = LG0[B x n0] * W0[n0 x (nin+1)], bias column skipped
+#ifdef USE_BLAS
+	if (nnh::smallgemm::small(bs, nin, n0))
+		nnh::smallgemm::gemmNN(bs, nin, n0, lg, n0, wt, stride, din, nin);
+	else
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, bs, nin, n0, 1.0, lg, n0, wt,
+		            stride, 0.0, din, nin);
+#else
+	for (uint b = 0; b < bs; ++b)
+		for (uint j = 0; j < nin; ++j) {
+			double s = 0;
+			for (uint k = 0; k < n0; ++k)
+				s += lg[b * n0 + k] * wt[k * stride + j];
+			din[b * nin + j] = s;
+		}
+#endif
+
+	a->accumulateGradients(theInputMatrix.data(), din, bs);
 }
 
 void Error::packBatch(DataSet& dset) const {
@@ -9375,9 +9778,10 @@ double CrossEntropy::gradient() {
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)
-	(*theMlp)[0].accumulateGradientsBatch(theInputMatrix.data(), bs);
+	(*theMlp)[0].accumulateGradientsBatch(firstLayerInput(), bs);
 	for (uint l = 1; l < theMlp->nLayers(); ++l)
 		(*theMlp)[l].accumulateGradientsBatch((*theMlp)[l - 1].batchOutputs().data(), bs);
+	chainAdstock(bs);
 
 	// Compute total error
 	double err = 0;
@@ -9415,6 +9819,7 @@ double CrossEntropy::gradient() {
 			div(layer.betaGradients(), -denom);
 		}
 	}
+	if (Adstock* a = theMlp->adstock()) div(a->gradients(), -denom);
 
 	return -err / denom;
 }
@@ -9550,6 +9955,7 @@ double CrossEntropy::outputError(const vector<double>& out, const vector<double>
 }
 
 void CrossEntropy::killGradients() {
+	if (Adstock* a = theMlp->adstock()) a->killGradients();
 	for (uint i = 0; i < theMlp->nLayers(); ++i) {
 		Layer& l = theMlp->layer(i);
 		vector<double>& g = l.gradients();
@@ -9588,8 +9994,11 @@ static double readDouble(istream& is) {
 }
 
 void MultiLayerPerceptron::saveMlpBinary(const Mlp& mlp, ostream& os) {
-	// Magic
-	os.write("NNH1", 4);
+	// Magic: NNH1 = plain MLP, NNH2 = MLP with an adstock stage (adstock
+	// meta block between softmax flag and weights; weights vector then
+	// carries the adstock params at its tail, as Mlp::weights() emits).
+	const Adstock* ads = mlp.adstock();
+	os.write(ads ? "NNH2" : "NNH1", 4);
 
 	// Architecture
 	// Need const access to arch — use const_cast since arch() isn't const-qualified
@@ -9611,6 +10020,16 @@ void MultiLayerPerceptron::saveMlpBinary(const Mlp& mlp, ostream& os) {
 	uint8_t sm = mref.softmax() ? 1 : 0;
 	os.write(reinterpret_cast<const char*>(&sm), 1);
 
+	// Adstock meta (NNH2 only)
+	if (ads) {
+		writeUint32(os, ads->nChannels());
+		writeUint32(os, ads->nLags());
+		writeUint32(os, ads->nPassthrough());
+		const string tag = kernelToTag(ads->kernel());
+		writeUint32(os, tag.size());
+		os.write(tag.data(), tag.size());
+	}
+
 	// Weights
 	vector<double> w = mlp.weights();
 	writeUint32(os, w.size());
@@ -9621,7 +10040,9 @@ unique_ptr<Mlp> MultiLayerPerceptron::loadMlpBinary(istream& is) {
 	// Magic
 	char magic[4];
 	is.read(magic, 4);
-	if (memcmp(magic, "NNH1", 4) != 0) throw runtime_error("Invalid MLP binary format: bad magic");
+	const bool hasAdstock = memcmp(magic, "NNH2", 4) == 0;
+	if (!hasAdstock && memcmp(magic, "NNH1", 4) != 0)
+		throw runtime_error("Invalid MLP binary format: bad magic");
 
 	// Architecture
 	uint32_t archSize = readUint32(is);
@@ -9644,6 +10065,17 @@ unique_ptr<Mlp> MultiLayerPerceptron::loadMlpBinary(istream& is) {
 
 	// Create Mlp (this randomizes weights)
 	auto mlp = make_unique<Mlp>(arch, types, sm != 0);
+
+	// Adstock meta (NNH2 only); params arrive with the weight vector
+	if (hasAdstock) {
+		uint32_t channels = readUint32(is);
+		uint32_t lags = readUint32(is);
+		uint32_t pass = readUint32(is);
+		uint32_t len = readUint32(is);
+		string tag(len, '\0');
+		is.read(&tag[0], len);
+		mlp->adstock(Adstock(channels, lags, pass, kernelFromTag(tag)));
+	}
 
 	// Read and set weights
 	uint32_t nWeights = readUint32(is);
@@ -9842,9 +10274,10 @@ double SummedSquare::gradient() {
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)
-	(*theMlp)[0].accumulateGradientsBatch(theInputMatrix.data(), bs);
+	(*theMlp)[0].accumulateGradientsBatch(firstLayerInput(), bs);
 	for (uint l = 1; l < theMlp->nLayers(); ++l)
 		(*theMlp)[l].accumulateGradientsBatch((*theMlp)[l - 1].batchOutputs().data(), bs);
+	chainAdstock(bs);
 
 	// Compute total error
 	double err = 0;
@@ -9876,6 +10309,11 @@ double SummedSquare::gradient() {
 			std::transform(bg.begin(), bg.end(), bg.begin(),
 			               [denom](double v) { return v / -denom; });
 		}
+	}
+	if (Adstock* a = theMlp->adstock()) {
+		auto& ag = a->gradients();
+		std::transform(ag.begin(), ag.end(), ag.begin(),
+		               [denom](double v) { return v / -denom; });
 	}
 
 	return err / denom;
@@ -9989,6 +10427,7 @@ double SummedSquare::outputError(const vector<double>& out, const vector<double>
 }
 
 void SummedSquare::killGradients() {
+	if (Adstock* a = theMlp->adstock()) a->killGradients();
 	for (uint i = 0; i < theMlp->nLayers(); ++i) {
 		Layer& l = theMlp->layer(i);
 		vector<double>& g = l.gradients();
@@ -10732,7 +11171,8 @@ void Adam::train(ostream& os) {
 		theBatchSize = theData->size();
 	}
 
-	// Initialize moment vectors (weights + norm params)
+	// Initialize moment vectors (weights + norm params). nWeights()
+	// already includes adstock params when a stage is attached.
 	uint nTotal = theMlp->nWeights();
 	for (uint i = 0; i < theMlp->nLayers(); ++i)
 		nTotal += theMlp->layer(i).nNormParams();
@@ -10852,6 +11292,21 @@ double Adam::trainEpoch(DataSet& dset) {
 			}
 			offset += 2 * nn;
 		}
+	}
+	// Adstock kernel params: plain Adam step, no weight decay (these are
+	// unconstrained shape parameters, not weight magnitudes).
+	if (Adstock* a = theMlp->adstock()) {
+		const uint np = a->nParams();
+		double* p = a->params().data();
+		double* g = a->gradients().data();
+		double* m = theM.data() + offset;
+		double* v = theV.data() + offset;
+		for (uint j = 0; j < np; ++j) {
+			m[j] = b1 * m[j] + (1.0 - b1) * g[j];
+			v[j] = b2 * v[j] + (1.0 - b2) * g[j] * g[j];
+			p[j] -= lr * (m[j] * bc1) / (sqrt(v[j] * bc2) + eps);
+		}
+		offset += np;
 	}
 	return err;
 }
@@ -11013,6 +11468,18 @@ double GradientDescent::train(DataSet& dset) {
 				bu[j] = ub;
 				bt[j] += ub;
 			}
+		}
+	}
+	// Adstock kernel params
+	if (Adstock* a = theMlp->adstock()) {
+		const uint np = a->nParams();
+		double* p = a->params().data();
+		double* g = a->gradients().data();
+		double* upd = a->paramUpdates().data();
+		for (uint j = 0; j < np; ++j) {
+			double u = -lr * g[j] + mom * upd[j];
+			upd[j] = u;
+			p[j] += u;
 		}
 	}
 	return err;
