@@ -95,6 +95,26 @@ survives scrutiny: *for small-to-mid tabular MLPs on CPU, an op-by-op
 framework pays dispatch costs that a compiled C++ library simply
 doesn't have.* mlpack remains the honest speed target, not PyTorch.
 
+**Where PyTorch takes over.** A synthetic width sweep (64-H-1, batch
+64, Adam + MSE, `bench/sweep.sh`) locates the crossover. Training:
+PyTorch eager overtakes at roughly H 150-250 -- about 10-30k
+parameters -- once its ~100-200 us/step dispatch tax amortizes and its
+multithreaded fused kernels (oneDNN GEMM, foreach-Adam) beat nnh's
+single-threaded non-GEMM stages. Batch-1 inference: no crossover found
+up to H=4096 (268k params); nnh was still 1.6x ahead at the top of the
+sweep, because per-call framework overhead never amortizes at batch 1.
+For context, real tabular nets sit far below the training crossover:
+Pima 8-32-1 is 353 params, covtype 54-128-7 is ~8k.
+
+| H | params | nnh s/epoch | torch s/epoch | nnh infer (us) | torch infer (us) |
+|---|---|---|---|---|---|
+| 32 | 2.1k | 0.0075 | 0.0246 | 0.4 | 8.3 |
+| 128 | 8.4k | 0.0113 | 0.0135 | 0.8 | 8.5 |
+| 512 | 33k | 0.0436 | 0.0233 | 5.3 | 12.3 |
+| 1024 | 67k | 0.0817 | 0.0299 | 5.0 | 17.9 |
+| 2048 | 134k | 0.106 | 0.118 | 17.6 | 27.5 |
+| 4096 | 268k | 0.260 | 0.152 | 33.6 | 52.5 |
+
 ## Where the table is unfair
 
 A few caveats so this doesn't read as a leaderboard:
