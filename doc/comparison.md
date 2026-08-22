@@ -53,22 +53,29 @@ medians over multiple trials; the harness lives in `bench/`.
 | lib | train (s) | inference (us / sample) | test accuracy |
 |---|---|---|---|
 | mlpack | 0.001 | 0.10 | 0.768 |
-| neuralnethack | 0.010 | 0.15 | 0.744 |
+| neuralnethack | 0.010 | **0.08** | 0.744 |
 | tiny-dnn | 0.262 | 0.93 | 0.741 |
+| PyTorch (eager) | 0.280 | 7.76 | 0.744 |
+| PyTorch (compile) | 0.538 | 13.47 | 0.744 |
 
-mlpack wins. On 8x32 GEMMs the per-call BLAS dispatch overhead in nnh
-(and the kernel-launch overhead in tiny-dnn's small AVX loops) costs
-more than the actual compute. Armadillo's expression-template path
-inlines the matmul at the call site and skips that overhead. The
-accuracy column is statistically a tie inside one sigma.
+mlpack wins on training. Armadillo's expression-template path inlines
+the matmul at the call site; nnh's AVX-512 small-GEMM kernels
+(`matrixtools/SmallGemm`) close part of that gap but the remaining
+per-batch bookkeeping doesn't fuse. PyTorch pays 2-10 us of per-op
+dispatch (Python, autograd graph, kernel launch) on every one of the
+dozens of ops in a step, and `torch.compile` is *slower* here: per-call
+guard checks outweigh any fusion win at this size. The accuracy column
+is statistically a tie inside one sigma.
 
 **UCI Covertype** (581k x 54, 7-class, arch 54-128-7, 5 epochs):
 
 | lib | train (s) | inference (us / sample) | test accuracy |
 |---|---|---|---|
-| neuralnethack | 5.56 | **1.29** | **0.828** |
+| neuralnethack | 5.56 | **0.82** | **0.829** |
 | mlpack | 1.56* | 5.64 | 0.754 |
-| tiny-dnn | 52.8 | 2.02 | 0.823 |
+| tiny-dnn | 52.5 | 2.01 | 0.823 |
+| PyTorch (eager) | 14.8 | 7.85 | 0.832 |
+| PyTorch (compile) | 21.5 | 15.43 | 0.832 |
 
 \* mlpack hit ensmallen's default convergence tolerance (1e-8) and
 stopped early, which is also why its accuracy is ~7 points lower.
@@ -77,13 +84,16 @@ more epochs forced; until that's done, treat mlpack's 1.56s as a
 lower bound rather than a fair 5-epoch result.
 
 **Honest read.** At Pima scale we're 10x off mlpack on training time
-because the GEMMs are too small to amortise BLAS dispatch. At
-Covertype scale the dispatch overhead vanishes, and nnh comes out
-with the **lowest inference latency** and the **highest test
-accuracy** of the three. The story isn't "we're faster than mlpack",
-it's "the gap depends entirely on whether your matrices are big
-enough for BLAS to earn its overhead, and if you're doing
-realistic-sized tabular work, this library is in the same league."
+because their expression templates fuse the whole step and ours
+doesn't (yet). At Covertype scale that overhead vanishes, and nnh
+comes out with the **lowest inference latency** and the **highest
+test accuracy** of the C++ field while beating PyTorch eager ~2.7x on
+training. Against PyTorch specifically the story is one-sided at both
+scales: 28x faster training and ~100x lower inference latency on the
+small net, and still faster on both axes at 581k rows. The claim that
+survives scrutiny: *for small-to-mid tabular MLPs on CPU, an op-by-op
+framework pays dispatch costs that a compiled C++ library simply
+doesn't have.* mlpack remains the honest speed target, not PyTorch.
 
 ## Where the table is unfair
 

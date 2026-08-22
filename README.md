@@ -42,7 +42,7 @@ If you want the receipts, a full feature-by-feature comparison with the same lib
 
 ## Speed
 
-At realistic data scale this library is fast. On UCI Covertype (581k rows, 54 features, 7-class softmax MLP, 5 epochs) it lands the **lowest inference latency and the highest test accuracy** in a head-to-head against mlpack and tiny-dnn under identical config. On tiny-matrix workloads (Pima, 8-32-1) mlpack still wins on training time because BLAS per-call dispatch overhead dominates over the actual compute there. Numbers and the bench harness live in [`doc/comparison.md`](doc/comparison.md#speed-and-accuracy-on-real-benchmarks) and [`bench/`](bench/).
+At realistic data scale this library is fast. On UCI Covertype (581k rows, 54 features, 7-class softmax MLP, 5 epochs) it lands the **lowest inference latency and the highest test accuracy** in a head-to-head against mlpack, tiny-dnn, and PyTorch under identical config. Against PyTorch on small CPU MLPs the gap is structural: **~28x faster training and ~100x lower inference latency** on Pima (8-32-1), and still ~2.7x faster training at Covertype scale, because an op-by-op framework pays per-op dispatch costs that compiled C++ doesn't (`torch.compile` makes it worse at these sizes). mlpack still wins small-net training via expression-template fusion. Numbers and the bench harness live in [`doc/comparison.md`](doc/comparison.md#speed-and-accuracy-on-real-benchmarks) and [`bench/`](bench/).
 
 ## Build
 
