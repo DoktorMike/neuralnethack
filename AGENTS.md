@@ -19,8 +19,10 @@ For all project information, refer to:
 - Run `make format` (clang-format) before committing source changes; CI
   checks formatting.
 - Releases: only via `make release`. Never run standard-version directly —
-  formatting and the regenerated amalgamation must land before the tag.
-  Details: [doc/development.md](doc/development.md#releases).
+  formatting and the regenerated amalgamation must land before the tag. Not
+  done until pushed AND published as a GitHub release (`gh release create`)
+  with hand-written notes. Details:
+  [doc/development.md](doc/development.md#releases).
 - Commits: Conventional Commits, caveman-commit style — imperative subject,
   no trailing period, aim ≤50 chars (hard cap 72); body only when the why
   isn't obvious from the diff; always a body for breaking changes and

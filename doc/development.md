@@ -77,6 +77,17 @@ committed, THEN standard-version (bumps CMakeLists.txt via `.versionrc`,
 writes CHANGELOG.md, tags). Never run standard-version directly; formatting
 must land before the tag, not after.
 
+A release is not done until it is published on GitHub:
+
+```sh
+git push --follow-tags origin master
+gh release create vX.Y.Z --title vX.Y.Z --notes-file notes.md
+```
+
+Write the notes by hand in the style of the previous release (`gh release
+view vX.Y.Z`): a Highlights paragraph first, then expanded
+Features/Performance sections — not the raw changelog dump.
+
 ## Useful scripts
 
 | Script | Purpose |

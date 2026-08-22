@@ -50,4 +50,7 @@ release: format
 	@$(MAKE) single-include
 	@git diff --quiet || { echo "error: amalgamation was stale; commit it first" >&2; exit 1; }
 	@npx --yes standard-version
-	@echo "Release cut. Publish with: git push --follow-tags origin master"
+	@echo "Release cut. Publish with:"
+	@echo "  git push --follow-tags origin master"
+	@echo "  gh release create vX.Y.Z --title vX.Y.Z --notes-file <notes.md>"
+	@echo "(write the notes by hand in the style of the previous release)"
