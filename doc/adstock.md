@@ -70,7 +70,9 @@ routed long in 9/10 members". Full worked example: `examples/mmm_boxed.cc`
 (50 insertion types = 10 media × 5 messages, 156 weekly obs, seasonality +
 unemployment + trend; recovers the delayed peak and the S-shaped Hill
 exponent, and shows where 156 rows stop identifying middle carryover regimes —
-the stability readout flags exactly those channels). Design rationale and V2
+the stability readout flags exactly those channels). The example's data
+process also ships as ready-made files with ground-truth tables in
+[`datasets/mmm/`](../datasets/mmm/README.md). Design rationale and V2
 (feature-based routing) in [spec-boxed-adstock.md](spec-boxed-adstock.md).
 
 ## Kernel-parameter uncertainty
