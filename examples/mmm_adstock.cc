@@ -32,7 +32,10 @@ using namespace DataTools;
 namespace {
 
 constexpr uint C = 3;   // media channels
-constexpr uint L = 14;  // lag window (days)
+// Lag window: geometric tail mass beyond the window is ~lambda^L, so
+// size L for the slowest plausible decay. Here lambda_max = 0.8 and
+// 0.8^28 = 0.2%; L = 14 would truncate ~4.4% of the slow channel.
+constexpr uint L = 28;  // lag window (days)
 constexpr uint P = 1;   // passthrough covariates (weekly seasonality)
 constexpr uint T = 900; // days simulated
 

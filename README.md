@@ -266,10 +266,10 @@ Time-series regression where today's input keeps affecting the response for many
 ```cpp
 #include "mlp/Adstock.hh"
 
-// Input per pattern: [c0 lag0..lag13, c1 lag0..lag13, c2 lag0..lag13, seasonality]
+// Input per pattern: [c0 lag0..lag27, c1 lag0..lag27, c2 lag0..lag27, seasonality]
 // arch[0] = channels + passthrough covariates = 4
 Mlp mlp({4, 8, 1}, {"tansig", "purelin"}, false);
-mlp.adstock(Adstock(/*channels=*/3, /*lags=*/14, /*passthrough=*/1,
+mlp.adstock(Adstock(/*channels=*/3, /*lags=*/28, /*passthrough=*/1,
                     Adstock::Kernel::Geometric)); // or Kernel::Weibull
 
 // train exactly as usual -- Adam / SGD / L-BFGS all update the kernel params
@@ -280,7 +280,9 @@ opt.train(std::cout);
 auto w = mlp.adstock()->kernelWeights(0); // fitted carryover curve, channel 0
 ```
 
-Kernels: **geometric** (1 param/channel, monotone decay) and **Weibull** (2 params/channel, allows a delayed peak). 42 lagged inputs above cost 3 trained lag parameters instead of hundreds of free weights — nothing to prune, and the fitted kernels are directly interpretable as carryover curves. The MLP behind the stage learns saturation and channel interactions. Gradients flow through one extra GEMM; the stage serializes with the model (`NNH2` format, old `NNH1` files still load). Worked example with recovered kernels and holdout R²: `examples/mmm_adstock.cc`.
+Kernels: **geometric** (1 param/channel, monotone decay) and **Weibull** (2 params/channel, allows a delayed peak). 84 lagged inputs above cost 3 trained lag parameters instead of hundreds of free weights — nothing to prune, and the fitted kernels are directly interpretable as carryover curves. The MLP behind the stage learns saturation and channel interactions. Gradients flow through one extra GEMM; the stage serializes with the model (`NNH2` format, old `NNH1` files still load). Worked example with recovered kernels and holdout R²: `examples/mmm_adstock.cc`.
+
+**Choosing the window length.** The kernel is truncated and renormalized over L lags, so carryover beyond the window is invisible to the model. For geometric decay the truncated tail mass is ≈ λ^L: λ = 0.8 loses 4.4% at L = 14 but 0.2% at L = 28; λ = 0.9 needs L ≈ 44 for a 1% tail. Size L for the slowest decay you consider plausible (L ≥ ln ε / ln λ_max) — the cost is only `channels × L` inputs per pattern and O(L) per GEMM row, and an over-long window costs nothing statistically since the kernel stays a 1-2 parameter family regardless of L. The fixed window is a deliberate trade against recursive adstock (`a_t = x_t + λa_{t-1}`): infinite memory, but stateful patterns would break bootstrap/cross-split resampling and shuffled batches.
 
 ## Uncertainty quantification
 
