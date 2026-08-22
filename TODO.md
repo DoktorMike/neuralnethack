@@ -101,6 +101,19 @@ Listed for clarity so they don't keep coming up:
 - Bayesian / TPE hyperparameter optimization beyond the existing grid
   search.
 - Mixed precision / templated Matrix library.
+- Recurrent layers (Elman / GRU / LSTM). Not a "new layer type": breaks
+  three baked-in assumptions -- Pattern is a fixed-size pair (sequences
+  need timestep lists + ragged batching through
+  CoreDataSet/DataSet/Sampler/parser), Error::gradient() hardwires
+  spatial layer-stack backprop (BPTT needs per-step gate caches and
+  gradient flow through time), and Layer is stateless between calls.
+  Trainers reuse fine (add gradient clipping, ~20 LOC); Ensemble would
+  need an interface instead of concrete Mlp. ~3-6 weeks, and only
+  sensible AFTER the MlpArch/Weights/State split (free-function
+  forward/backward makes BPTT natural). Cheaper answer for tabular
+  time series: sliding-window features into the existing MLP, zero
+  code. Revisit only if a concrete user asks; order Elman -> GRU ->
+  LSTM if so.
 
 ## Performance ceiling notes
 On the Pima 8-32-1 / batch-32 benchmark, this lib trains in ~9.5 ms / 100
