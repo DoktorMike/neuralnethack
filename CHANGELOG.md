@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.4.0](https://github.com/DoktorMike/neuralnethack/compare/v4.3.0...v4.4.0) (2026-08-22)
+
+
+### Features
+
+* **eval:** adstock kernel-parameter uncertainty via ensembles ([6628e14](https://github.com/DoktorMike/neuralnethack/commit/6628e14dce281d58f6029d1372cee26705eba484))
+* **examples:** boxed mmm with 50 insertion types ([d798bef](https://github.com/DoktorMike/neuralnethack/commit/d798befce67b52ca7cf6e78c2462d7e8276cc1ae))
+* **examples:** mmm adstock kernel-recovery walkthrough ([73123f6](https://github.com/DoktorMike/neuralnethack/commit/73123f64dbfaec0595adff9bb3760ddd46b72bc7))
+* **mlp:** boxed adstock with routed carryover and saturation ([11eb67b](https://github.com/DoktorMike/neuralnethack/commit/11eb67bcef252a52c41a14d9e3896e5e4c3413a2))
+* **mlp:** differentiable adstock lag-kernel input stage ([0d3d3f1](https://github.com/DoktorMike/neuralnethack/commit/0d3d3f1d14d8b695855cc7c7de5b6bf7df9889ab))
+* **mlp:** optional non-negative weight constraints ([f1d3367](https://github.com/DoktorMike/neuralnethack/commit/f1d3367439ea112f5714b748402b730086df9de3))
+
+
+### Other
+
+* **adstock:** weibull delayed-peak recovery ([6fa9a45](https://github.com/DoktorMike/neuralnethack/commit/6fa9a45db9d80511076099245b44fe939002ed11))
+* **matrixtools:** skip B^T pack in gemmNT when rows can't amortize it ([dd2902d](https://github.com/DoktorMike/neuralnethack/commit/dd2902d91d19b6b66e759e18930cb808b293e1e3))
+* **mlp:** AVX-512 microkernels for small GEMM shapes ([f8584f1](https://github.com/DoktorMike/neuralnethack/commit/f8584f1ebcae96c6357955eaf173f6d952d284e3))
+
+
+### Documentation
+
+* add pytorch rows to speed tables, refresh numbers ([88b4d30](https://github.com/DoktorMike/neuralnethack/commit/88b4d30cad0ec6ed437eba217bc7a5091bec1669))
+* **adstock:** size lag window for tail mass, example to L=28 ([efe3e50](https://github.com/DoktorMike/neuralnethack/commit/efe3e50f3850ba64db23485309a095c785eb1903))
+* bootstrap bands in mmm example and readme ([5f80e3d](https://github.com/DoktorMike/neuralnethack/commit/5f80e3d22cc9809422e75c1ccf2303deeb4e5bb2))
+* boxed adstock usage, spec findings, warmup warning ([b0dffcf](https://github.com/DoktorMike/neuralnethack/commit/b0dffcfaa46f7fec4dcb6959007db305f1d831f3))
+* document adstock stage ([0cd3eec](https://github.com/DoktorMike/neuralnethack/commit/0cd3eec44cae091121d8d4a90b3bea2ccfba55d7))
+* document pytorch crossover from width sweep ([4a41a91](https://github.com/DoktorMike/neuralnethack/commit/4a41a9127a1f85d27afc4b2de6ca6ce5021956b1))
+* **examples:** make boxed routing table self-explanatory ([471f821](https://github.com/DoktorMike/neuralnethack/commit/471f8216f602dd9d2a9f4beeec2cee6f3d171da4))
+* **readme:** point boxed section at mmm_boxed example ([6e48391](https://github.com/DoktorMike/neuralnethack/commit/6e483912b4e7c5f2ea306f305368953e3bff8e6b))
+* **readme:** surface benchmark tables in speed section ([ae7fa35](https://github.com/DoktorMike/neuralnethack/commit/ae7fa35053a185d0f106ad11aa7bd96f4cc8e535))
+* spec for boxed adstock routing (v1 free logits, v2 features) ([5d05cbc](https://github.com/DoktorMike/neuralnethack/commit/5d05cbc0a2fe6e7a5a3269a8bc4b77fe719ad3f0))
+* **todo:** note recurrent layers as probably-skip ([c61aa30](https://github.com/DoktorMike/neuralnethack/commit/c61aa30d15f83b1899f57fb36f6acb05be61f48f))
+* use nonNegative in boxed mmm example ([88ba2af](https://github.com/DoktorMike/neuralnethack/commit/88ba2afa6e976729681f6f1c12eab5f54aeef15b))
+
 ## [4.3.0](https://github.com/DoktorMike/neuralnethack/compare/v4.2.0...v4.3.0) (2026-06-27)
 
 
