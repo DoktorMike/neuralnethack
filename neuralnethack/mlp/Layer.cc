@@ -1,4 +1,5 @@
 #include "Layer.hh"
+#include "../matrixtools/SmallGemm.hh"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -124,8 +125,16 @@ vector<double>& Layer::propagate(const vector<double>& input, const double* prea
 
 #ifdef USE_BLAS
 	const double* __restrict__ inp = input.data();
-	for (uint i = 0; i < ncurr; ++i)
-		out[i] = cblas_ddot(ni, inp, 1, wt + i * stride, 1) + wt[i * stride + ni];
+	if (nnh::smallgemm::small(1, ncurr, ni)) {
+		// One kernel call instead of ncurr cblas_ddot calls; the per-call
+		// BLAS overhead dominates at these widths.
+		nnh::smallgemm::gemmNT(1, ncurr, ni, inp, ni, wt, stride, out, ncurr);
+		for (uint i = 0; i < ncurr; ++i)
+			out[i] += wt[i * stride + ni];
+	} else {
+		for (uint i = 0; i < ncurr; ++i)
+			out[i] = cblas_ddot(ni, inp, 1, wt + i * stride, 1) + wt[i * stride + ni];
+	}
 #else
 	const double* __restrict__ inp = input.data();
 	for (uint i = 0; i < ncurr; ++i) {
@@ -178,8 +187,11 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 #ifdef USE_BLAS
 	// Out[B x ncurr] = Input[B x nprev] * W[ncurr x nprev]^T
 	// W is [ncurr x (nprev+1)] row-major; ldb=stride skips bias column
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, B, ncurr, nprev, 1.0, input, nprev, wt,
-	            stride, 0.0, out, ncurr);
+	if (nnh::smallgemm::small(B, ncurr, nprev))
+		nnh::smallgemm::gemmNT(B, ncurr, nprev, input, nprev, wt, stride, out, ncurr);
+	else
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, B, ncurr, nprev, 1.0, input, nprev,
+		            wt, stride, 0.0, out, ncurr);
 
 	// Add bias to each row. Pre-pack biases into a contiguous buffer so
 	// the inner loop over j has unit-stride loads on both sides; the
@@ -324,8 +336,11 @@ void Layer::accumulateGradientsBatch(const double* input, uint B) {
 	const uint stride = nprev + 1;
 
 #ifdef USE_BLAS
-	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, ncurr, nprev, B, 1.0, delta, ncurr, input,
-	            nprev, 1.0, grad, stride);
+	if (nnh::smallgemm::small(ncurr, nprev, B))
+		nnh::smallgemm::gemmTNAcc(ncurr, nprev, B, delta, ncurr, input, nprev, grad, stride);
+	else
+		cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, ncurr, nprev, B, 1.0, delta, ncurr,
+		            input, nprev, 1.0, grad, stride);
 #else
 	for (uint i = 0; i < ncurr; ++i) {
 		for (uint j = 0; j < nprev; ++j) {

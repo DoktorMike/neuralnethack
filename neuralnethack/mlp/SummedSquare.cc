@@ -1,5 +1,6 @@
 #include "SummedSquare.hh"
 #include "../matrixtools/MatrixTools.hh"
+#include "../matrixtools/SmallGemm.hh"
 #include "../datatools/Pattern.hh"
 
 #ifdef HAVE_CONFIG_H
@@ -104,8 +105,12 @@ double SummedSquare::gradient() {
 		const double* wt = next.weights().data();
 
 #ifdef USE_BLAS
-		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, bs, nc, nn, 1.0, nlg, nn, wt,
-		            nextStride, 0.0, clg, nc);
+		// delta_curr[B x nc] = delta_next[B x nn] * W_next[nn x nc]
+		if (nnh::smallgemm::small(bs, nc, nn))
+			nnh::smallgemm::gemmNN(bs, nc, nn, nlg, nn, wt, nextStride, clg, nc);
+		else
+			cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, bs, nc, nn, 1.0, nlg, nn, wt,
+			            nextStride, 0.0, clg, nc);
 #else
 		for (uint b = 0; b < bs; ++b) {
 			for (uint j = 0; j < nc; ++j) {

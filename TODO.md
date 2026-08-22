@@ -103,13 +103,20 @@ Listed for clarity so they don't keep coming up:
 - Mixed precision / templated Matrix library.
 
 ## Performance ceiling notes
-On the Pima 8-32-1 / batch-32 benchmark, this lib trains in ~10 ms / 100
-epochs vs mlpack at ~0.5 ms (20x gap). The gap is structural, not a
-specific bottleneck. mlpack's Armadillo expression templates inline a
+On the Pima 8-32-1 / batch-32 benchmark, this lib trains in ~9.5 ms / 100
+epochs vs mlpack at ~0.5 ms. The gap is structural, not a specific
+bottleneck. mlpack's Armadillo expression templates inline a
 compile-time-sized GEMM directly at the call site, fusing forward +
-backward + Adam update with no per-call dispatch overhead. nnh's
-runtime-sized `Layer` has to dispatch through OpenBLAS's small-kernel
-path on every call, which costs ~1 us per dgemm and is the floor.
+backward + Adam update with no per-call dispatch overhead.
+
+Measured 2026-08 (Zen 5, OpenBLAS 0.3.x with the direct small-kernel
+path): a cblas_dgemm on the hot Pima shapes costs 50-480 ns total, NOT
+the ~1 us dispatch overhead previously assumed. GEMM at BLAS speed is
+only ~15% of epoch time; the rest is activation kernels (~16%), bias
+and bookkeeping loops in propagate/accumulate (~18%), the Adam update
+(~9%), per-epoch full-set outputError (~6%), and per-batch
+resize/packing. Closing the remaining gap means fusing those stages
+(the MlpArch/Weights/State split is the prerequisite), not faster GEMM.
 
 Things that didn't close the gap (verified, save the time next time):
 - **Eigen Dynamic-size embed.** Eigen's `Map<MatrixXd>` ends up calling
@@ -127,10 +134,20 @@ Things that *did* help (already shipped in 4.1.0):
   vectorising and ate 23% of profile).
 - Pre-pack biases for vectorised per-row add.
 
+Shipped since:
+- AVX-512 small-GEMM microkernels (`matrixtools/SmallGemm`), dispatched
+  below a 64^3 FLOP threshold. Quad-row register blocking (4 independent
+  FMA chains sharing each B load); dot-product form for narrow outputs.
+  Beats OpenBLAS ~1.5x on the batch-32 forward shape, par elsewhere.
+  Net: train 10.4 -> 9.5 ms, single-pattern inference 0.18 -> 0.10 us
+  (the ncurr-ddot-calls path was the real inference overhead). The
+  earlier "3-5x of mlpack" estimate was premised on the stale 1 us BLAS
+  overhead figure and does not hold; see ceiling notes above.
+
 Plausible further wins (not yet attempted):
-- Hand-coded AVX-512 microkernels for the 4-6 hot GEMM shapes that
-  dominate small MLPs. ~200 LOC of intrinsics. Probably gets to within
-  3-5x of mlpack.
+- Fuse bias + activation into the forward kernel, and deriv-scale into
+  the backprop kernel; hoist per-batch resize/alloc out of the loop.
+  This is where the profile says the time is.
 - Compile-time `Layer<InDim, OutDim>` templates. Highest ceiling but
   rewrites Mlp/Factory/parser/serialisation. Loses the runtime-arch
   property. Reach for this only if the benchmark gap is biting a real

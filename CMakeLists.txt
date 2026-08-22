@@ -120,6 +120,7 @@ set(LIB_SOURCES
     neuralnethack/evaltools/Uncertainty.cc
     # matrixtools
     neuralnethack/matrixtools/MatrixTools.cc
+    neuralnethack/matrixtools/SmallGemm.cc
     # parser
     neuralnethack/parser/Parser.cc
     neuralnethack/parser/TomlParser.cc
