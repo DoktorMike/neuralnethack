@@ -90,6 +90,40 @@ struct AdstockSummary {
  */
 AdstockSummary summarizeAdstock(NeuralNetHack::Ensemble& ensemble, double alpha = 0.1);
 
+/**Ensemble summary for the BOXED adstock stage (see
+ * doc/spec-boxed-adstock.md). Boxes are canonicalized per member by
+ * sorting on mean carryover lag (sum_l l * w_k[l]) before aggregating,
+ * so box permutation across members (label switching) cannot corrupt
+ * the intervals. */
+struct BoxedAdstockSummary {
+	uint channels, lags, boxes;
+	uint paramsPerBox; ///< kernel params per box: 1 (geometric) or 2 (Weibull)
+	bool hill;         ///< saturation gating present
+
+	/**Per-box per-lag kernel bands in canonical (fast-to-slow) order:
+	 * mean and alpha/2, 1-alpha/2 percentiles. Each [K][L]. */
+	std::vector<std::vector<double>> kernelMean, kernelLower, kernelUpper;
+	/**Natural-scale kernel params per box, box-major [K * paramsPerBox]. */
+	std::vector<double> paramMean, paramLower, paramUpper;
+	/**Hill half-saturation and exponent bands per box [K] (hill only). */
+	std::vector<double> satMean, satLower, satUpper;
+	std::vector<double> expMean, expLower, expUpper;
+
+	/**Per-channel modal box (canonical index) and assignment stability:
+	 * the fraction of members routing the channel to its modal box.
+	 * "Channel 7 routed long in 9/10 members" reads from these. */
+	std::vector<uint> modalBox;    ///< [C]
+	std::vector<double> stability; ///< [C]
+	/**Mean routing probabilities across members, canonical order [C][K]. */
+	std::vector<std::vector<double>> meanRouting;
+};
+
+/**Summarize a boxed adstock stage across an ensemble's members with
+ * percentile intervals. Members must all carry a boxed stage of
+ * identical shape, family, and saturation setting (throws
+ * std::invalid_argument otherwise, or when the ensemble is empty). */
+BoxedAdstockSummary summarizeBoxedAdstock(NeuralNetHack::Ensemble& ensemble, double alpha = 0.1);
+
 } // namespace Uncertainty
 } // namespace EvalTools
 

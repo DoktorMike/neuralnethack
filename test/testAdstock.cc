@@ -11,6 +11,7 @@
 #include "mlp/Serialization.hh"
 #include "mlp/SummedSquare.hh"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -289,6 +290,294 @@ bool ensembleUncertainty() {
 	return true;
 }
 
+// --- Boxed mode (doc/spec-boxed-adstock.md) -----------------------------
+
+// Finite differences over ALL boxed params (box kernels, hill, logits).
+bool gradientCheckBoxed(Adstock::Kernel kernel, bool hillOn, const char* name) {
+	std::cout << "boxed gradient check (" << name << "): ";
+	nnh::rand::seed(23);
+	const uint C = 4, L = 6, P = 1, K = 3;
+	DataSet ds = buildRandom(24, C, L, P);
+
+	Mlp mlp({C + P, 4, 1}, {"tansig", "purelin"}, false);
+	Adstock ads(C, L, P, kernel, K,
+	            hillOn ? Adstock::Saturation::Hill : Adstock::Saturation::None);
+	// Nudge every param off symmetric/default values
+	for (uint j = 0; j < ads.nParams(); ++j)
+		ads.params()[j] += 0.05 * (static_cast<int>(j % 7) - 3);
+	mlp.adstock(ads);
+
+	SummedSquare loss(mlp, ds);
+	loss.gradient(mlp, ds);
+	std::vector<double> analytic = mlp.adstock()->gradients();
+
+	const double h = 1e-6;
+	double maxdiff = 0.0;
+	for (uint j = 0; j < mlp.adstock()->nParams(); ++j) {
+		double& p = mlp.adstock()->params()[j];
+		const double p0 = p;
+		p = p0 + h;
+		const double ep = loss.outputError(mlp, ds);
+		p = p0 - h;
+		const double em = loss.outputError(mlp, ds);
+		p = p0;
+		const double numeric = (ep - em) / (2.0 * h) / 2.0; // 1/2: SSE convention
+		const double d = std::abs(numeric - analytic[j]);
+		if (!std::isfinite(d)) {
+			std::cerr << "FAIL (non-finite gradient at param " << j << ")" << std::endl;
+			return false;
+		}
+		maxdiff = std::max(maxdiff, d);
+	}
+	if (maxdiff > 1e-6) {
+		std::cerr << "FAIL (max |numeric - analytic| = " << maxdiff << ")" << std::endl;
+		return false;
+	}
+	std::cout << "PASS (maxdiff " << maxdiff << ")" << std::endl;
+	return true;
+}
+
+// 12 channels drawn from 3 known geometric boxes; the model must route
+// channels to the right box and recover the box lambdas. Also asserts
+// the entropy penalty hardens the routing (spec tests 2 and 4).
+bool boxedRecovery() {
+	std::cout << "boxed routing recovery: ";
+	nnh::rand::seed(31);
+	const uint C = 12, L = 10, K = 3;
+	const double boxLambda[3] = {0.2, 0.5, 0.8};
+
+	std::vector<std::vector<double>> w(K, std::vector<double>(L));
+	for (uint k = 0; k < K; ++k) {
+		double S = 0;
+		for (uint l = 0; l < L; ++l) {
+			w[k][l] = std::pow(boxLambda[k], l);
+			S += w[k][l];
+		}
+		for (auto& v : w[k])
+			v /= S;
+	}
+
+	auto core = std::make_shared<CoreDataSet>();
+	for (uint i = 0; i < 500; ++i) {
+		std::vector<double> in(C * L);
+		for (auto& v : in)
+			v = nnh::rand::uniform();
+		double y = 0;
+		for (uint c = 0; c < C; ++c) {
+			const uint b = c % K; // true box of channel c
+			double a = 0;
+			for (uint l = 0; l < L; ++l)
+				a += w[b][l] * in[c * L + l];
+			y += a / C;
+		}
+		std::vector<double> out = {y + 0.01 * (2.0 * nnh::rand::uniform() - 1.0)};
+		core->addPattern(Pattern(std::to_string(i), in, out));
+	}
+	DataSet ds;
+	ds.coreDataSet(core);
+
+	// Two-phase schedule: explore with the penalty off (turning it on from
+	// step one hardens the routing before the boxes separate), then turn
+	// it on to push the routing to one-hot.
+	Mlp mlp({C, 1}, {"purelin"}, false);
+	mlp.adstock(Adstock(C, L, 0, Adstock::Kernel::Geometric, K));
+	SummedSquare loss(mlp, ds);
+	std::ostringstream sink;
+	{
+		Adam opt(mlp, ds, loss, 0.0, 32, 0.05);
+		opt.numEpochs(400);
+		opt.train(sink);
+	}
+	mlp.adstock()->entropyPenalty(0.01);
+	{
+		Adam opt(mlp, ds, loss, 0.0, 32, 0.02);
+		opt.numEpochs(100);
+		opt.train(sink);
+	}
+
+	// Canonicalize recovered boxes by lambda, then check assignments
+	Adstock* a = mlp.adstock();
+	std::vector<double> nat = a->naturalParams(); // K lambdas
+	std::vector<uint> order(K);
+	for (uint k = 0; k < K; ++k)
+		order[k] = k;
+	std::sort(order.begin(), order.end(), [&](uint i, uint j) { return nat[i] < nat[j]; });
+
+	double maxLambdaErr = 0;
+	for (uint k = 0; k < K; ++k)
+		maxLambdaErr = std::max(maxLambdaErr, std::abs(nat[order[k]] - boxLambda[k]));
+
+	std::vector<uint> canonOf(K);
+	for (uint k = 0; k < K; ++k)
+		canonOf[order[k]] = k;
+	uint correct = 0;
+	double minMaxPi = 1.0;
+	const std::vector<uint> assign = a->boxAssignments();
+	for (uint c = 0; c < C; ++c) {
+		if (canonOf[assign[c]] == c % K) ++correct;
+		const std::vector<double> pi = a->routingProbs(c);
+		minMaxPi = std::min(minMaxPi, *std::max_element(pi.begin(), pi.end()));
+	}
+	if (correct < 10 || maxLambdaErr > 0.05 || minMaxPi < 0.9) {
+		std::cerr << "FAIL (correct " << correct << "/12, lambda err " << maxLambdaErr
+		          << ", min max-pi " << minMaxPi << ")" << std::endl;
+		return false;
+	}
+	std::cout << "PASS (" << correct << "/12 routed, lambda err " << maxLambdaErr
+	          << ", min max-pi " << minMaxPi << ")" << std::endl;
+	return true;
+}
+
+// Two boxes with distinct half-saturations; recovered ordering must hold
+// (spec test 3).
+bool saturationRecovery() {
+	std::cout << "boxed saturation recovery: ";
+	nnh::rand::seed(41);
+	const uint C = 6, L = 8, K = 2;
+	const double boxLambda[2] = {0.3, 0.7};
+	const double boxHalf[2] = {0.3, 1.5};
+
+	std::vector<std::vector<double>> w(K, std::vector<double>(L));
+	for (uint k = 0; k < K; ++k) {
+		double S = 0;
+		for (uint l = 0; l < L; ++l) {
+			w[k][l] = std::pow(boxLambda[k], l);
+			S += w[k][l];
+		}
+		for (auto& v : w[k])
+			v /= S;
+	}
+	auto hillFn = [](double a, double s) { return a / (a + s); };
+
+	auto core = std::make_shared<CoreDataSet>();
+	for (uint i = 0; i < 600; ++i) {
+		std::vector<double> in(C * L);
+		for (auto& v : in)
+			v = 2.0 * nnh::rand::uniform();
+		double y = 0;
+		for (uint c = 0; c < C; ++c) {
+			const uint b = c % K;
+			double a = 0;
+			for (uint l = 0; l < L; ++l)
+				a += w[b][l] * in[c * L + l];
+			y += hillFn(a, boxHalf[b]) / C;
+		}
+		std::vector<double> out = {y + 0.005 * (2.0 * nnh::rand::uniform() - 1.0)};
+		core->addPattern(Pattern(std::to_string(i), in, out));
+	}
+	DataSet ds;
+	ds.coreDataSet(core);
+
+	Mlp mlp({C, 1}, {"purelin"}, false);
+	Adstock ads(C, L, 0, Adstock::Kernel::Geometric, K, Adstock::Saturation::Hill);
+	ads.entropyPenalty(0.001);
+	mlp.adstock(ads);
+	SummedSquare loss(mlp, ds);
+	Adam opt(mlp, ds, loss, 0.0, 32, 0.05);
+	opt.numEpochs(800);
+	std::ostringstream sink;
+	opt.train(sink);
+
+	// Order boxes by recovered lambda; half-saturations must order the
+	// same way as the truth (fast box has the smaller half-saturation).
+	Adstock* a = mlp.adstock();
+	std::vector<double> nat = a->naturalParams(); // [K lambdas | K sat | K exp]
+	const uint fast = nat[0] < nat[1] ? 0u : 1u;
+	const double sFast = nat[K + fast], sSlow = nat[K + (1 - fast)];
+	if (!(sFast < sSlow)) {
+		std::cerr << "FAIL (half-saturations: fast " << sFast << ", slow " << sSlow << ")"
+		          << std::endl;
+		return false;
+	}
+	std::cout << "PASS (half-sat fast " << sFast << " < slow " << sSlow << ")" << std::endl;
+	return true;
+}
+
+// Label-switching canonicalization: an ensemble of one member plus a
+// box-permuted copy must summarize with zero-width bands and stability 1.
+bool labelSwitching() {
+	std::cout << "boxed label-switching canonicalization: ";
+	const uint C = 5, L = 8, K = 3;
+	const uint ppk = 1; // geometric
+
+	Mlp m1({C, 1}, {"purelin"}, false);
+	Adstock a1(C, L, 0, Adstock::Kernel::Geometric, K, Adstock::Saturation::Hill);
+	// Distinct params everywhere
+	for (uint j = 0; j < a1.nParams(); ++j)
+		a1.params()[j] += 0.13 * (static_cast<int>(j % 5) - 2);
+	m1.adstock(a1);
+
+	// Member 2: permute the boxes (rotation perm[k] = (k+1) % K)
+	Mlp m2(m1);
+	Adstock* a2 = m2.adstock();
+	const std::vector<double> p1 = m1.adstock()->params();
+	std::vector<double>& p2 = a2->params();
+	for (uint k = 0; k < K; ++k) {
+		const uint dst = (k + 1) % K;
+		for (uint p = 0; p < ppk; ++p)
+			p2[dst * ppk + p] = p1[k * ppk + p];
+		p2[K * ppk + dst] = p1[K * ppk + k];         // sigma block
+		p2[K * ppk + K + dst] = p1[K * ppk + K + k]; // nu block
+	}
+	const uint lOff = K * ppk + 2 * K;
+	for (uint c = 0; c < C; ++c)
+		for (uint k = 0; k < K; ++k)
+			p2[lOff + c * K + (k + 1) % K] = p1[lOff + c * K + k];
+
+	NeuralNetHack::Ensemble ens;
+	ens.addMlp(std::make_unique<Mlp>(m1), 1.0);
+	ens.addMlp(std::make_unique<Mlp>(m2), 1.0);
+
+	auto s = EvalTools::Uncertainty::summarizeBoxedAdstock(ens, 0.1);
+	double maxWidth = 0;
+	for (uint k = 0; k < K; ++k)
+		for (uint l = 0; l < L; ++l)
+			maxWidth = std::max(maxWidth, s.kernelUpper[k][l] - s.kernelLower[k][l]);
+	for (uint j = 0; j < s.paramMean.size(); ++j)
+		maxWidth = std::max(maxWidth, s.paramUpper[j] - s.paramLower[j]);
+	double minStab = 1.0;
+	for (uint c = 0; c < C; ++c)
+		minStab = std::min(minStab, s.stability[c]);
+	if (maxWidth > 1e-12 || minStab < 1.0) {
+		std::cerr << "FAIL (max band width " << maxWidth << ", min stability " << minStab << ")"
+		          << std::endl;
+		return false;
+	}
+	std::cout << "PASS" << std::endl;
+	return true;
+}
+
+// NNH3 round-trip preserves boxed meta, params, temperature, predictions.
+bool boxedSerialization() {
+	std::cout << "NNH3 serialization round-trip: ";
+	nnh::rand::seed(9);
+	const uint C = 3, L = 5, P = 1, K = 2;
+	Mlp mlp({C + P, 3, 1}, {"tansig", "logsig"}, false);
+	Adstock ads(C, L, P, Adstock::Kernel::Weibull, K, Adstock::Saturation::Hill);
+	for (uint j = 0; j < ads.nParams(); ++j)
+		ads.params()[j] += 0.07 * (static_cast<int>(j % 4) - 1);
+	ads.temperature(0.7);
+	mlp.adstock(ads);
+
+	std::stringstream buf;
+	saveMlpBinary(mlp, buf);
+	auto loaded = loadMlpBinary(buf);
+
+	std::vector<double> x(C * L + P);
+	for (auto& v : x)
+		v = nnh::rand::uniform();
+	const double y0 = mlp.propagate(x)[0];
+	const double y1 = loaded->propagate(x)[0];
+	const Adstock* la = loaded->adstock();
+	if (!la || !la->boxed() || la->nBoxes() != K ||
+	    la->saturation() != Adstock::Saturation::Hill || la->temperature() != 0.7 || y0 != y1) {
+		std::cerr << "FAIL (y0 " << y0 << " y1 " << y1 << ")" << std::endl;
+		return false;
+	}
+	std::cout << "PASS" << std::endl;
+	return true;
+}
+
 // Save/load round-trip preserves adstock meta, params, and predictions.
 bool serializationRoundTrip() {
 	std::cout << "NNH2 serialization round-trip: ";
@@ -333,6 +622,15 @@ int main() {
 	allPass &= quasiNewtonTrains();
 	allPass &= ensembleUncertainty();
 	allPass &= serializationRoundTrip();
+
+	std::cout << std::endl;
+	allPass &= gradientCheckBoxed(Adstock::Kernel::Geometric, false, "geometric");
+	allPass &= gradientCheckBoxed(Adstock::Kernel::Geometric, true, "geometric+hill");
+	allPass &= gradientCheckBoxed(Adstock::Kernel::Weibull, true, "weibull+hill");
+	allPass &= boxedRecovery();
+	allPass &= saturationRecovery();
+	allPass &= labelSwitching();
+	allPass &= boxedSerialization();
 
 	std::cout << std::endl << (allPass ? "ALL PASS" : "SOME FAILED") << std::endl;
 	return allPass ? 0 : 1;

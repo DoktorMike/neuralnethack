@@ -173,7 +173,10 @@ double CrossEntropy::gradient() {
 			div(layer.betaGradients(), -denom);
 		}
 	}
-	if (Adstock* a = theMlp->adstock()) div(a->gradients(), -denom);
+	if (Adstock* a = theMlp->adstock()) {
+		div(a->gradients(), -denom);
+		a->applyEntropyPenaltyGradient();
+	}
 
 	return -err / denom;
 }

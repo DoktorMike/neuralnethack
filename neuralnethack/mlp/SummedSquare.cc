@@ -184,6 +184,7 @@ double SummedSquare::gradient() {
 		auto& ag = a->gradients();
 		std::transform(ag.begin(), ag.end(), ag.begin(),
 		               [denom](double v) { return v / -denom; });
+		a->applyEntropyPenaltyGradient();
 	}
 
 	return err / denom;
