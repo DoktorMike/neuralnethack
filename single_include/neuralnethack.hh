@@ -1661,49 +1661,110 @@ using uint = unsigned int;
  * response over many future days. Feeding L raw lags per channel into a
  * dense layer creates L free weights per channel per neuron that must be
  * regularized or pruned; instead this stage collapses each channel's lag
- * window through a normalized parametric kernel with 1-2 free parameters
- * per channel, trained jointly with the network by the existing
+ * window through a normalized parametric kernel with few free
+ * parameters, trained jointly with the network by the existing
  * optimizers.
  *
  * Input layout per pattern (channel-major):
  *   [c0 lag0..lagL-1, c1 lag0..lagL-1, ..., passthrough covariates]
  * where lag0 is "today". Output layout:
- *   [c0 adstocked, c1 adstocked, ..., passthrough copied through]
+ *   [c0 transformed, c1 transformed, ..., passthrough copied through]
+ *
+ * Two modes:
+ *
+ * **Per-channel** (nBoxes == 0): every channel has its own kernel
+ * parameters (1-2 per channel). Right when C is small.
+ *
+ * **Boxed** (nBoxes == K > 0): K shared kernel "boxes" (carryover
+ * regimes: short / medium / long) plus per-channel routing
+ * pi_c = softmax(logits_c / tau) that mixes the boxes:
+ *   kernel_c = sum_k pi_ck w(theta_k)
+ *   a_c      = kernel_c . x_c
+ *   out_c    = sum_k pi_ck hill(a_c; s_k, n_k)   (Saturation::Hill)
+ *            = a_c                               (Saturation::None)
+ * One routing gates both carryover and saturation: a channel is one
+ * insertion type end to end. C media channels collapse to K effective
+ * ones; each box's parameters pool ~C/K channels' worth of data. An
+ * optional entropy penalty pushes the routing toward one-hot. See
+ * doc/spec-boxed-adstock.md.
  *
  * Kernels (weights normalized to sum to 1 over the window; overall scale
  * belongs to the dense layers behind this stage):
- *   Geometric: w_l ~ lambda^l, lambda = sigmoid(rho). 1 param/channel.
+ *   Geometric: w_l ~ lambda^l, lambda = sigmoid(rho). 1 param.
  *              Monotone decay from today.
  *   Weibull:   w_l ~ z^(k-1) exp(-z^k), z = (l+1)/s, k = exp(kappa),
- *              s = exp(sigma). 2 params/channel. Allows a delayed peak.
+ *              s = exp(sigma). 2 params. Allows a delayed peak.
+ * Saturation (boxed mode only): hill(a; s, n) = a^n / (a^n + s^n) with
+ * s = exp(sigma), n = exp(nu); n starts at 1 (plain diminishing
+ * returns), n > 1 learns an S-shaped response.
  * All free parameters are unconstrained reals; the positivity/interval
  * constraints live in the transform, so any gradient trainer works.
  */
 class Adstock {
   public:
 	enum class Kernel { Geometric, Weibull };
+	enum class Saturation { None, Hill };
 
-	/**\param channels number of media channels (lagged inputs).
+	/**Per-channel mode: one kernel per channel.
+	 * \param channels number of media channels (lagged inputs).
 	 * \param lags window length L per channel (lag 0 = today).
 	 * \param passthrough trailing covariates copied through untouched.
 	 * \param k kernel family, shared by all channels (params per channel).
 	 */
 	Adstock(uint channels, uint lags, uint passthrough, Kernel k = Kernel::Geometric);
 
+	/**Boxed mode: K shared kernel boxes with learned per-channel routing,
+	 * optionally gating a per-box Hill saturation with the same routing.
+	 * \param channels number of media channels.
+	 * \param lags window length L per channel.
+	 * \param passthrough trailing covariates copied through untouched.
+	 * \param k kernel family shared by all boxes.
+	 * \param nBoxes number of boxes K (>= 1).
+	 * \param sat per-box saturation applied after the adstock dot.
+	 */
+	Adstock(uint channels, uint lags, uint passthrough, Kernel k, uint nBoxes,
+	        Saturation sat = Saturation::None);
+
 	uint nChannels() const { return theChannels; }
 	uint nLags() const { return theLags; }
 	uint nPassthrough() const { return thePassthrough; }
 	Kernel kernel() const { return theKernel; }
+	uint nBoxes() const { return theNBoxes; }
+	bool boxed() const { return theNBoxes > 0; }
+	Saturation saturation() const { return theSaturation; }
+
+	/**Softmax temperature for the routing (boxed mode; default 1).
+	 * Lower it during training to harden assignments. */
+	double temperature() const { return theTau; }
+	void temperature(double tau) { theTau = tau; }
+
+	/**Entropy-penalty coefficient beta (boxed mode; default 0 = off).
+	 * The loss gains beta * sum_c H(pi_c), pushing routing toward
+	 * one-hot. Applied by the Error classes alongside weight
+	 * elimination.
+	 *
+	 * Schedule it: train with beta = 0 until the routing stabilizes,
+	 * THEN enable the penalty to harden the assignments. Enabling it
+	 * from the first epoch hardens the routing toward whichever vertex
+	 * is nearest before the boxes have separated, locking in
+	 * chance-level assignments. */
+	double entropyPenalty() const { return theEntropyBeta; }
+	void entropyPenalty(double beta) { theEntropyBeta = beta; }
 
 	/**Expected raw input dimension: channels*lags + passthrough. */
 	uint inputDim() const { return theChannels * theLags + thePassthrough; }
 	/**Produced output dimension: channels + passthrough. */
 	uint outputDim() const { return theChannels + thePassthrough; }
 
+	/**Kernel-family parameters per kernel: 1 (geometric) or 2 (Weibull). */
 	uint nParamsPerChannel() const { return theKernel == Kernel::Geometric ? 1u : 2u; }
-	uint nParams() const { return theChannels * nParamsPerChannel(); }
+	uint nParams() const;
 
-	/**Unconstrained trainable parameters, channel-major. */
+	/**Unconstrained trainable parameters. Per-channel mode:
+	 * channel-major kernel params. Boxed mode layout:
+	 * [box kernel params (K*ppk) | hill sigmas (K) | hill nus (K) |
+	 *  routing logits (C*K, channel-major)] (hill blocks only with
+	 * Saturation::Hill). */
 	std::vector<double>& params() { return theParams; }
 	const std::vector<double>& params() const { return theParams; }
 	/**Accumulated gradients, same layout as params(). */
@@ -1715,22 +1776,38 @@ class Adstock {
 	std::vector<double>& paramUpdates() { return theUpdates; }
 
 	void killGradients();
-	/**Reset parameters to family defaults (geometric lambda=0.5;
-	 * Weibull k=2, scale=L/3). */
+	/**Reset parameters to family defaults. Per-channel: geometric
+	 * lambda=0.5, Weibull k=2/scale=L/3. Boxed: box kernels staggered
+	 * from fast to slow decay (symmetry breaking), hill s=1/n=1,
+	 * logits 0 (uniform routing). */
 	void initParams();
 
 	/**The normalized kernel weights for channel c at the current
-	 * parameters (length L). For inspection/reporting. */
+	 * parameters (length L); in boxed mode the routing-mixed kernel.
+	 * For inspection/reporting. */
 	std::vector<double> kernelWeights(uint c) const;
 
-	/**Kernel parameters on their natural scale, channel-major:
-	 * geometric decay lambda in (0,1) per channel; Weibull shape k and
-	 * scale s (both > 0) per channel. For reporting. */
+	/**Kernel parameters on their natural scale. Per-channel mode:
+	 * channel-major (lambda, or k and s). Boxed mode: box-major kernel
+	 * params, then hill half-saturations (K), then hill exponents (K)
+	 * when saturation is on. Routing logits are not included. */
 	std::vector<double> naturalParams() const;
 
+	// Boxed-mode reporting ---------------------------------------------------
+	/**Routing probabilities pi_c for channel c (length K). */
+	std::vector<double> routingProbs(uint c) const;
+	/**argmax_k pi_ck per channel. */
+	std::vector<uint> boxAssignments() const;
+	/**Normalized kernel of box k (length L). */
+	std::vector<double> boxKernel(uint k) const;
+	/**Hill half-saturation of box k, natural scale (Saturation::Hill). */
+	double boxSaturation(uint k) const;
+	/**Hill exponent of box k, natural scale (Saturation::Hill). */
+	double boxHillExponent(uint k) const;
+
 	/**Transform a batch [B x inputDim] row-major; returns pointer to the
-	 * internal output buffer [B x outputDim]. Also refreshes the cached
-	 * kernels used by accumulateGradients. */
+	 * internal output buffer [B x outputDim]. Also refreshes the caches
+	 * used by accumulateGradients. */
 	const double* transformBatch(const double* in, uint B);
 
 	/**The output buffer filled by the last transformBatch call. */
@@ -1741,24 +1818,58 @@ class Adstock {
 
 	/**Accumulate parameter gradients given the raw batch input passed to
 	 * transformBatch and the error deltas w.r.t. this stage's outputs
-	 * [B x outputDim]. Uses the kernels cached by transformBatch. */
+	 * [B x outputDim]. Uses the caches from transformBatch. */
 	void accumulateGradients(const double* rawIn, const double* outDelta, uint B);
 
+	/**Add the entropy-penalty gradient beta * d(sum_c H(pi_c))/dlogits to
+	 * the routing-logit gradients. Called by the Error classes after the
+	 * batch normalisation divide (weight-elimination precedent). No-op
+	 * unless boxed and beta > 0. */
+	void applyEntropyPenaltyGradient();
+
   private:
-	/**Recompute theW [C x L] and theDw [C x ppc x L] from theParams. */
+	/**Recompute cached kernels (and routing in boxed mode) from
+	 * theParams. */
 	void computeKernels() const;
-	void channelKernel(uint c, double* w, double* dw) const;
+	/**Normalized kernel + d/dparam from one param set p (length ppk). */
+	void kernelFromParams(const double* p, double* w, double* dw) const;
+	void softmaxRouting(uint c, double* pi) const;
+
+	// Hill helpers (natural-scale s, n); value and partials at a >= 0.
+	static double hill(double a, double s, double n);
+	static void hillPartials(double a, double s, double n, double& dha, double& dhs, double& dhn);
 
 	uint theChannels, theLags, thePassthrough;
 	Kernel theKernel;
+	uint theNBoxes;            ///< 0 = per-channel mode
+	Saturation theSaturation;  ///< boxed mode only
+	double theTau = 1.0;       ///< routing temperature
+	double theEntropyBeta = 0; ///< entropy-penalty coefficient
+
 	std::vector<double> theParams;
 	std::vector<double> theGradients;
 	std::vector<double> theUpdates;
 	std::vector<double> theOutputs;
-	mutable std::vector<double> theW;  ///< cached kernel weights [C x L]
-	mutable std::vector<double> theDw; ///< cached dw/dparam [C x ppc x L]
-	mutable std::vector<double> theCachedParams; ///< params the cache was built from
+
+	// caches rebuilt when params change
+	mutable std::vector<double> theW;  ///< kernels: per-channel [C x L] or boxed [K x L]
+	mutable std::vector<double> theDw; ///< d kernel / d param, matching theW blocks
+	mutable std::vector<double> thePi; ///< boxed: routing [C x K]
+	mutable std::vector<double> theCachedParams;
 	mutable bool theKernelsFresh = false;
+
+	// batch caches from transformBatch, used by accumulateGradients
+	std::vector<double> theA;   ///< boxed: adstocked dot a_c [B x C]
+	std::vector<double> theDot; ///< boxed: per-box dots w_k.x_c [B x C x K]
+
+	// param-layout offsets (boxed mode)
+	uint kernOff() const { return 0; }
+	uint sigOff() const { return theNBoxes * nParamsPerChannel(); }
+	uint nuOff() const { return sigOff() + theNBoxes; }
+	uint logitOff() const {
+		return theNBoxes * nParamsPerChannel() +
+		       (theSaturation == Saturation::Hill ? 2 * theNBoxes : 0);
+	}
 };
 
 /**Round-trip helpers for serialization / config. */
@@ -3476,6 +3587,40 @@ struct AdstockSummary {
  * \return per-channel kernel-weight bands and natural-parameter bands.
  */
 AdstockSummary summarizeAdstock(NeuralNetHack::Ensemble& ensemble, double alpha = 0.1);
+
+/**Ensemble summary for the BOXED adstock stage (see
+ * doc/spec-boxed-adstock.md). Boxes are canonicalized per member by
+ * sorting on mean carryover lag (sum_l l * w_k[l]) before aggregating,
+ * so box permutation across members (label switching) cannot corrupt
+ * the intervals. */
+struct BoxedAdstockSummary {
+	uint channels, lags, boxes;
+	uint paramsPerBox; ///< kernel params per box: 1 (geometric) or 2 (Weibull)
+	bool hill;         ///< saturation gating present
+
+	/**Per-box per-lag kernel bands in canonical (fast-to-slow) order:
+	 * mean and alpha/2, 1-alpha/2 percentiles. Each [K][L]. */
+	std::vector<std::vector<double>> kernelMean, kernelLower, kernelUpper;
+	/**Natural-scale kernel params per box, box-major [K * paramsPerBox]. */
+	std::vector<double> paramMean, paramLower, paramUpper;
+	/**Hill half-saturation and exponent bands per box [K] (hill only). */
+	std::vector<double> satMean, satLower, satUpper;
+	std::vector<double> expMean, expLower, expUpper;
+
+	/**Per-channel modal box (canonical index) and assignment stability:
+	 * the fraction of members routing the channel to its modal box.
+	 * "Channel 7 routed long in 9/10 members" reads from these. */
+	std::vector<uint> modalBox;    ///< [C]
+	std::vector<double> stability; ///< [C]
+	/**Mean routing probabilities across members, canonical order [C][K]. */
+	std::vector<std::vector<double>> meanRouting;
+};
+
+/**Summarize a boxed adstock stage across an ensemble's members with
+ * percentile intervals. Members must all carry a boxed stage of
+ * identical shape, family, and saturation setting (throws
+ * std::invalid_argument otherwise, or when the ensemble is empty). */
+BoxedAdstockSummary summarizeBoxedAdstock(NeuralNetHack::Ensemble& ensemble, double alpha = 0.1);
 
 } // namespace Uncertainty
 } // namespace EvalTools
@@ -7054,11 +7199,35 @@ using std::vector;
 
 Adstock::Adstock(uint channels, uint lags, uint passthrough, Kernel k)
     : theChannels(channels), theLags(lags), thePassthrough(passthrough), theKernel(k),
-      theParams(nParams(), 0.0), theGradients(nParams(), 0.0), theUpdates(nParams(), 0.0),
-      theW(static_cast<size_t>(channels) * lags, 0.0),
-      theDw(static_cast<size_t>(channels) * nParamsPerChannel() * lags, 0.0) {
+      theNBoxes(0), theSaturation(Saturation::None) {
 	assert(channels > 0 && lags > 0);
+	theParams.assign(nParams(), 0.0);
+	theGradients.assign(nParams(), 0.0);
+	theUpdates.assign(nParams(), 0.0);
+	theW.assign(static_cast<size_t>(channels) * lags, 0.0);
+	theDw.assign(static_cast<size_t>(channels) * nParamsPerChannel() * lags, 0.0);
 	initParams();
+}
+
+Adstock::Adstock(uint channels, uint lags, uint passthrough, Kernel k, uint nBoxes, Saturation sat)
+    : theChannels(channels), theLags(lags), thePassthrough(passthrough), theKernel(k),
+      theNBoxes(nBoxes), theSaturation(sat) {
+	assert(channels > 0 && lags > 0 && nBoxes > 0);
+	theParams.assign(nParams(), 0.0);
+	theGradients.assign(nParams(), 0.0);
+	theUpdates.assign(nParams(), 0.0);
+	theW.assign(static_cast<size_t>(nBoxes) * lags, 0.0);
+	theDw.assign(static_cast<size_t>(nBoxes) * nParamsPerChannel() * lags, 0.0);
+	thePi.assign(static_cast<size_t>(channels) * nBoxes, 0.0);
+	initParams();
+}
+
+uint Adstock::nParams() const {
+	const uint ppk = nParamsPerChannel();
+	if (!boxed()) return theChannels * ppk;
+	uint n = theNBoxes * ppk + theChannels * theNBoxes;
+	if (theSaturation == Saturation::Hill) n += 2 * theNBoxes;
+	return n;
 }
 
 void Adstock::killGradients() {
@@ -7066,29 +7235,51 @@ void Adstock::killGradients() {
 }
 
 void Adstock::initParams() {
-	const uint ppc = nParamsPerChannel();
-	for (uint c = 0; c < theChannels; ++c) {
-		if (theKernel == Kernel::Geometric) {
-			theParams[c] = 0.0; // sigmoid(0) = 0.5
-		} else {
-			theParams[c * ppc + 0] = std::log(2.0);              // k = 2
-			theParams[c * ppc + 1] = std::log(theLags / 3.0 + 1e-12); // scale = L/3
+	const uint ppk = nParamsPerChannel();
+	theParams.assign(nParams(), 0.0);
+	if (!boxed()) {
+		for (uint c = 0; c < theChannels; ++c) {
+			if (theKernel == Kernel::Geometric) {
+				theParams[c] = 0.0; // sigmoid(0) = 0.5
+			} else {
+				theParams[c * ppk + 0] = std::log(2.0);                   // k = 2
+				theParams[c * ppk + 1] = std::log(theLags / 3.0 + 1e-12); // scale = L/3
+			}
 		}
+	} else {
+		// Stagger the boxes fast -> slow so gradients can separate them
+		// (identical boxes would receive identical gradients forever).
+		for (uint k = 0; k < theNBoxes; ++k) {
+			const double frac = (k + 1.0) / (theNBoxes + 1.0); // (0,1)
+			if (theKernel == Kernel::Geometric) {
+				// lambda_k spread over (0,1): rho = logit(frac)
+				theParams[kernOff() + k] = std::log(frac / (1.0 - frac));
+			} else {
+				theParams[kernOff() + k * ppk + 0] = std::log(2.0); // shape 2
+				// scale spread over the window
+				theParams[kernOff() + k * ppk + 1] = std::log(theLags * frac / 2.0 + 1e-12);
+			}
+		}
+		if (theSaturation == Saturation::Hill) {
+			for (uint k = 0; k < theNBoxes; ++k) {
+				theParams[sigOff() + k] = 0.0; // half-saturation 1
+				theParams[nuOff() + k] = 0.0;  // exponent 1
+			}
+		}
+		// logits stay 0: uniform routing over already-distinct boxes
 	}
 	theKernelsFresh = false;
 }
 
-// Per-channel kernel weights + derivatives w.r.t. the unconstrained
-// parameters. Weights are normalized to sum to 1 over the window, so
-// dw_l/dtheta = w_l * (dlogg_l/dtheta - sum_j w_j dlogg_j/dtheta).
-void Adstock::channelKernel(uint c, double* w, double* dw) const {
+// Normalized kernel weights + derivatives w.r.t. the unconstrained
+// parameters, from one parameter set p (length ppk). Weights sum to 1
+// over the window, so dw_l/dtheta = w_l (dlogg_l - sum_j w_j dlogg_j).
+void Adstock::kernelFromParams(const double* p, double* w, double* dw) const {
 	const uint L = theLags;
-	const uint ppc = nParamsPerChannel();
 
 	if (theKernel == Kernel::Geometric) {
-		const double rho = theParams[c];
+		const double rho = p[0];
 		const double lambda = 1.0 / (1.0 + std::exp(-rho));
-		// g_l = lambda^l; S = sum g; S' = sum l lambda^(l-1)
 		double S = 0.0, Sp = 0.0, pl = 1.0 /* lambda^l */, plm = 0.0 /* l*lambda^(l-1) */;
 		for (uint l = 0; l < L; ++l) {
 			w[l] = pl;
@@ -7111,8 +7302,8 @@ void Adstock::channelKernel(uint c, double* w, double* dw) const {
 	// log g_l = (k-1) u_l - z_l^k
 	// dlogg/dkappa = k * u_l * (1 - z_l^k)
 	// dlogg/dsigma = -(k-1) + k z_l^k
-	const double kappa = theParams[c * ppc + 0];
-	const double sigma = theParams[c * ppc + 1];
+	const double kappa = p[0];
+	const double sigma = p[1];
 	const double k = std::exp(kappa);
 	vector<double> logg(L), dk(L), ds(L);
 	double maxlg = -1e300;
@@ -7143,48 +7334,174 @@ void Adstock::channelKernel(uint c, double* w, double* dw) const {
 	}
 }
 
+void Adstock::softmaxRouting(uint c, double* pi) const {
+	const uint K = theNBoxes;
+	const double* lg = theParams.data() + logitOff() + static_cast<size_t>(c) * K;
+	double m = lg[0];
+	for (uint k = 1; k < K; ++k)
+		if (lg[k] > m) m = lg[k];
+	double S = 0;
+	for (uint k = 0; k < K; ++k) {
+		pi[k] = std::exp((lg[k] - m) / theTau);
+		S += pi[k];
+	}
+	for (uint k = 0; k < K; ++k)
+		pi[k] /= S;
+}
+
 void Adstock::computeKernels() const {
-	// Trainers mutate params() in place, so freshness = "kernels were
+	// Trainers mutate params() in place, so freshness = "caches were
 	// computed from exactly these parameter values".
 	if (theKernelsFresh && theCachedParams == theParams) return;
-	const uint L = theLags, ppc = nParamsPerChannel();
-	for (uint c = 0; c < theChannels; ++c)
-		channelKernel(c, theW.data() + c * L, theDw.data() + static_cast<size_t>(c) * ppc * L);
+	const uint L = theLags, ppk = nParamsPerChannel();
+	if (!boxed()) {
+		for (uint c = 0; c < theChannels; ++c)
+			kernelFromParams(theParams.data() + c * ppk, theW.data() + c * L,
+			                 theDw.data() + static_cast<size_t>(c) * ppk * L);
+	} else {
+		for (uint k = 0; k < theNBoxes; ++k)
+			kernelFromParams(theParams.data() + kernOff() + k * ppk, theW.data() + k * L,
+			                 theDw.data() + static_cast<size_t>(k) * ppk * L);
+		for (uint c = 0; c < theChannels; ++c)
+			softmaxRouting(c, thePi.data() + static_cast<size_t>(c) * theNBoxes);
+	}
 	theCachedParams = theParams;
 	theKernelsFresh = true;
 }
 
+vector<double> Adstock::kernelWeights(uint c) const {
+	assert(c < theChannels);
+	computeKernels();
+	const uint L = theLags;
+	if (!boxed()) return vector<double>(theW.begin() + c * L, theW.begin() + (c + 1) * L);
+	vector<double> w(L, 0.0);
+	const double* pi = thePi.data() + static_cast<size_t>(c) * theNBoxes;
+	for (uint k = 0; k < theNBoxes; ++k)
+		for (uint l = 0; l < L; ++l)
+			w[l] += pi[k] * theW[k * L + l];
+	return w;
+}
+
 vector<double> Adstock::naturalParams() const {
-	const uint ppc = nParamsPerChannel();
-	vector<double> out(theParams.size());
-	for (uint c = 0; c < theChannels; ++c) {
+	const uint ppk = nParamsPerChannel();
+	vector<double> out;
+	auto pushKernel = [&](const double* p) {
 		if (theKernel == Kernel::Geometric) {
-			out[c] = 1.0 / (1.0 + std::exp(-theParams[c]));
+			out.push_back(1.0 / (1.0 + std::exp(-p[0])));
 		} else {
-			out[c * ppc + 0] = std::exp(theParams[c * ppc + 0]);
-			out[c * ppc + 1] = std::exp(theParams[c * ppc + 1]);
+			out.push_back(std::exp(p[0]));
+			out.push_back(std::exp(p[1]));
 		}
+	};
+	if (!boxed()) {
+		for (uint c = 0; c < theChannels; ++c)
+			pushKernel(theParams.data() + c * ppk);
+		return out;
+	}
+	for (uint k = 0; k < theNBoxes; ++k)
+		pushKernel(theParams.data() + kernOff() + k * ppk);
+	if (theSaturation == Saturation::Hill) {
+		for (uint k = 0; k < theNBoxes; ++k)
+			out.push_back(std::exp(theParams[sigOff() + k]));
+		for (uint k = 0; k < theNBoxes; ++k)
+			out.push_back(std::exp(theParams[nuOff() + k]));
 	}
 	return out;
 }
 
-vector<double> Adstock::kernelWeights(uint c) const {
-	assert(c < theChannels);
-	vector<double> w(theLags), dw(static_cast<size_t>(nParamsPerChannel()) * theLags);
-	channelKernel(c, w.data(), dw.data());
-	return w;
+vector<double> Adstock::routingProbs(uint c) const {
+	assert(boxed() && c < theChannels);
+	computeKernels();
+	const double* pi = thePi.data() + static_cast<size_t>(c) * theNBoxes;
+	return vector<double>(pi, pi + theNBoxes);
+}
+
+vector<uint> Adstock::boxAssignments() const {
+	assert(boxed());
+	computeKernels();
+	vector<uint> a(theChannels, 0);
+	for (uint c = 0; c < theChannels; ++c) {
+		const double* pi = thePi.data() + static_cast<size_t>(c) * theNBoxes;
+		for (uint k = 1; k < theNBoxes; ++k)
+			if (pi[k] > pi[a[c]]) a[c] = k;
+	}
+	return a;
+}
+
+vector<double> Adstock::boxKernel(uint k) const {
+	assert(boxed() && k < theNBoxes);
+	computeKernels();
+	return vector<double>(theW.begin() + k * theLags, theW.begin() + (k + 1) * theLags);
+}
+
+double Adstock::boxSaturation(uint k) const {
+	assert(boxed() && theSaturation == Saturation::Hill && k < theNBoxes);
+	return std::exp(theParams[sigOff() + k]);
+}
+
+double Adstock::boxHillExponent(uint k) const {
+	assert(boxed() && theSaturation == Saturation::Hill && k < theNBoxes);
+	return std::exp(theParams[nuOff() + k]);
+}
+
+// hill(a; s, n) = a^n / (a^n + s^n) for a >= 0.
+double Adstock::hill(double a, double s, double n) {
+	if (a <= 0.0) return 0.0;
+	const double an = std::pow(a, n), sn = std::pow(s, n);
+	return an / (an + sn);
+}
+
+// Partials on the natural scale; all zero at a = 0 by continuity of the
+// gradient contributions we need (a > 0 in practice: spend is
+// non-negative and kernels are positive).
+void Adstock::hillPartials(double a, double s, double n, double& dha, double& dhs, double& dhn) {
+	if (a <= 0.0) {
+		dha = dhs = dhn = 0.0;
+		return;
+	}
+	const double an = std::pow(a, n), sn = std::pow(s, n);
+	const double D = an + sn, D2 = D * D;
+	dha = n * std::pow(a, n - 1.0) * sn / D2;
+	dhs = -an * n * std::pow(s, n - 1.0) / D2;
+	dhn = an * sn * (std::log(a) - std::log(s)) / D2;
 }
 
 void Adstock::transform(const double* in, double* out) const {
 	computeKernels();
 	const uint L = theLags;
-	for (uint c = 0; c < theChannels; ++c) {
-		const double* w = theW.data() + c * L;
-		const double* x = in + c * L;
-		double s = 0.0;
-		for (uint l = 0; l < L; ++l)
-			s += w[l] * x[l];
-		out[c] = s;
+	if (!boxed()) {
+		for (uint c = 0; c < theChannels; ++c) {
+			const double* w = theW.data() + c * L;
+			const double* x = in + c * L;
+			double s = 0.0;
+			for (uint l = 0; l < L; ++l)
+				s += w[l] * x[l];
+			out[c] = s;
+		}
+	} else {
+		const uint K = theNBoxes;
+		const bool hillOn = theSaturation == Saturation::Hill;
+		for (uint c = 0; c < theChannels; ++c) {
+			const double* x = in + c * L;
+			const double* pi = thePi.data() + static_cast<size_t>(c) * K;
+			double a = 0.0;
+			for (uint k = 0; k < K; ++k) {
+				const double* w = theW.data() + k * L;
+				double dot = 0.0;
+				for (uint l = 0; l < L; ++l)
+					dot += w[l] * x[l];
+				a += pi[k] * dot;
+			}
+			if (hillOn) {
+				double h = 0.0;
+				for (uint k = 0; k < K; ++k)
+					h += pi[k] * hill(a, std::exp(theParams[sigOff() + k]),
+					                  std::exp(theParams[nuOff() + k]));
+				out[c] = h;
+			} else {
+				out[c] = a;
+			}
+		}
 	}
 	for (uint p = 0; p < thePassthrough; ++p)
 		out[theChannels + p] = in[theChannels * L + p];
@@ -7192,29 +7509,155 @@ void Adstock::transform(const double* in, double* out) const {
 
 const double* Adstock::transformBatch(const double* in, uint B) {
 	computeKernels();
-	const uint din = inputDim(), dout = outputDim();
+	const uint din = inputDim(), dout = outputDim(), L = theLags;
 	theOutputs.resize(static_cast<size_t>(B) * dout);
-	for (uint b = 0; b < B; ++b)
-		transform(in + static_cast<size_t>(b) * din, theOutputs.data() + static_cast<size_t>(b) * dout);
+	if (!boxed()) {
+		for (uint b = 0; b < B; ++b)
+			transform(in + static_cast<size_t>(b) * din,
+			          theOutputs.data() + static_cast<size_t>(b) * dout);
+		return theOutputs.data();
+	}
+	// Boxed: also cache per-box dots and the mixed dot a_c for backward.
+	const uint K = theNBoxes;
+	const bool hillOn = theSaturation == Saturation::Hill;
+	theA.resize(static_cast<size_t>(B) * theChannels);
+	theDot.resize(static_cast<size_t>(B) * theChannels * K);
+	for (uint b = 0; b < B; ++b) {
+		const double* row = in + static_cast<size_t>(b) * din;
+		double* orow = theOutputs.data() + static_cast<size_t>(b) * dout;
+		for (uint c = 0; c < theChannels; ++c) {
+			const double* x = row + c * L;
+			const double* pi = thePi.data() + static_cast<size_t>(c) * K;
+			double* dot = theDot.data() + (static_cast<size_t>(b) * theChannels + c) * K;
+			double a = 0.0;
+			for (uint k = 0; k < K; ++k) {
+				const double* w = theW.data() + k * L;
+				double d = 0.0;
+				for (uint l = 0; l < L; ++l)
+					d += w[l] * x[l];
+				dot[k] = d;
+				a += pi[k] * d;
+			}
+			theA[static_cast<size_t>(b) * theChannels + c] = a;
+			if (hillOn) {
+				double h = 0.0;
+				for (uint k = 0; k < K; ++k)
+					h += pi[k] * hill(a, std::exp(theParams[sigOff() + k]),
+					                  std::exp(theParams[nuOff() + k]));
+				orow[c] = h;
+			} else {
+				orow[c] = a;
+			}
+		}
+		for (uint p = 0; p < thePassthrough; ++p)
+			orow[theChannels + p] = row[theChannels * L + p];
+	}
 	return theOutputs.data();
 }
 
 void Adstock::accumulateGradients(const double* rawIn, const double* outDelta, uint B) {
 	computeKernels();
-	const uint L = theLags, ppc = nParamsPerChannel(), din = inputDim(), dout = outputDim();
-	for (uint c = 0; c < theChannels; ++c) {
-		const double* dwc = theDw.data() + static_cast<size_t>(c) * ppc * L;
-		for (uint p = 0; p < ppc; ++p) {
-			const double* dw = dwc + p * L;
-			double acc = 0.0;
-			for (uint b = 0; b < B; ++b) {
-				const double* x = rawIn + static_cast<size_t>(b) * din + c * L;
-				double s = 0.0;
-				for (uint l = 0; l < L; ++l)
-					s += dw[l] * x[l];
-				acc += outDelta[static_cast<size_t>(b) * dout + c] * s;
+	const uint L = theLags, ppk = nParamsPerChannel(), din = inputDim(), dout = outputDim();
+
+	if (!boxed()) {
+		for (uint c = 0; c < theChannels; ++c) {
+			const double* dwc = theDw.data() + static_cast<size_t>(c) * ppk * L;
+			for (uint p = 0; p < ppk; ++p) {
+				const double* dw = dwc + p * L;
+				double acc = 0.0;
+				for (uint b = 0; b < B; ++b) {
+					const double* x = rawIn + static_cast<size_t>(b) * din + c * L;
+					double s = 0.0;
+					for (uint l = 0; l < L; ++l)
+						s += dw[l] * x[l];
+					acc += outDelta[static_cast<size_t>(b) * dout + c] * s;
+				}
+				theGradients[c * ppk + p] += acc;
 			}
-			theGradients[c * ppc + p] += acc;
+		}
+		return;
+	}
+
+	// Boxed backward. Uses the transformBatch caches (a_c, per-box dots).
+	const uint K = theNBoxes;
+	const bool hillOn = theSaturation == Saturation::Hill;
+	assert(theA.size() == static_cast<size_t>(B) * theChannels);
+
+	// Natural-scale hill params, hoisted
+	vector<double> sNat(K), nNat(K);
+	if (hillOn)
+		for (uint k = 0; k < K; ++k) {
+			sNat[k] = std::exp(theParams[sigOff() + k]);
+			nNat[k] = std::exp(theParams[nuOff() + k]);
+		}
+
+	vector<double> hk(K), dha_k(K), dhs_k(K), dhn_k(K), contrib(K);
+	for (uint b = 0; b < B; ++b) {
+		const double* row = rawIn + static_cast<size_t>(b) * din;
+		for (uint c = 0; c < theChannels; ++c) {
+			const double g = outDelta[static_cast<size_t>(b) * dout + c];
+			if (g == 0.0) continue;
+			const double* x = row + c * L;
+			const double* pi = thePi.data() + static_cast<size_t>(c) * K;
+			const double* dot = theDot.data() + (static_cast<size_t>(b) * theChannels + c) * K;
+			const double a = theA[static_cast<size_t>(b) * theChannels + c];
+
+			// d out / d a  and per-box hill terms
+			double dha = 1.0;
+			if (hillOn) {
+				dha = 0.0;
+				for (uint k = 0; k < K; ++k) {
+					hillPartials(a, sNat[k], nNat[k], dha_k[k], dhs_k[k], dhn_k[k]);
+					hk[k] = hill(a, sNat[k], nNat[k]);
+					dha += pi[k] * dha_k[k];
+					// hill param grads (chain exp): sigma, nu
+					theGradients[sigOff() + k] += g * pi[k] * dhs_k[k] * sNat[k];
+					theGradients[nuOff() + k] += g * pi[k] * dhn_k[k] * nNat[k];
+				}
+			}
+
+			// box kernel params: d a / d theta_kp = pi_k * (dw_kp . x)
+			const double gd = g * dha;
+			for (uint k = 0; k < K; ++k) {
+				if (pi[k] == 0.0) continue;
+				const double* dwk = theDw.data() + static_cast<size_t>(k) * ppk * L;
+				for (uint p = 0; p < ppk; ++p) {
+					const double* dw = dwk + p * L;
+					double s = 0.0;
+					for (uint l = 0; l < L; ++l)
+						s += dw[l] * x[l];
+					theGradients[kernOff() + k * ppk + p] += gd * pi[k] * s;
+				}
+			}
+
+			// routing logits: d out / d pi_k = [hill_k(a)] + dha * dot_k,
+			// then the softmax Jacobian with temperature.
+			double mean = 0.0;
+			for (uint k = 0; k < K; ++k) {
+				contrib[k] = (hillOn ? hk[k] : 0.0) + dha * dot[k];
+				mean += contrib[k] * pi[k];
+			}
+			double* glog = theGradients.data() + logitOff() + static_cast<size_t>(c) * K;
+			for (uint m = 0; m < K; ++m)
+				glog[m] += g * (pi[m] / theTau) * (contrib[m] - mean);
+		}
+	}
+}
+
+void Adstock::applyEntropyPenaltyGradient() {
+	if (!boxed() || theEntropyBeta <= 0.0) return;
+	computeKernels();
+	const uint K = theNBoxes;
+	// d H(pi_c) / d logit_cm = -(pi_m / tau) (log pi_m + H_c)
+	for (uint c = 0; c < theChannels; ++c) {
+		const double* pi = thePi.data() + static_cast<size_t>(c) * K;
+		double H = 0.0;
+		for (uint k = 0; k < K; ++k)
+			if (pi[k] > 0.0) H -= pi[k] * std::log(pi[k]);
+		double* glog = theGradients.data() + logitOff() + static_cast<size_t>(c) * K;
+		for (uint m = 0; m < K; ++m) {
+			const double lp = pi[m] > 0.0 ? std::log(pi[m]) : 0.0;
+			glog[m] += theEntropyBeta * (-(pi[m] / theTau) * (lp + H));
 		}
 	}
 }
@@ -9545,6 +9988,143 @@ AdstockSummary summarizeAdstock(Ensemble& ensemble, double alpha) {
 	return s;
 }
 
+BoxedAdstockSummary summarizeBoxedAdstock(Ensemble& ensemble, double alpha) {
+	using MultiLayerPerceptron::Adstock;
+	const uint M = ensemble.size();
+	if (M == 0) throw std::invalid_argument("summarizeBoxedAdstock: empty ensemble");
+
+	const Adstock* first = ensemble.mlp(0).adstock();
+	if (!first || !first->boxed())
+		throw std::invalid_argument("summarizeBoxedAdstock: member 0 has no boxed adstock stage");
+	const uint C = first->nChannels();
+	const uint L = first->nLags();
+	const uint K = first->nBoxes();
+	const uint ppb = first->nParamsPerChannel();
+	const bool hill = first->saturation() == Adstock::Saturation::Hill;
+	const auto family = first->kernel();
+
+	// Per member: canonical box order (by mean carryover lag), then
+	// remapped kernels, params, and routing.
+	vector<vector<vector<double>>> kern(M);  // [M][K][L] canonical
+	vector<vector<double>> par(M);           // [M][K*ppb] natural, canonical
+	vector<vector<double>> sat(M), expo(M);  // [M][K] canonical (hill)
+	vector<vector<vector<double>>> rout(M);  // [M][C][K] canonical
+
+	for (uint m = 0; m < M; ++m) {
+		const Adstock* a = ensemble.mlp(m).adstock();
+		if (!a || !a->boxed() || a->nChannels() != C || a->nLags() != L || a->nBoxes() != K ||
+		    a->kernel() != family || (a->saturation() == Adstock::Saturation::Hill) != hill)
+			throw std::invalid_argument("summarizeBoxedAdstock: member " + std::to_string(m) +
+			                            " has a missing or mismatched boxed adstock stage");
+
+		// canonical order: ascending mean lag
+		vector<std::pair<double, uint>> order(K);
+		vector<vector<double>> w(K);
+		for (uint k = 0; k < K; ++k) {
+			w[k] = a->boxKernel(k);
+			double meanLag = 0;
+			for (uint l = 0; l < L; ++l)
+				meanLag += l * w[k][l];
+			order[k] = {meanLag, k};
+		}
+		std::sort(order.begin(), order.end());
+
+		const vector<double> nat = a->naturalParams(); // [K*ppb | K sat | K exp]
+		kern[m].resize(K);
+		par[m].assign(K * ppb, 0.0);
+		if (hill) {
+			sat[m].assign(K, 0.0);
+			expo[m].assign(K, 0.0);
+		}
+		for (uint k = 0; k < K; ++k) {
+			const uint src = order[k].second;
+			kern[m][k] = w[src];
+			for (uint p = 0; p < ppb; ++p)
+				par[m][k * ppb + p] = nat[src * ppb + p];
+			if (hill) {
+				sat[m][k] = nat[K * ppb + src];
+				expo[m][k] = nat[K * ppb + K + src];
+			}
+		}
+		rout[m].resize(C);
+		for (uint c = 0; c < C; ++c) {
+			const vector<double> pi = a->routingProbs(c);
+			rout[m][c].assign(K, 0.0);
+			for (uint k = 0; k < K; ++k)
+				rout[m][c][k] = pi[order[k].second];
+		}
+	}
+
+	BoxedAdstockSummary s;
+	s.channels = C;
+	s.lags = L;
+	s.boxes = K;
+	s.paramsPerBox = ppb;
+	s.hill = hill;
+
+	vector<double> vals(M);
+	auto band = [&](auto getter, double& mean, double& lo, double& hi) {
+		double acc = 0;
+		for (uint m = 0; m < M; ++m) {
+			vals[m] = getter(m);
+			acc += vals[m];
+		}
+		std::sort(vals.begin(), vals.end());
+		mean = acc / M;
+		lo = pct(vals, alpha / 2.0);
+		hi = pct(vals, 1.0 - alpha / 2.0);
+	};
+
+	s.kernelMean.assign(K, vector<double>(L, 0.0));
+	s.kernelLower.assign(K, vector<double>(L, 0.0));
+	s.kernelUpper.assign(K, vector<double>(L, 0.0));
+	for (uint k = 0; k < K; ++k)
+		for (uint l = 0; l < L; ++l)
+			band([&](uint m) { return kern[m][k][l]; }, s.kernelMean[k][l], s.kernelLower[k][l],
+			     s.kernelUpper[k][l]);
+
+	s.paramMean.assign(K * ppb, 0.0);
+	s.paramLower.assign(K * ppb, 0.0);
+	s.paramUpper.assign(K * ppb, 0.0);
+	for (uint j = 0; j < K * ppb; ++j)
+		band([&](uint m) { return par[m][j]; }, s.paramMean[j], s.paramLower[j], s.paramUpper[j]);
+
+	if (hill) {
+		s.satMean.assign(K, 0.0);
+		s.satLower.assign(K, 0.0);
+		s.satUpper.assign(K, 0.0);
+		s.expMean.assign(K, 0.0);
+		s.expLower.assign(K, 0.0);
+		s.expUpper.assign(K, 0.0);
+		for (uint k = 0; k < K; ++k) {
+			band([&](uint m) { return sat[m][k]; }, s.satMean[k], s.satLower[k], s.satUpper[k]);
+			band([&](uint m) { return expo[m][k]; }, s.expMean[k], s.expLower[k], s.expUpper[k]);
+		}
+	}
+
+	// Routing: mean pi, modal box, and assignment stability
+	s.meanRouting.assign(C, vector<double>(K, 0.0));
+	s.modalBox.assign(C, 0);
+	s.stability.assign(C, 0.0);
+	for (uint c = 0; c < C; ++c) {
+		vector<uint> votes(K, 0);
+		for (uint m = 0; m < M; ++m) {
+			uint best = 0;
+			for (uint k = 0; k < K; ++k) {
+				s.meanRouting[c][k] += rout[m][c][k] / M;
+				if (rout[m][c][k] > rout[m][c][best]) best = k;
+			}
+			++votes[best];
+		}
+		uint modal = 0;
+		for (uint k = 1; k < K; ++k)
+			if (votes[k] > votes[modal]) modal = k;
+		s.modalBox[c] = modal;
+		s.stability[c] = static_cast<double>(votes[modal]) / M;
+	}
+	return s;
+}
+
 } // namespace Uncertainty
 } // namespace EvalTools
 
@@ -9947,7 +10527,10 @@ double CrossEntropy::gradient() {
 			div(layer.betaGradients(), -denom);
 		}
 	}
-	if (Adstock* a = theMlp->adstock()) div(a->gradients(), -denom);
+	if (Adstock* a = theMlp->adstock()) {
+		div(a->gradients(), -denom);
+		a->applyEntropyPenaltyGradient();
+	}
 
 	return -err / denom;
 }
@@ -10122,11 +10705,12 @@ static double readDouble(istream& is) {
 }
 
 void MultiLayerPerceptron::saveMlpBinary(const Mlp& mlp, ostream& os) {
-	// Magic: NNH1 = plain MLP, NNH2 = MLP with an adstock stage (adstock
-	// meta block between softmax flag and weights; weights vector then
-	// carries the adstock params at its tail, as Mlp::weights() emits).
+	// Magic: NNH1 = plain MLP, NNH2 = per-channel adstock stage, NNH3 =
+	// boxed adstock stage (meta block between softmax flag and weights;
+	// the weight vector then carries the adstock params at its tail, as
+	// Mlp::weights() emits).
 	const Adstock* ads = mlp.adstock();
-	os.write(ads ? "NNH2" : "NNH1", 4);
+	os.write(!ads ? "NNH1" : (ads->boxed() ? "NNH3" : "NNH2"), 4);
 
 	// Architecture
 	// Need const access to arch — use const_cast since arch() isn't const-qualified
@@ -10148,7 +10732,7 @@ void MultiLayerPerceptron::saveMlpBinary(const Mlp& mlp, ostream& os) {
 	uint8_t sm = mref.softmax() ? 1 : 0;
 	os.write(reinterpret_cast<const char*>(&sm), 1);
 
-	// Adstock meta (NNH2 only)
+	// Adstock meta (NNH2/NNH3)
 	if (ads) {
 		writeUint32(os, ads->nChannels());
 		writeUint32(os, ads->nLags());
@@ -10156,6 +10740,12 @@ void MultiLayerPerceptron::saveMlpBinary(const Mlp& mlp, ostream& os) {
 		const string tag = kernelToTag(ads->kernel());
 		writeUint32(os, tag.size());
 		os.write(tag.data(), tag.size());
+		if (ads->boxed()) {
+			writeUint32(os, ads->nBoxes());
+			uint8_t sat = ads->saturation() == Adstock::Saturation::Hill ? 1 : 0;
+			os.write(reinterpret_cast<const char*>(&sat), 1);
+			writeDouble(os, ads->temperature());
+		}
 	}
 
 	// Weights
@@ -10168,7 +10758,8 @@ unique_ptr<Mlp> MultiLayerPerceptron::loadMlpBinary(istream& is) {
 	// Magic
 	char magic[4];
 	is.read(magic, 4);
-	const bool hasAdstock = memcmp(magic, "NNH2", 4) == 0;
+	const bool hasAdstock = memcmp(magic, "NNH2", 4) == 0 || memcmp(magic, "NNH3", 4) == 0;
+	const bool boxedAdstock = memcmp(magic, "NNH3", 4) == 0;
 	if (!hasAdstock && memcmp(magic, "NNH1", 4) != 0)
 		throw runtime_error("Invalid MLP binary format: bad magic");
 
@@ -10194,7 +10785,7 @@ unique_ptr<Mlp> MultiLayerPerceptron::loadMlpBinary(istream& is) {
 	// Create Mlp (this randomizes weights)
 	auto mlp = make_unique<Mlp>(arch, types, sm != 0);
 
-	// Adstock meta (NNH2 only); params arrive with the weight vector
+	// Adstock meta (NNH2/NNH3); params arrive with the weight vector
 	if (hasAdstock) {
 		uint32_t channels = readUint32(is);
 		uint32_t lags = readUint32(is);
@@ -10202,7 +10793,18 @@ unique_ptr<Mlp> MultiLayerPerceptron::loadMlpBinary(istream& is) {
 		uint32_t len = readUint32(is);
 		string tag(len, '\0');
 		is.read(&tag[0], len);
-		mlp->adstock(Adstock(channels, lags, pass, kernelFromTag(tag)));
+		if (boxedAdstock) {
+			uint32_t boxes = readUint32(is);
+			uint8_t sat;
+			is.read(reinterpret_cast<char*>(&sat), 1);
+			double tau = readDouble(is);
+			Adstock a(channels, lags, pass, kernelFromTag(tag), boxes,
+			          sat ? Adstock::Saturation::Hill : Adstock::Saturation::None);
+			a.temperature(tau);
+			mlp->adstock(a);
+		} else {
+			mlp->adstock(Adstock(channels, lags, pass, kernelFromTag(tag)));
+		}
 	}
 
 	// Read and set weights
@@ -10442,6 +11044,7 @@ double SummedSquare::gradient() {
 		auto& ag = a->gradients();
 		std::transform(ag.begin(), ag.end(), ag.begin(),
 		               [denom](double v) { return v / -denom; });
+		a->applyEntropyPenaltyGradient();
 	}
 
 	return err / denom;
