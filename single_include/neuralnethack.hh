@@ -1723,6 +1723,11 @@ class Adstock {
 	 * parameters (length L). For inspection/reporting. */
 	std::vector<double> kernelWeights(uint c) const;
 
+	/**Kernel parameters on their natural scale, channel-major:
+	 * geometric decay lambda in (0,1) per channel; Weibull shape k and
+	 * scale s (both > 0) per channel. For reporting. */
+	std::vector<double> naturalParams() const;
+
 	/**Transform a batch [B x inputDim] row-major; returns pointer to the
 	 * internal output buffer [B x outputDim]. Also refreshes the cached
 	 * kernels used by accumulateGradients. */
@@ -3438,6 +3443,39 @@ EntropyDecomposition decomposeEntropy(const std::vector<std::vector<double>>& me
  */
 EntropyDecomposition decomposeEntropy(NeuralNetHack::Ensemble& ensemble,
                                       const std::vector<double>& input);
+
+/**Ensemble summary of fitted adstock (carryover) kernels.
+ *
+ * Every ensemble member trained on a resample carries its own fitted
+ * kernel parameters, so the spread across members is a bootstrap-style
+ * uncertainty estimate for the carryover structure itself -- the part of
+ * a marketing-mix readout people actually argue about.
+ */
+struct AdstockSummary {
+	uint channels;         ///< media channels C
+	uint lags;             ///< window length L
+	uint paramsPerChannel; ///< 1 (geometric) or 2 (Weibull)
+
+	/**Per-channel per-lag kernel weights across members: mean and the
+	 * alpha/2, 1-alpha/2 percentile band. Each is [C][L]. */
+	std::vector<std::vector<double>> weightMean, weightLower, weightUpper;
+
+	/**Natural-scale kernel parameters (lambda, or k and s), channel-major
+	 * [C * paramsPerChannel]: member mean and percentile band. */
+	std::vector<double> paramMean, paramLower, paramUpper;
+};
+
+/**Summarize the adstock kernels across an ensemble's members with
+ * percentile intervals (linear-interpolated quantiles, matching the ROC
+ * bootstrap CI convention). Members are weighted uniformly.
+ * \param ensemble ensemble whose members all carry an adstock stage of
+ * identical shape and kernel family (throws std::invalid_argument
+ * otherwise, or when the ensemble is empty).
+ * \param alpha miscoverage: the band is [alpha/2, 1-alpha/2] (default 0.1
+ * = an 90% interval).
+ * \return per-channel kernel-weight bands and natural-parameter bands.
+ */
+AdstockSummary summarizeAdstock(NeuralNetHack::Ensemble& ensemble, double alpha = 0.1);
 
 } // namespace Uncertainty
 } // namespace EvalTools
@@ -7116,6 +7154,20 @@ void Adstock::computeKernels() const {
 	theKernelsFresh = true;
 }
 
+vector<double> Adstock::naturalParams() const {
+	const uint ppc = nParamsPerChannel();
+	vector<double> out(theParams.size());
+	for (uint c = 0; c < theChannels; ++c) {
+		if (theKernel == Kernel::Geometric) {
+			out[c] = 1.0 / (1.0 + std::exp(-theParams[c]));
+		} else {
+			out[c * ppc + 0] = std::exp(theParams[c * ppc + 0]);
+			out[c * ppc + 1] = std::exp(theParams[c * ppc + 1]);
+		}
+	}
+	return out;
+}
+
 vector<double> Adstock::kernelWeights(uint c) const {
 	assert(c < theChannels);
 	vector<double> w(theLags), dw(static_cast<size_t>(nParamsPerChannel()) * theLags);
@@ -9364,6 +9416,8 @@ template <class T> void Roc::printVector(vector<T>& vec) {
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <stdexcept>
+#include <string>
 
 using namespace NeuralNetHack;
 using std::vector;
@@ -9415,6 +9469,80 @@ EntropyDecomposition decomposeEntropy(Ensemble& ensemble, const vector<double>& 
 		probs.push_back(std::move(p));
 	}
 	return decomposeEntropy(probs);
+}
+
+namespace {
+// Linear-interpolated percentile of a sorted vector (Roc CI convention).
+double pct(const vector<double>& sorted, double q) {
+	const double pos = q * (sorted.size() - 1);
+	const uint lo = (uint)std::floor(pos);
+	const uint hi = (uint)std::ceil(pos);
+	const double frac = pos - lo;
+	return sorted[lo] * (1.0 - frac) + sorted[hi] * frac;
+}
+} // namespace
+
+AdstockSummary summarizeAdstock(Ensemble& ensemble, double alpha) {
+	const uint M = ensemble.size();
+	if (M == 0) throw std::invalid_argument("summarizeAdstock: empty ensemble");
+
+	const MultiLayerPerceptron::Adstock* first = ensemble.mlp(0).adstock();
+	if (!first) throw std::invalid_argument("summarizeAdstock: member 0 has no adstock stage");
+	const uint C = first->nChannels();
+	const uint L = first->nLags();
+	const uint ppc = first->nParamsPerChannel();
+	const auto family = first->kernel();
+
+	// Gather per-member kernels and natural params
+	vector<vector<vector<double>>> w(M);   // [M][C][L]
+	vector<vector<double>> nat(M);         // [M][C*ppc]
+	for (uint m = 0; m < M; ++m) {
+		const MultiLayerPerceptron::Adstock* a = ensemble.mlp(m).adstock();
+		if (!a || a->nChannels() != C || a->nLags() != L || a->kernel() != family)
+			throw std::invalid_argument("summarizeAdstock: member " + std::to_string(m) +
+			                            " has a missing or mismatched adstock stage");
+		w[m].resize(C);
+		for (uint c = 0; c < C; ++c)
+			w[m][c] = a->kernelWeights(c);
+		nat[m] = a->naturalParams();
+	}
+
+	AdstockSummary s;
+	s.channels = C;
+	s.lags = L;
+	s.paramsPerChannel = ppc;
+	s.weightMean.assign(C, vector<double>(L, 0.0));
+	s.weightLower.assign(C, vector<double>(L, 0.0));
+	s.weightUpper.assign(C, vector<double>(L, 0.0));
+	s.paramMean.assign(C * ppc, 0.0);
+	s.paramLower.assign(C * ppc, 0.0);
+	s.paramUpper.assign(C * ppc, 0.0);
+
+	vector<double> vals(M);
+	for (uint c = 0; c < C; ++c)
+		for (uint l = 0; l < L; ++l) {
+			double mean = 0;
+			for (uint m = 0; m < M; ++m) {
+				vals[m] = w[m][c][l];
+				mean += vals[m];
+			}
+			std::sort(vals.begin(), vals.end());
+			s.weightMean[c][l] = mean / M;
+			s.weightLower[c][l] = pct(vals, alpha / 2.0);
+			s.weightUpper[c][l] = pct(vals, 1.0 - alpha / 2.0);
+		}
+	for (uint j = 0; j < C * ppc; ++j) {
+		double mean = 0;
+		for (uint m = 0; m < M; ++m) {
+			vals[m] = nat[m][j];
+			mean += vals[m];
+		}
+		std::sort(vals.begin(), vals.end());
+		s.paramMean[j] = mean / M;
+		s.paramLower[j] = pct(vals, alpha / 2.0);
+		s.paramUpper[j] = pct(vals, 1.0 - alpha / 2.0);
+	}
+	return s;
 }
 
 } // namespace Uncertainty
