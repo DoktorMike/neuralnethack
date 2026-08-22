@@ -3,6 +3,10 @@
 #include "Random.hh"
 #include "mlp/Weights.hh"
 #include "mlp/Mlp.hh"
+#include "parser/TomlParser.hh"
+
+#include <sstream>
+#include <stdexcept>
 #include "datatools/CoreDataSet.hh"
 #include "datatools/DataSet.hh"
 #include "datatools/Pattern.hh"
@@ -209,6 +213,65 @@ static bool testFactoryCreateErrorKullback() {
 	return true;
 }
 
+static bool testFactoryAdstockFromToml() {
+	// Parse an [adstock] section and let the Factory build the boxed stage.
+	const char* toml = "suffix = \"t\"\n"
+	                   "[network]\n"
+	                   "size = [5, 1]\n"
+	                   "activations = [\"purelin\"]\n"
+	                   "error_fcn = \"sumsqr\"\n"
+	                   "[adstock]\n"
+	                   "channels = 4\n"
+	                   "lags = 6\n"
+	                   "passthrough = 1\n"
+	                   "kernel = \"weibull\"\n"
+	                   "boxes = 2\n"
+	                   "saturation = \"hill\"\n"
+	                   "temperature = 0.8\n"
+	                   "entropy_penalty = 0.01\n"
+	                   "nonnegative_betas = true\n";
+	Config config;
+	std::istringstream in(toml);
+	TomlParser::parse(in, config);
+
+	auto mlp = Factory::createMlp(config);
+	CHECK(mlp != nullptr, "createMlp with adstock returned null");
+	const Adstock* a = mlp->adstock();
+	CHECK(a != nullptr, "adstock stage missing");
+	CHECK(a->boxed() && a->nBoxes() == 2, "boxes not applied");
+	CHECK(a->kernel() == Adstock::Kernel::Weibull, "kernel not applied");
+	CHECK(a->saturation() == Adstock::Saturation::Hill, "saturation not applied");
+	CHECK(a->temperature() == 0.8, "temperature not applied");
+	CHECK(a->entropyPenalty() == 0.01, "entropy penalty not applied");
+	CHECK(a->inputDim() == 25, "inputDim should be 4*6+1");
+
+	std::vector<double> x(a->inputDim(), 0.5);
+	CHECK(mlp->propagate(x).size() == 1, "propagate through adstock failed");
+	std::cout << "  PASS: Factory builds boxed adstock from TOML" << std::endl;
+	return true;
+}
+
+static bool testFactoryAdstockValidation() {
+	// channels + passthrough must match arch[0]
+	Config config;
+	config.architecture({3, 1});
+	config.actFcn({"purelin"});
+	config.errFcn("sumsqr");
+	config.adstock().enabled = true;
+	config.adstock().channels = 4;
+	config.adstock().lags = 6;
+	config.adstock().passthrough = 1; // 4 + 1 != 3
+	bool threw = false;
+	try {
+		Factory::createMlp(config);
+	} catch (const std::runtime_error&) {
+		threw = true;
+	}
+	CHECK(threw, "mismatched adstock/arch should throw");
+	std::cout << "  PASS: Factory validates adstock vs architecture" << std::endl;
+	return true;
+}
+
 // ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
@@ -236,6 +299,8 @@ int main() {
 	if (!testFactoryCreateTrainerAdam()) allPassed = false;
 	if (!testFactoryCreateTrainerQN()) allPassed = false;
 	if (!testFactoryCreateErrorKullback()) allPassed = false;
+	if (!testFactoryAdstockFromToml()) allPassed = false;
+	if (!testFactoryAdstockValidation()) allPassed = false;
 
 	std::cout << std::endl;
 	std::cout << std::string(50, '-') << std::endl;

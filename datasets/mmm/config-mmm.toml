@@ -1,0 +1,76 @@
+# Boxed-adstock MMM configuration for the synthetic dataset here.
+# See README.md for the data layout and ground truth, doc/adstock.md for
+# the stage, and doc/configuration.md for the [adstock] keys.
+#
+# Consume through the config API (the stock neuralnethack binary is
+# classification-oriented):
+#   TomlParser::parseFile("config-mmm.toml", config);
+#   ... Parser::readDataFile(...) ...
+#   auto trainer = Factory::createTrainer(config, trainData);
+#
+# NOTE: entropy_penalty is left at 0 here on purpose. A config-level
+# penalty applies from epoch one, which hardens the routing before the
+# boxes separate (see doc/adstock.md). Harden in a second phase via the
+# API: mlp.adstock()->entropyPenalty(0.01) and continue training.
+
+suffix = "mmm"
+seed = 4711
+normalization = "no"         # spends must stay non-negative for Hill
+problem_type = "regr"
+
+[data.train]
+file = "./mmm.trn.tab"
+id_col = 0
+in_cols = "1-653"            # 50 channels x 13 lags + 3 covariates
+out_cols = "654"
+row_range = "0"
+
+[data.test]
+file = "./mmm.tst.tab"
+id_col = 0
+in_cols = "1-653"
+out_cols = "654"
+row_range = "0"
+
+[network]
+size = [53, 1]               # adstock output: 50 channels + 3 covariates
+activations = ["purelin"]    # linear head; 156 obs cannot feed a wide layer
+error_fcn = "sumsqr"
+
+[adstock]
+channels = 50
+lags = 13
+passthrough = 3
+kernel = "weibull"
+boxes = 5
+saturation = "hill"
+temperature = 1.0
+entropy_penalty = 0.0        # keep 0; see note above
+nonnegative_betas = true     # media effects >= 0 (projected gradient)
+
+[training]
+method = "adam"
+max_epochs = 800
+
+[training.gd]
+batch_size = 32              # batch size is shared with adam
+
+[training.adam]
+learning_rate = 0.02
+
+[ensemble]
+method = "bagg"
+runs = 5
+parts = 2
+split = "rnd"
+vary_weights = true
+
+[model_selection]
+method = "none"
+runs = 1
+parts = 1
+split = "rnd"
+
+[output]
+save_session = false
+save_output_list = false

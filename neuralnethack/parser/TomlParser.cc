@@ -283,7 +283,34 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 		config.softmax(asBool(v, path, lineno));
 	else if (path == "network.weight_init")
 		config.weightInit(asString(v, path, lineno));
-	else if (path == "training.method")
+	else if (path == "adstock.channels") {
+		config.adstock().enabled = true;
+		config.adstock().channels = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.lags") {
+		config.adstock().enabled = true;
+		config.adstock().lags = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.passthrough") {
+		config.adstock().enabled = true;
+		config.adstock().passthrough = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.kernel") {
+		config.adstock().enabled = true;
+		config.adstock().kernel = asString(v, path, lineno);
+	} else if (path == "adstock.boxes") {
+		config.adstock().enabled = true;
+		config.adstock().boxes = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.saturation") {
+		config.adstock().enabled = true;
+		config.adstock().saturation = asString(v, path, lineno);
+	} else if (path == "adstock.temperature") {
+		config.adstock().enabled = true;
+		config.adstock().temperature = asNumber(v, path, lineno);
+	} else if (path == "adstock.entropy_penalty") {
+		config.adstock().enabled = true;
+		config.adstock().entropyPenalty = asNumber(v, path, lineno);
+	} else if (path == "adstock.nonnegative_betas") {
+		config.adstock().enabled = true;
+		config.adstock().nonNegativeBetas = asBool(v, path, lineno);
+	} else if (path == "training.method")
 		config.minMethod(asString(v, path, lineno));
 	else if (path == "training.max_epochs")
 		config.maxEpochs(static_cast<uint>(asInt(v, path, lineno)));

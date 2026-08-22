@@ -5,6 +5,7 @@
 #include "datatools/HoldOutSampler.hh"
 
 #include <memory>
+#include <stdexcept>
 
 using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
@@ -59,6 +60,32 @@ unique_ptr<Mlp> Factory::createMlp(const Config& config) {
 		mlp->regenerateWeights();
 	}
 	// "glorot" (default) is what Layer construction already used; no-op.
+
+	const auto& ap = config.adstock();
+	if (ap.enabled) {
+		if (ap.channels == 0 || ap.lags == 0)
+			throw std::runtime_error("adstock: channels and lags must be > 0");
+		if (ap.channels + ap.passthrough != config.architecture().front())
+			throw std::runtime_error(
+			    "adstock: channels + passthrough must equal network.size[0] (adstock output "
+			    "feeds the first layer); data in_cols must cover channels*lags + passthrough");
+		const Adstock::Kernel kern = kernelFromTag(ap.kernel);
+		if (ap.boxes > 0) {
+			const Adstock::Saturation sat =
+			    ap.saturation == "hill" ? Adstock::Saturation::Hill : Adstock::Saturation::None;
+			if (ap.saturation != "hill" && ap.saturation != "none")
+				throw std::runtime_error("adstock.saturation must be \"hill\" or \"none\"");
+			Adstock a(ap.channels, ap.lags, ap.passthrough, kern, ap.boxes, sat);
+			a.temperature(ap.temperature);
+			a.entropyPenalty(ap.entropyPenalty);
+			mlp->adstock(a);
+		} else {
+			if (ap.saturation == "hill")
+				throw std::runtime_error("adstock.saturation = \"hill\" requires boxes > 0");
+			mlp->adstock(Adstock(ap.channels, ap.lags, ap.passthrough, kern));
+		}
+		if (ap.nonNegativeBetas) mlp->nonNegative(0, 0, ap.channels - 1);
+	}
 	return mlp;
 }
 

@@ -65,6 +65,21 @@ g++ -std=c++23 -O2 -Ineuralnethack datasets/mmm/generate.cc \
 cd datasets/mmm && /tmp/gen_mmm
 ```
 
-Note: the adstock stage is a library-level API (no config-file wiring),
-so there is no `config-mmm.toml`; consume this dataset through the C++
-API as in the example.
+## Config file
+
+`config-mmm.toml` configures the whole boxed model — data columns,
+linear head, `[adstock]` stage (K=5, Weibull + Hill, non-negative
+betas) — through the standard config pipeline:
+
+```cpp
+TomlParser::parseFile("config-mmm.toml", config);
+// load data with Parser::readDataFile per the [data.*] sections, then
+auto trainer = Factory::createTrainer(config, trainData);
+auto mlp = trainer->trainNew(trainData, std::cout);
+```
+
+Lands around holdout R^2 0.87 with the shipped settings. The stock
+`neuralnethack` binary is classification-oriented (it reports AUC), so
+consume this config through the API as above. `entropy_penalty` stays 0
+in the config on purpose — harden routing in a second phase via
+`mlp->adstock()->entropyPenalty(0.01)` (see doc/adstock.md).

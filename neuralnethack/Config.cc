@@ -87,6 +87,12 @@ void Config::print(std::ostream& os) {
 	os << "SaveOutputList\t" << theSaveOutputList << endl;
 	os << "Seed\t\t" << theSeed << endl;
 	os << "Normalization\t" << theNormalization << endl;
+	if (theAdstockParam.enabled)
+		os << "Adstock\t\t" << theAdstockParam.channels << "x" << theAdstockParam.lags << "+"
+		   << theAdstockParam.passthrough << " " << theAdstockParam.kernel << " boxes "
+		   << theAdstockParam.boxes << " sat " << theAdstockParam.saturation << " tau "
+		   << theAdstockParam.temperature << " beta " << theAdstockParam.entropyPenalty
+		   << " nonneg " << theAdstockParam.nonNegativeBetas << endl;
 }
 
 // PRIVATE--------------------------------------------------------------------//

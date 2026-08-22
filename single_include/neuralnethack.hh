@@ -117,6 +117,29 @@ class Config {
 	const std::string& weightInit() const { return theWeightInit; }
 	void weightInit(const std::string& s) { theWeightInit = s; }
 
+	/**Adstock (parametric lag kernel) input-stage configuration, from the
+	 * [adstock] TOML section. enabled flips to true when any adstock key
+	 * is present. channels*lags + passthrough must equal the data input
+	 * columns, and channels + passthrough must equal architecture[0]
+	 * (Factory validates). boxes = 0 means per-channel mode. See
+	 * doc/adstock.md; note the entropy-penalty warmup caveat -- a
+	 * config-level penalty applies from epoch one.
+	 */
+	struct adstockParam_t {
+		bool enabled = false;
+		uint channels = 0;
+		uint lags = 0;
+		uint passthrough = 0;
+		std::string kernel = "geometric"; ///< "geometric" | "weibull"
+		uint boxes = 0;                   ///< 0 = per-channel mode
+		std::string saturation = "none";  ///< "none" | "hill" (boxed only)
+		double temperature = 1.0;
+		double entropyPenalty = 0.0;
+		bool nonNegativeBetas = false; ///< constrain layer-0 media columns >= 0
+	};
+	const adstockParam_t& adstock() const { return theAdstockParam; }
+	adstockParam_t& adstock() { return theAdstockParam; }
+
 	const std::string& minMethod() const { return theMinMethod; }
 	void minMethod(const std::string& theMinMethod) { this->theMinMethod = theMinMethod; }
 
@@ -319,6 +342,8 @@ class Config {
 		double theEpsilon = 1e-8;
 		double theWeightDecay = 0.0;
 	} adamParam;
+	/**Adstock input-stage configuration. */
+	adstockParam_t theAdstockParam;
 	/**Validation-loss early-stopping patience. 0 disables. */
 	uint theEarlyStopPatience = 0;
 	/**Minimum val-loss improvement to count as progress. */
@@ -5447,6 +5472,12 @@ void Config::print(std::ostream& os) {
 	os << "SaveOutputList\t" << theSaveOutputList << endl;
 	os << "Seed\t\t" << theSeed << endl;
 	os << "Normalization\t" << theNormalization << endl;
+	if (theAdstockParam.enabled)
+		os << "Adstock\t\t" << theAdstockParam.channels << "x" << theAdstockParam.lags << "+"
+		   << theAdstockParam.passthrough << " " << theAdstockParam.kernel << " boxes "
+		   << theAdstockParam.boxes << " sat " << theAdstockParam.saturation << " tau "
+		   << theAdstockParam.temperature << " beta " << theAdstockParam.entropyPenalty
+		   << " nonneg " << theAdstockParam.nonNegativeBetas << endl;
 }
 
 // PRIVATE--------------------------------------------------------------------//
@@ -12691,6 +12722,7 @@ float QuasiNewton::err(float alfa) {
 
 // ===== Factory.cc =====
 #include <memory>
+#include <stdexcept>
 
 using namespace NeuralNetHack;
 using namespace MultiLayerPerceptron;
@@ -12745,6 +12777,32 @@ unique_ptr<Mlp> Factory::createMlp(const Config& config) {
 		mlp->regenerateWeights();
 	}
 	// "glorot" (default) is what Layer construction already used; no-op.
+
+	const auto& ap = config.adstock();
+	if (ap.enabled) {
+		if (ap.channels == 0 || ap.lags == 0)
+			throw std::runtime_error("adstock: channels and lags must be > 0");
+		if (ap.channels + ap.passthrough != config.architecture().front())
+			throw std::runtime_error(
+			    "adstock: channels + passthrough must equal network.size[0] (adstock output "
+			    "feeds the first layer); data in_cols must cover channels*lags + passthrough");
+		const Adstock::Kernel kern = kernelFromTag(ap.kernel);
+		if (ap.boxes > 0) {
+			const Adstock::Saturation sat =
+			    ap.saturation == "hill" ? Adstock::Saturation::Hill : Adstock::Saturation::None;
+			if (ap.saturation != "hill" && ap.saturation != "none")
+				throw std::runtime_error("adstock.saturation must be \"hill\" or \"none\"");
+			Adstock a(ap.channels, ap.lags, ap.passthrough, kern, ap.boxes, sat);
+			a.temperature(ap.temperature);
+			a.entropyPenalty(ap.entropyPenalty);
+			mlp->adstock(a);
+		} else {
+			if (ap.saturation == "hill")
+				throw std::runtime_error("adstock.saturation = \"hill\" requires boxes > 0");
+			mlp->adstock(Adstock(ap.channels, ap.lags, ap.passthrough, kern));
+		}
+		if (ap.nonNegativeBetas) mlp->nonNegative(0, 0, ap.channels - 1);
+	}
 	return mlp;
 }
 
@@ -13415,7 +13473,34 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 		config.softmax(asBool(v, path, lineno));
 	else if (path == "network.weight_init")
 		config.weightInit(asString(v, path, lineno));
-	else if (path == "training.method")
+	else if (path == "adstock.channels") {
+		config.adstock().enabled = true;
+		config.adstock().channels = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.lags") {
+		config.adstock().enabled = true;
+		config.adstock().lags = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.passthrough") {
+		config.adstock().enabled = true;
+		config.adstock().passthrough = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.kernel") {
+		config.adstock().enabled = true;
+		config.adstock().kernel = asString(v, path, lineno);
+	} else if (path == "adstock.boxes") {
+		config.adstock().enabled = true;
+		config.adstock().boxes = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.saturation") {
+		config.adstock().enabled = true;
+		config.adstock().saturation = asString(v, path, lineno);
+	} else if (path == "adstock.temperature") {
+		config.adstock().enabled = true;
+		config.adstock().temperature = asNumber(v, path, lineno);
+	} else if (path == "adstock.entropy_penalty") {
+		config.adstock().enabled = true;
+		config.adstock().entropyPenalty = asNumber(v, path, lineno);
+	} else if (path == "adstock.nonnegative_betas") {
+		config.adstock().enabled = true;
+		config.adstock().nonNegativeBetas = asBool(v, path, lineno);
+	} else if (path == "training.method")
 		config.minMethod(asString(v, path, lineno));
 	else if (path == "training.max_epochs")
 		config.maxEpochs(static_cast<uint>(asInt(v, path, lineno)));

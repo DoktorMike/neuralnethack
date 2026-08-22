@@ -98,6 +98,29 @@ class Config {
 	const std::string& weightInit() const { return theWeightInit; }
 	void weightInit(const std::string& s) { theWeightInit = s; }
 
+	/**Adstock (parametric lag kernel) input-stage configuration, from the
+	 * [adstock] TOML section. enabled flips to true when any adstock key
+	 * is present. channels*lags + passthrough must equal the data input
+	 * columns, and channels + passthrough must equal architecture[0]
+	 * (Factory validates). boxes = 0 means per-channel mode. See
+	 * doc/adstock.md; note the entropy-penalty warmup caveat -- a
+	 * config-level penalty applies from epoch one.
+	 */
+	struct adstockParam_t {
+		bool enabled = false;
+		uint channels = 0;
+		uint lags = 0;
+		uint passthrough = 0;
+		std::string kernel = "geometric"; ///< "geometric" | "weibull"
+		uint boxes = 0;                   ///< 0 = per-channel mode
+		std::string saturation = "none";  ///< "none" | "hill" (boxed only)
+		double temperature = 1.0;
+		double entropyPenalty = 0.0;
+		bool nonNegativeBetas = false; ///< constrain layer-0 media columns >= 0
+	};
+	const adstockParam_t& adstock() const { return theAdstockParam; }
+	adstockParam_t& adstock() { return theAdstockParam; }
+
 	const std::string& minMethod() const { return theMinMethod; }
 	void minMethod(const std::string& theMinMethod) { this->theMinMethod = theMinMethod; }
 
@@ -300,6 +323,8 @@ class Config {
 		double theEpsilon = 1e-8;
 		double theWeightDecay = 0.0;
 	} adamParam;
+	/**Adstock input-stage configuration. */
+	adstockParam_t theAdstockParam;
 	/**Validation-loss early-stopping patience. 0 disables. */
 	uint theEarlyStopPatience = 0;
 	/**Minimum val-loss improvement to count as progress. */

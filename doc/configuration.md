@@ -75,6 +75,23 @@ weight_init = "glorot"             # "glorot" (default) or "legacy_uniform".
 # (0-indexed, source < target, both layers must have matching width).
 # skip_connections = [[2, 0]]
 
+# Optional adstock (parametric lag kernel) input stage — see adstock.md.
+# Raw data rows carry channels*lags + passthrough input columns; the stage
+# feeds channels + passthrough values into the first layer, so
+# network.size[0] must equal channels + passthrough (Factory validates).
+# [adstock]
+# channels = 50
+# lags = 13
+# passthrough = 3            # trailing covariate columns, passed through
+# kernel = "weibull"         # "geometric" (1 param) or "weibull" (2 params)
+# boxes = 5                  # 0 / omitted = per-channel mode
+# saturation = "hill"        # "none" (default) or "hill"; boxed mode only
+# temperature = 1.0          # routing softmax temperature
+# entropy_penalty = 0.0      # KEEP 0 in configs: it applies from epoch one,
+#                            # which hardens routing before the boxes separate.
+#                            # Harden in a second phase via the API instead.
+# nonnegative_betas = false  # constrain first-layer media columns >= 0
+
 [training]
 method = "adam"              # "gd", "adam", "qn"
 max_epochs = 2000
