@@ -1,7 +1,10 @@
 #ifndef __Mlp_hh__
 #define __Mlp_hh__
 
+#include "Adstock.hh"
 #include "Layer.hh"
+
+#include <optional>
 
 namespace MultiLayerPerceptron {
 /**A struct representing the model for a multilayer perceptron. */
@@ -153,11 +156,23 @@ class Mlp {
 	int skipFrom(uint target) const;
 
 	/**Propagate a batch of inputs through the entire MLP using GEMM.
-	 * \param input pointer to row-major input batch [B x arch[0]].
+	 * \param input pointer to row-major input batch [B x arch[0]]
+	 *        (or [B x adstock inputDim] when an adstock stage is set).
 	 * \param B the batch size.
 	 * \return pointer to output batch [B x arch[last]].
 	 */
 	const double* propagateBatch(const double* input, uint B);
+
+	/**Attach a differentiable adstock (parametric lag kernel) input
+	 * stage. Its outputDim() must equal arch[0]; raw inputs then carry
+	 * inputDim() values per pattern. Parameters train jointly with the
+	 * weights (they are appended to weights()/gradients()).
+	 */
+	void adstock(const Adstock& a);
+
+	/**The adstock stage, or nullptr when none is attached. */
+	Adstock* adstock();
+	const Adstock* adstock() const;
 
 	// SIZE etc
 	/**Return the number of layers contained in this MLP.
@@ -205,6 +220,12 @@ class Mlp {
 
 	/**Skip-connection source per layer; -1 = no skip. */
 	std::vector<int> theSkipFrom;
+
+	/**Optional adstock input stage (value type, so copies stay default). */
+	std::optional<Adstock> theAdstock;
+
+	/**Scratch for single-pattern adstock transforms. */
+	std::vector<double> theAdstockOut;
 };
 
 // INLINES

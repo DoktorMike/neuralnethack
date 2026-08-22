@@ -98,6 +98,7 @@ set(LIB_SOURCES
     neuralnethack/mlp/Activation.cc
     neuralnethack/mlp/Weights.cc
     neuralnethack/mlp/Serialization.cc
+    neuralnethack/mlp/Adstock.cc
     # datatools
     neuralnethack/datatools/DataTools.cc
     neuralnethack/datatools/DataSet.cc
@@ -180,7 +181,7 @@ set_target_properties(neuralnethack_bin PROPERTIES OUTPUT_NAME neuralnethack)
 # ---------------------------------------------------------------------------
 # Examples
 # ---------------------------------------------------------------------------
-set(EXAMPLES xor_residual_ensemble residual_vs_plain residual_ensemble_uncertainty cubic_ensemble_uncertainty multiclass_synthetic multiclass_iris multiclass_wine iris_ensemble_uncertainty spiral_ensemble_uncertainty)
+set(EXAMPLES xor_residual_ensemble residual_vs_plain residual_ensemble_uncertainty cubic_ensemble_uncertainty multiclass_synthetic multiclass_iris multiclass_wine iris_ensemble_uncertainty spiral_ensemble_uncertainty mmm_adstock)
 foreach(ex ${EXAMPLES})
     add_executable(${ex} examples/${ex}.cc)
     target_link_libraries(${ex} PRIVATE neuralnethack)
@@ -192,7 +193,7 @@ add_custom_target(nnh_examples DEPENDS ${EXAMPLES})
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve testConformal testEarlyStopping testEnsembleBuilder testClassWeights testUncertainty)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve testConformal testEarlyStopping testEnsembleBuilder testClassWeights testUncertainty testAdstock)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)

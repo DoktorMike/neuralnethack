@@ -132,9 +132,10 @@ double CrossEntropy::gradient() {
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)
-	(*theMlp)[0].accumulateGradientsBatch(theInputMatrix.data(), bs);
+	(*theMlp)[0].accumulateGradientsBatch(firstLayerInput(), bs);
 	for (uint l = 1; l < theMlp->nLayers(); ++l)
 		(*theMlp)[l].accumulateGradientsBatch((*theMlp)[l - 1].batchOutputs().data(), bs);
+	chainAdstock(bs);
 
 	// Compute total error
 	double err = 0;
@@ -172,6 +173,7 @@ double CrossEntropy::gradient() {
 			div(layer.betaGradients(), -denom);
 		}
 	}
+	if (Adstock* a = theMlp->adstock()) div(a->gradients(), -denom);
 
 	return -err / denom;
 }
@@ -307,6 +309,7 @@ double CrossEntropy::outputError(const vector<double>& out, const vector<double>
 }
 
 void CrossEntropy::killGradients() {
+	if (Adstock* a = theMlp->adstock()) a->killGradients();
 	for (uint i = 0; i < theMlp->nLayers(); ++i) {
 		Layer& l = theMlp->layer(i);
 		vector<double>& g = l.gradients();

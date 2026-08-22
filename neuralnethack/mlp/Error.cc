@@ -1,5 +1,16 @@
 #include "Error.hh"
 #include "../datatools/Pattern.hh"
+#include "../matrixtools/SmallGemm.hh"
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
 
 #include <vector>
 #include <cmath>
@@ -125,6 +136,43 @@ double Error::weightElim() const {
 		we += wisqr / (w0sqr + wisqr);
 	}
 	return we;
+}
+
+const double* Error::firstLayerInput() const {
+	const Adstock* a = theMlp->adstock();
+	return a ? a->outputs().data() : theInputMatrix.data();
+}
+
+void Error::chainAdstock(uint bs) const {
+	Adstock* a = theMlp->adstock();
+	if (!a) return;
+	Layer& l0 = theMlp->layer(0);
+	const uint n0 = l0.nNeurons();
+	const uint nin = l0.nPrevious();
+	const uint stride = nin + 1;
+	const double* lg = l0.batchLocalGradients().data();
+	const double* wt = l0.weights().data();
+	theInputDelta.resize(static_cast<size_t>(bs) * nin);
+	double* din = theInputDelta.data();
+
+	// delta_in[B x nin] = LG0[B x n0] * W0[n0 x (nin+1)], bias column skipped
+#ifdef USE_BLAS
+	if (nnh::smallgemm::small(bs, nin, n0))
+		nnh::smallgemm::gemmNN(bs, nin, n0, lg, n0, wt, stride, din, nin);
+	else
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, bs, nin, n0, 1.0, lg, n0, wt,
+		            stride, 0.0, din, nin);
+#else
+	for (uint b = 0; b < bs; ++b)
+		for (uint j = 0; j < nin; ++j) {
+			double s = 0;
+			for (uint k = 0; k < n0; ++k)
+				s += lg[b * n0 + k] * wt[k * stride + j];
+			din[b * nin + j] = s;
+		}
+#endif
+
+	a->accumulateGradients(theInputMatrix.data(), din, bs);
 }
 
 void Error::packBatch(DataSet& dset) const {

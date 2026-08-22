@@ -35,7 +35,8 @@ void Adam::train(ostream& os) {
 		theBatchSize = theData->size();
 	}
 
-	// Initialize moment vectors (weights + norm params)
+	// Initialize moment vectors (weights + norm params). nWeights()
+	// already includes adstock params when a stage is attached.
 	uint nTotal = theMlp->nWeights();
 	for (uint i = 0; i < theMlp->nLayers(); ++i)
 		nTotal += theMlp->layer(i).nNormParams();
@@ -155,6 +156,21 @@ double Adam::trainEpoch(DataSet& dset) {
 			}
 			offset += 2 * nn;
 		}
+	}
+	// Adstock kernel params: plain Adam step, no weight decay (these are
+	// unconstrained shape parameters, not weight magnitudes).
+	if (Adstock* a = theMlp->adstock()) {
+		const uint np = a->nParams();
+		double* p = a->params().data();
+		double* g = a->gradients().data();
+		double* m = theM.data() + offset;
+		double* v = theV.data() + offset;
+		for (uint j = 0; j < np; ++j) {
+			m[j] = b1 * m[j] + (1.0 - b1) * g[j];
+			v[j] = b2 * v[j] + (1.0 - b2) * g[j] * g[j];
+			p[j] -= lr * (m[j] * bc1) / (sqrt(v[j] * bc2) + eps);
+		}
+		offset += np;
 	}
 	return err;
 }

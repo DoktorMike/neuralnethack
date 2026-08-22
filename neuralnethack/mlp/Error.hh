@@ -192,8 +192,26 @@ class Error {
 	 */
 	void patternWeights(uint bs, uint nOut, std::vector<double>& pw, double& denom) const;
 
+	/**The input the first dense layer actually saw in the last batch
+	 * forward pass: the adstock stage's outputs when one is attached,
+	 * otherwise the packed raw input matrix.
+	 */
+	const double* firstLayerInput() const;
+
+	/**Chain the backpropagated error into the adstock stage, if any:
+	 * compute the deltas w.r.t. the first dense layer's inputs (one GEMM
+	 * against its weights, bias column skipped) and accumulate the
+	 * adstock parameter gradients from the raw packed input. Call after
+	 * layer 0's batch local gradients are final. No-op without adstock.
+	 * \param bs the batch size.
+	 */
+	void chainAdstock(uint bs) const;
+
 	/**Reusable batch input buffer, populated by packBatch. */
 	mutable std::vector<double> theInputMatrix;
+
+	/**Reusable buffer for deltas w.r.t. the first layer's inputs. */
+	mutable std::vector<double> theInputDelta;
 
 	/**Reusable batch target buffer, populated by packBatch. */
 	mutable std::vector<double> theTargetMatrix;

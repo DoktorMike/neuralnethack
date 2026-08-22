@@ -144,9 +144,10 @@ double SummedSquare::gradient() {
 	}
 
 	// Batch gradient accumulation (one GEMM per layer)
-	(*theMlp)[0].accumulateGradientsBatch(theInputMatrix.data(), bs);
+	(*theMlp)[0].accumulateGradientsBatch(firstLayerInput(), bs);
 	for (uint l = 1; l < theMlp->nLayers(); ++l)
 		(*theMlp)[l].accumulateGradientsBatch((*theMlp)[l - 1].batchOutputs().data(), bs);
+	chainAdstock(bs);
 
 	// Compute total error
 	double err = 0;
@@ -178,6 +179,11 @@ double SummedSquare::gradient() {
 			std::transform(bg.begin(), bg.end(), bg.begin(),
 			               [denom](double v) { return v / -denom; });
 		}
+	}
+	if (Adstock* a = theMlp->adstock()) {
+		auto& ag = a->gradients();
+		std::transform(ag.begin(), ag.end(), ag.begin(),
+		               [denom](double v) { return v / -denom; });
 	}
 
 	return err / denom;
@@ -291,6 +297,7 @@ double SummedSquare::outputError(const vector<double>& out, const vector<double>
 }
 
 void SummedSquare::killGradients() {
+	if (Adstock* a = theMlp->adstock()) a->killGradients();
 	for (uint i = 0; i < theMlp->nLayers(); ++i) {
 		Layer& l = theMlp->layer(i);
 		vector<double>& g = l.gradients();

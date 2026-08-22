@@ -55,6 +55,10 @@ vector<double> Mlp::weights() const {
 		const vector<double>& tmp = l.weights();
 		w.insert(w.end(), tmp.begin(), tmp.end());
 	}
+	if (theAdstock) {
+		const vector<double>& p = theAdstock->params();
+		w.insert(w.end(), p.begin(), p.end());
+	}
 	return w;
 }
 
@@ -66,6 +70,9 @@ void Mlp::weights(vector<double>& w) {
 		for (auto ittmp = tmp.begin(); ittmp != tmp.end(); ++ittmp, ++itw)
 			*ittmp = *itw;
 	}
+	if (theAdstock)
+		for (auto& p : theAdstock->params())
+			p = *itw++;
 }
 
 vector<double> Mlp::gradients() const {
@@ -74,6 +81,10 @@ vector<double> Mlp::gradients() const {
 	for (const auto& l : theLayers) {
 		const vector<double>& tmp = l.gradients();
 		g.insert(g.end(), tmp.begin(), tmp.end());
+	}
+	if (theAdstock) {
+		const vector<double>& ag = theAdstock->gradients();
+		g.insert(g.end(), ag.begin(), ag.end());
 	}
 	return g;
 }
@@ -86,6 +97,9 @@ void Mlp::gradients(vector<double>& g) {
 		for (auto ittmp = tmp.begin(); ittmp != tmp.end(); ++ittmp, ++itg)
 			*ittmp = *itg;
 	}
+	if (theAdstock)
+		for (auto& p : theAdstock->gradients())
+			p = *itg++;
 }
 
 Layer& Mlp::layer(uint index) {
@@ -101,7 +115,21 @@ uint Mlp::nWeights() const {
 	uint tmp = 0;
 	for (const auto& l : theLayers)
 		tmp += l.nWeights();
+	if (theAdstock) tmp += theAdstock->nParams();
 	return tmp;
+}
+
+void Mlp::adstock(const Adstock& a) {
+	assert(a.outputDim() == theArch[0]);
+	theAdstock = a;
+}
+
+Adstock* Mlp::adstock() {
+	return theAdstock ? &*theAdstock : nullptr;
+}
+
+const Adstock* Mlp::adstock() const {
+	return theAdstock ? &*theAdstock : nullptr;
 }
 
 uint Mlp::size() const {
@@ -111,6 +139,7 @@ uint Mlp::size() const {
 void Mlp::regenerateWeights() {
 	for (auto& l : theLayers)
 		l.regenerateWeights();
+	if (theAdstock) theAdstock->initParams();
 }
 
 void Mlp::initScheme(Layer::InitScheme s) {
@@ -137,6 +166,12 @@ void Mlp::normType(NormType nt) {
 
 const vector<double>& Mlp::propagate(const vector<double>& input) {
 	const vector<double>* inOut = &input;
+	if (theAdstock) {
+		assert(input.size() == theAdstock->inputDim());
+		theAdstockOut.resize(theAdstock->outputDim());
+		theAdstock->transform(input.data(), theAdstockOut.data());
+		inOut = &theAdstockOut;
+	}
 	for (uint i = 0; i < theLayers.size(); ++i) {
 		int src = theSkipFrom[i];
 		const double* skipPtr = (src >= 0) ? theLayers[src].outputs().data() : nullptr;
@@ -152,6 +187,7 @@ const vector<double>& Mlp::propagate(const vector<double>& input) {
 const double* Mlp::propagateBatch(const double* input, uint B) {
 	const double* layerInput = input;
 	uint n_in = theArch[0];
+	if (theAdstock) layerInput = theAdstock->transformBatch(input, B);
 	for (uint i = 0; i < theLayers.size(); ++i) {
 		int src = theSkipFrom[i];
 		const double* skipPtr = (src >= 0) ? theLayers[src].batchOutputs().data() : nullptr;

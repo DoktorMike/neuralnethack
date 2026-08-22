@@ -146,6 +146,18 @@ double GradientDescent::train(DataSet& dset) {
 			}
 		}
 	}
+	// Adstock kernel params
+	if (Adstock* a = theMlp->adstock()) {
+		const uint np = a->nParams();
+		double* p = a->params().data();
+		double* g = a->gradients().data();
+		double* upd = a->paramUpdates().data();
+		for (uint j = 0; j < np; ++j) {
+			double u = -lr * g[j] + mom * upd[j];
+			upd[j] = u;
+			p[j] += u;
+		}
+	}
 	return err;
 }
 

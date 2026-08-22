@@ -26,8 +26,11 @@ static double readDouble(istream& is) {
 }
 
 void MultiLayerPerceptron::saveMlpBinary(const Mlp& mlp, ostream& os) {
-	// Magic
-	os.write("NNH1", 4);
+	// Magic: NNH1 = plain MLP, NNH2 = MLP with an adstock stage (adstock
+	// meta block between softmax flag and weights; weights vector then
+	// carries the adstock params at its tail, as Mlp::weights() emits).
+	const Adstock* ads = mlp.adstock();
+	os.write(ads ? "NNH2" : "NNH1", 4);
 
 	// Architecture
 	// Need const access to arch — use const_cast since arch() isn't const-qualified
@@ -49,6 +52,16 @@ void MultiLayerPerceptron::saveMlpBinary(const Mlp& mlp, ostream& os) {
 	uint8_t sm = mref.softmax() ? 1 : 0;
 	os.write(reinterpret_cast<const char*>(&sm), 1);
 
+	// Adstock meta (NNH2 only)
+	if (ads) {
+		writeUint32(os, ads->nChannels());
+		writeUint32(os, ads->nLags());
+		writeUint32(os, ads->nPassthrough());
+		const string tag = kernelToTag(ads->kernel());
+		writeUint32(os, tag.size());
+		os.write(tag.data(), tag.size());
+	}
+
 	// Weights
 	vector<double> w = mlp.weights();
 	writeUint32(os, w.size());
@@ -59,7 +72,9 @@ unique_ptr<Mlp> MultiLayerPerceptron::loadMlpBinary(istream& is) {
 	// Magic
 	char magic[4];
 	is.read(magic, 4);
-	if (memcmp(magic, "NNH1", 4) != 0) throw runtime_error("Invalid MLP binary format: bad magic");
+	const bool hasAdstock = memcmp(magic, "NNH2", 4) == 0;
+	if (!hasAdstock && memcmp(magic, "NNH1", 4) != 0)
+		throw runtime_error("Invalid MLP binary format: bad magic");
 
 	// Architecture
 	uint32_t archSize = readUint32(is);
@@ -82,6 +97,17 @@ unique_ptr<Mlp> MultiLayerPerceptron::loadMlpBinary(istream& is) {
 
 	// Create Mlp (this randomizes weights)
 	auto mlp = make_unique<Mlp>(arch, types, sm != 0);
+
+	// Adstock meta (NNH2 only); params arrive with the weight vector
+	if (hasAdstock) {
+		uint32_t channels = readUint32(is);
+		uint32_t lags = readUint32(is);
+		uint32_t pass = readUint32(is);
+		uint32_t len = readUint32(is);
+		string tag(len, '\0');
+		is.read(&tag[0], len);
+		mlp->adstock(Adstock(channels, lags, pass, kernelFromTag(tag)));
+	}
 
 	// Read and set weights
 	uint32_t nWeights = readUint32(is);
