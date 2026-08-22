@@ -7228,8 +7228,8 @@ using namespace MultiLayerPerceptron;
 using std::vector;
 
 Adstock::Adstock(uint channels, uint lags, uint passthrough, Kernel k)
-    : theChannels(channels), theLags(lags), thePassthrough(passthrough), theKernel(k),
-      theNBoxes(0), theSaturation(Saturation::None) {
+    : theChannels(channels), theLags(lags), thePassthrough(passthrough), theKernel(k), theNBoxes(0),
+      theSaturation(Saturation::None) {
 	assert(channels > 0 && lags > 0);
 	theParams.assign(nParams(), 0.0);
 	theGradients.assign(nParams(), 0.0);
@@ -7891,8 +7891,8 @@ const double* Layer::propagateBatch(const double* input, uint B, uint n_in,
 	if (nnh::smallgemm::small(B, ncurr, nprev))
 		nnh::smallgemm::gemmNT(B, ncurr, nprev, input, nprev, wt, stride, out, ncurr);
 	else
-		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, B, ncurr, nprev, 1.0, input, nprev,
-		            wt, stride, 0.0, out, ncurr);
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, B, ncurr, nprev, 1.0, input, nprev, wt,
+		            stride, 0.0, out, ncurr);
 
 	// Add bias to each row. Pre-pack biases into a contiguous buffer so
 	// the inner loop over j has unit-stride loads on both sides; the
@@ -9807,7 +9807,7 @@ double Roc::calcAucTrapezoidal(vector<double>& out, vector<uint>& dout) {
 }
 
 double Roc::aucWmwFastSample(const vector<double>& out, const vector<uint>& dout,
-                            const vector<uint>& idx) {
+                             const vector<uint>& idx) {
 	uint m = 0;
 	uint n = 0;
 	vector<pair<double, uint>> rank;
@@ -9993,8 +9993,8 @@ AdstockSummary summarizeAdstock(Ensemble& ensemble, double alpha) {
 	const auto family = first->kernel();
 
 	// Gather per-member kernels and natural params
-	vector<vector<vector<double>>> w(M);   // [M][C][L]
-	vector<vector<double>> nat(M);         // [M][C*ppc]
+	vector<vector<vector<double>>> w(M); // [M][C][L]
+	vector<vector<double>> nat(M);       // [M][C*ppc]
 	for (uint m = 0; m < M; ++m) {
 		const MultiLayerPerceptron::Adstock* a = ensemble.mlp(m).adstock();
 		if (!a || a->nChannels() != C || a->nLags() != L || a->kernel() != family)
@@ -10061,10 +10061,10 @@ BoxedAdstockSummary summarizeBoxedAdstock(Ensemble& ensemble, double alpha) {
 
 	// Per member: canonical box order (by mean carryover lag), then
 	// remapped kernels, params, and routing.
-	vector<vector<vector<double>>> kern(M);  // [M][K][L] canonical
-	vector<vector<double>> par(M);           // [M][K*ppb] natural, canonical
-	vector<vector<double>> sat(M), expo(M);  // [M][K] canonical (hill)
-	vector<vector<vector<double>>> rout(M);  // [M][C][K] canonical
+	vector<vector<vector<double>>> kern(M); // [M][K][L] canonical
+	vector<vector<double>> par(M);          // [M][K*ppb] natural, canonical
+	vector<vector<double>> sat(M), expo(M); // [M][K] canonical (hill)
+	vector<vector<vector<double>>> rout(M); // [M][C][K] canonical
 
 	for (uint m = 0; m < M; ++m) {
 		const Adstock* a = ensemble.mlp(m).adstock();
@@ -10339,8 +10339,8 @@ void Error::chainAdstock(uint bs) const {
 	if (nnh::smallgemm::small(bs, nin, n0))
 		nnh::smallgemm::gemmNN(bs, nin, n0, lg, n0, wt, stride, din, nin);
 	else
-		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, bs, nin, n0, 1.0, lg, n0, wt,
-		            stride, 0.0, din, nin);
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, bs, nin, n0, 1.0, lg, n0, wt, stride,
+		            0.0, din, nin);
 #else
 	for (uint b = 0; b < bs; ++b)
 		for (uint j = 0; j < nin; ++j) {
@@ -11098,8 +11098,7 @@ double SummedSquare::gradient() {
 	}
 	if (Adstock* a = theMlp->adstock()) {
 		auto& ag = a->gradients();
-		std::transform(ag.begin(), ag.end(), ag.begin(),
-		               [denom](double v) { return v / -denom; });
+		std::transform(ag.begin(), ag.end(), ag.begin(), [denom](double v) { return v / -denom; });
 		a->applyEntropyPenaltyGradient();
 	}
 
