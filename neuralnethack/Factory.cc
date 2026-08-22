@@ -89,6 +89,20 @@ unique_ptr<Mlp> Factory::createMlp(const Config& config) {
 	return mlp;
 }
 
+std::vector<uint> Factory::adstockColumnGroups(const Config& config) {
+	const auto& ap = config.adstock();
+	if (!ap.enabled) return {};
+	std::vector<uint> g;
+	g.reserve(ap.channels * ap.lags + ap.passthrough);
+	for (uint c = 0; c < ap.channels; ++c)
+		for (uint l = 0; l < ap.lags; ++l)
+			g.push_back(c);
+	uint next = ap.channels;
+	for (uint p = 0; p < ap.passthrough; ++p)
+		g.push_back(next++);
+	return g;
+}
+
 unique_ptr<Error> Factory::createError(const Config& config, DataSet& data) {
 	auto mlp = createMlp(config);
 	unique_ptr<Error> error;

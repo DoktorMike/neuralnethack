@@ -42,7 +42,12 @@ minimal binary-classification config looks like this:
 ```toml
 suffix = "myrun"
 seed = 42
-normalization = "Z"          # "Z" or "no"
+normalization = "Z"                # "Z", "maxabs", or "no". maxabs scales
+                                   # inputs by max|x| (no centering; zero
+                                   # stays zero) — use it with [adstock]:
+                                   # Z-centering breaks the Hill domain, and
+                                   # lag columns of one channel share one
+                                   # scale automatically. Target never scaled.
 problem_type = "class"       # "class" or "regr"
 
 [data.train]

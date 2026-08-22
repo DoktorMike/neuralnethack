@@ -22,6 +22,17 @@ namespace Factory {
 
 std::unique_ptr<MultiLayerPerceptron::Mlp> createMlp(const Config& config);
 
+/**Column-to-group mapping for grouped max-abs normalisation
+ * (Normaliser::calcAndNormaliseMaxAbs) when an adstock stage is
+ * configured: all lag columns of one media channel share one group (a
+ * lag window must be scaled by a single factor or the kernel warps near
+ * the series edges), each passthrough covariate and each output gets
+ * its own group. Inputs only — max-abs leaves the target unscaled.
+ * Returns an empty vector when adstock is disabled (plain per-column
+ * scaling). Length: channels*lags + passthrough.
+ */
+std::vector<uint> adstockColumnGroups(const Config& config);
+
 std::unique_ptr<MultiLayerPerceptron::Error> createError(const Config& config,
                                                          DataTools::DataSet& data);
 

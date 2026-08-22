@@ -47,7 +47,11 @@ std::vector<double> trueKernel(uint r) {
 	return w;
 }
 
-const double trueHalf[5] = {0.6, 0.8, 1.0, 1.2, 0.9};
+// Spends are in currency units (~10k weekly scale, like a real MMM);
+// Hill half-saturations live on the adstocked-spend scale accordingly.
+constexpr double SPEND_SCALE = 10000.0;
+const double trueHalf[5] = {0.6 * SPEND_SCALE, 0.8 * SPEND_SCALE, 1.0 * SPEND_SCALE,
+                            1.2 * SPEND_SCALE, 0.9 * SPEND_SCALE};
 const double trueExp[5] = {1.0, 1.0, 1.0, 2.0, 1.0};
 
 double hillFn(double a, double s, double n) {
@@ -65,7 +69,7 @@ int main() {
 		bool on = false;
 		for (uint t = 0; t < T; ++t) {
 			if (nnh::rand::uniform() < 0.18) on = !on;
-			spend[c][t] = on ? 1.0 + 2.0 * nnh::rand::uniform() : 0.0;
+			spend[c][t] = on ? SPEND_SCALE * (1.0 + 2.0 * nnh::rand::uniform()) : 0.0;
 		}
 	}
 

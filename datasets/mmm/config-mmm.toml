@@ -15,7 +15,7 @@
 
 suffix = "mmm"
 seed = 4711
-normalization = "no"         # spends must stay non-negative for Hill
+normalization = "maxabs"     # scale, no shift: zero stays zero, Hill domain intact
 problem_type = "regr"
 
 [data.train]
@@ -50,7 +50,7 @@ nonnegative_betas = true     # media effects >= 0 (projected gradient)
 
 [training]
 method = "adam"
-max_epochs = 800
+max_epochs = 2000
 
 [training.gd]
 batch_size = 32              # batch size is shared with adam

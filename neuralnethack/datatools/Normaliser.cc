@@ -62,6 +62,45 @@ DataSet& Normaliser::calcAndNormalise(DataSet& d, bool doSkip) {
 	return d;
 }
 
+DataSet& Normaliser::calcAndNormaliseMaxAbs(DataSet& d, const vector<uint>& colGroup) {
+	const uint n = d.nInput() + d.nOutput();
+	assert(colGroup.empty() || colGroup.size() == d.nInput());
+	theMean.assign(n, 0.0);
+	theStdDev.assign(n, 0.0);
+	theSkip.clear();
+
+	const uint nIn = d.nInput();
+
+	// Per-column max|x| over the data set, INPUTS ONLY: the max-abs
+	// rationale (zero preservation, Hill domain) is input-side; scaling
+	// the target rescales the loss and destabilises training (measured:
+	// holdout R^2 0.90 vs junk on the mmm dataset). Outputs keep scale 1.
+	for (uint i = 0; i < d.size(); ++i) {
+		Pattern& p = d.pattern(i);
+		for (uint j = 0; j < p.nInput(); ++j)
+			theStdDev[j] = max(theStdDev[j], fabs(p.input()[j]));
+	}
+
+	// Share one scale per group: the max over the group's columns
+	if (!colGroup.empty()) {
+		vector<double> groupMax;
+		for (uint j = 0; j < nIn; ++j) {
+			if (colGroup[j] >= groupMax.size()) groupMax.resize(colGroup[j] + 1, 0.0);
+			groupMax[colGroup[j]] = max(groupMax[colGroup[j]], theStdDev[j]);
+		}
+		for (uint j = 0; j < nIn; ++j)
+			theStdDev[j] = groupMax[colGroup[j]];
+	}
+
+	// All-zero columns/groups keep scale 1
+	for (auto& s : theStdDev)
+		if (s <= 0.0) s = 1.0;
+
+	for (uint i = 0; i < d.size(); ++i)
+		normalise(d.pattern(i));
+	return d;
+}
+
 /** Subtracts the mean from each variable and then divides it with the corresponding standard
  * deviation.
  */

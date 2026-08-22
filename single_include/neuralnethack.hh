@@ -911,6 +911,27 @@ class Normaliser {
 	 */
 	DataSet& calcAndNormalise(DataSet& d, bool doSkip = false);
 
+	/**Max-abs normalisation of the INPUTS: x' = x / max|x| per column,
+	 * computed on d. No centering, so zero stays zero, signs and
+	 * non-negativity are preserved, and the shape of the series is
+	 * untouched — the right scaling for adstock/Hill stages where
+	 * Z-centering would break the a >= 0 domain (see doc/adstock.md).
+	 * Outputs are left at scale 1: rescaling the target rescales the
+	 * loss and destabilises training. Internally stored as mean 0 /
+	 * std max|x|, so normalise()/unnormalise() work as usual.
+	 *
+	 * colGroup optionally maps each INPUT column (length nInput) to a
+	 * group id; columns in the same group share one scale (the max over
+	 * the whole group). Use this to give all lag columns of one media
+	 * channel a single scale — per-column scaling would warp the lag
+	 * window near the edges of the series. Empty = every column its own
+	 * group. A group with all zeros keeps scale 1.
+	 * \param d the DataSet to scale (in place).
+	 * \param colGroup optional column-to-group mapping.
+	 * \return the scaled DataSet.
+	 */
+	DataSet& calcAndNormaliseMaxAbs(DataSet& d, const std::vector<uint>& colGroup = {});
+
 	/**Normalise a Pattern.
 	 * \param p the Pattern to normalise.
 	 * \return the normalised Pattern.
@@ -5049,6 +5070,17 @@ namespace Factory {
 
 std::unique_ptr<MultiLayerPerceptron::Mlp> createMlp(const Config& config);
 
+/**Column-to-group mapping for grouped max-abs normalisation
+ * (Normaliser::calcAndNormaliseMaxAbs) when an adstock stage is
+ * configured: all lag columns of one media channel share one group (a
+ * lag window must be scaled by a single factor or the kernel warps near
+ * the series edges), each passthrough covariate and each output gets
+ * its own group. Inputs only — max-abs leaves the target unscaled.
+ * Returns an empty vector when adstock is disabled (plain per-column
+ * scaling). Length: channels*lags + passthrough.
+ */
+std::vector<uint> adstockColumnGroups(const Config& config);
+
 std::unique_ptr<MultiLayerPerceptron::Error> createError(const Config& config,
                                                          DataTools::DataSet& data);
 
@@ -6028,6 +6060,45 @@ DataSet& Normaliser::calcAndNormalise(DataSet& d, bool doSkip) {
 				theStdDev[i] = 1;
 			}
 	}
+
+	for (uint i = 0; i < d.size(); ++i)
+		normalise(d.pattern(i));
+	return d;
+}
+
+DataSet& Normaliser::calcAndNormaliseMaxAbs(DataSet& d, const vector<uint>& colGroup) {
+	const uint n = d.nInput() + d.nOutput();
+	assert(colGroup.empty() || colGroup.size() == d.nInput());
+	theMean.assign(n, 0.0);
+	theStdDev.assign(n, 0.0);
+	theSkip.clear();
+
+	const uint nIn = d.nInput();
+
+	// Per-column max|x| over the data set, INPUTS ONLY: the max-abs
+	// rationale (zero preservation, Hill domain) is input-side; scaling
+	// the target rescales the loss and destabilises training (measured:
+	// holdout R^2 0.90 vs junk on the mmm dataset). Outputs keep scale 1.
+	for (uint i = 0; i < d.size(); ++i) {
+		Pattern& p = d.pattern(i);
+		for (uint j = 0; j < p.nInput(); ++j)
+			theStdDev[j] = max(theStdDev[j], fabs(p.input()[j]));
+	}
+
+	// Share one scale per group: the max over the group's columns
+	if (!colGroup.empty()) {
+		vector<double> groupMax;
+		for (uint j = 0; j < nIn; ++j) {
+			if (colGroup[j] >= groupMax.size()) groupMax.resize(colGroup[j] + 1, 0.0);
+			groupMax[colGroup[j]] = max(groupMax[colGroup[j]], theStdDev[j]);
+		}
+		for (uint j = 0; j < nIn; ++j)
+			theStdDev[j] = groupMax[colGroup[j]];
+	}
+
+	// All-zero columns/groups keep scale 1
+	for (auto& s : theStdDev)
+		if (s <= 0.0) s = 1.0;
 
 	for (uint i = 0; i < d.size(); ++i)
 		normalise(d.pattern(i));
@@ -8720,6 +8791,9 @@ void FeatureSelector::parseData(Config& config, DataSet& trnData, DataSet& tstDa
 	cout << "Normalizing data" << endl;
 	if (config.normalization() == "Z") {
 		norm.calcAndNormalise(trnData, true);
+		norm.normalise(tstData);
+	} else if (config.normalization() == "maxabs") {
+		norm.calcAndNormaliseMaxAbs(trnData, Factory::adstockColumnGroups(config));
 		norm.normalise(tstData);
 	}
 }
@@ -12804,6 +12878,20 @@ unique_ptr<Mlp> Factory::createMlp(const Config& config) {
 		if (ap.nonNegativeBetas) mlp->nonNegative(0, 0, ap.channels - 1);
 	}
 	return mlp;
+}
+
+std::vector<uint> Factory::adstockColumnGroups(const Config& config) {
+	const auto& ap = config.adstock();
+	if (!ap.enabled) return {};
+	std::vector<uint> g;
+	g.reserve(ap.channels * ap.lags + ap.passthrough);
+	for (uint c = 0; c < ap.channels; ++c)
+		for (uint l = 0; l < ap.lags; ++l)
+			g.push_back(c);
+	uint next = ap.channels;
+	for (uint p = 0; p < ap.passthrough; ++p)
+		g.push_back(next++);
+	return g;
 }
 
 unique_ptr<Error> Factory::createError(const Config& config, DataSet& data) {

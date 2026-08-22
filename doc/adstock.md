@@ -103,3 +103,17 @@ the kernel stays a 1-2 parameter family regardless of L. The fixed window is a
 deliberate trade against recursive adstock (`a_t = x_t + λa_{t-1}`): infinite
 memory, but stateful patterns would break bootstrap/cross-split resampling and
 shuffled batches.
+
+## Input scaling
+
+Real spends live on 10^4-plus scales, which saturates Hill immediately and
+wrecks gradient magnitudes. Use `normalization = "maxabs"`: inputs are
+divided by max|x| with no centering, so zero spend stays exactly zero and
+the a >= 0 Hill domain survives — Z-normalisation would break both. All lag
+columns of one channel share a single scale (per-column maxima differ near
+the series edges and would warp the kernel); with an `[adstock]` config
+section the grouping is automatic via `Factory::adstockColumnGroups`. The
+target is never scaled — rescaling the loss destabilises training
+(measured: holdout R^2 0.90 vs junk on the mmm dataset). Interpretation:
+a shared box half-saturation s then reads "saturates at fraction s of the
+channel's max spend"; real-unit half-sat per channel = s x max spend_c.

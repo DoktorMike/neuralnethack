@@ -60,6 +60,27 @@ class Normaliser {
 	 */
 	DataSet& calcAndNormalise(DataSet& d, bool doSkip = false);
 
+	/**Max-abs normalisation of the INPUTS: x' = x / max|x| per column,
+	 * computed on d. No centering, so zero stays zero, signs and
+	 * non-negativity are preserved, and the shape of the series is
+	 * untouched — the right scaling for adstock/Hill stages where
+	 * Z-centering would break the a >= 0 domain (see doc/adstock.md).
+	 * Outputs are left at scale 1: rescaling the target rescales the
+	 * loss and destabilises training. Internally stored as mean 0 /
+	 * std max|x|, so normalise()/unnormalise() work as usual.
+	 *
+	 * colGroup optionally maps each INPUT column (length nInput) to a
+	 * group id; columns in the same group share one scale (the max over
+	 * the whole group). Use this to give all lag columns of one media
+	 * channel a single scale — per-column scaling would warp the lag
+	 * window near the edges of the series. Empty = every column its own
+	 * group. A group with all zeros keeps scale 1.
+	 * \param d the DataSet to scale (in place).
+	 * \param colGroup optional column-to-group mapping.
+	 * \return the scaled DataSet.
+	 */
+	DataSet& calcAndNormaliseMaxAbs(DataSet& d, const std::vector<uint>& colGroup = {});
+
 	/**Normalise a Pattern.
 	 * \param p the Pattern to normalise.
 	 * \return the normalised Pattern.

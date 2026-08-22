@@ -257,6 +257,9 @@ int main(int argc, char* argv[]) {
 	if (config.normalization() == "Z") {
 		norm.calcAndNormalise(trnData, true);
 		norm.normalise(tstData);
+	} else if (config.normalization() == "maxabs") {
+		norm.calcAndNormaliseMaxAbs(trnData, Factory::adstockColumnGroups(config));
+		norm.normalise(tstData);
 	}
 
 	if (config.architecture().back() > 1)

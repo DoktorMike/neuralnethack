@@ -15,7 +15,10 @@ ground truth.
 | `mmm.tst.tab` | 32 | 654 | windowed holdout rows (last 32 weeks, chronological) |
 | `mmm.raw.tab` | 168 | 55 | raw weekly series |
 
-Whitespace-separated, no header, values printed with `%.6g`.
+Whitespace-separated, no header, values printed with `%.6g`. Spends are
+in currency units (weekly ~10,000-30,000 during flights, 0 otherwise) —
+fit with `normalization = "maxabs"` (see doc/adstock.md); Z-centering or
+raw scales both fail.
 
 **Windowed layout** (654 columns), ready for `Adstock(50, 13, 3, ...)`:
 
@@ -78,7 +81,7 @@ auto trainer = Factory::createTrainer(config, trainData);
 auto mlp = trainer->trainNew(trainData, std::cout);
 ```
 
-Lands around holdout R^2 0.87 with the shipped settings. The stock
+Lands around holdout R^2 0.90 with the shipped settings (grouped max-abs input scaling, natural-unit target). The stock
 `neuralnethack` binary is classification-oriented (it reports AUC), so
 consume this config through the API as above. `entropy_penalty` stays 0
 in the config on purpose — harden routing in a second phase via

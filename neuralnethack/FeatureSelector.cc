@@ -191,6 +191,9 @@ void FeatureSelector::parseData(Config& config, DataSet& trnData, DataSet& tstDa
 	if (config.normalization() == "Z") {
 		norm.calcAndNormalise(trnData, true);
 		norm.normalise(tstData);
+	} else if (config.normalization() == "maxabs") {
+		norm.calcAndNormaliseMaxAbs(trnData, Factory::adstockColumnGroups(config));
+		norm.normalise(tstData);
 	}
 }
 
