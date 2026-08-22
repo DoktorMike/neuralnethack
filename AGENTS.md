@@ -119,6 +119,14 @@ Binary format: magic bytes + architecture + type strings + softmax flag + weight
 5. Wire the tag into `activationFromTag` / `activationToTag` in `Activation.cc`
 6. No Layer subclass or Mlp change needed: `createLayers()` builds layers via `activationFromTag`, and `std::visit` picks up the new variant alternative automatically
 
+## Releases
+
+Always cut releases with `make release` — it enforces the order: clang-format
+applied and committed, all tests green, amalgamation regenerated and
+committed, THEN standard-version (bumps CMakeLists.txt via .versionrc,
+writes CHANGELOG.md, tags). Never run standard-version directly; formatting
+must land before the tag, not after.
+
 ## Commits
 
 Always use Conventional Commits in the caveman-commit style:

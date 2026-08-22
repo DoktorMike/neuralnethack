@@ -2,7 +2,7 @@ BUILD_DIR := build
 COV_DIR := build-coverage
 JOBS := $(shell nproc)
 
-.PHONY: all test examples clean format coverage single-include
+.PHONY: all test examples clean format coverage single-include release
 
 all:
 	@cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
@@ -40,3 +40,13 @@ clean:
 format:
 	@find neuralnethack src test -name '*.cc' -o -name '*.hh' | xargs clang-format -i
 	@echo "Formatted all source files"
+
+# Cut a release: format + amalgamation must be committed, tests must pass,
+# then standard-version bumps CMakeLists.txt, writes CHANGELOG.md, and tags.
+release: format
+	@git diff --quiet || { echo "error: unformatted or uncommitted changes; commit them first" >&2; exit 1; }
+	@$(MAKE) test
+	@$(MAKE) single-include
+	@git diff --quiet || { echo "error: amalgamation was stale; commit it first" >&2; exit 1; }
+	@npx --yes standard-version
+	@echo "Release cut. Publish with: git push --follow-tags origin master"
