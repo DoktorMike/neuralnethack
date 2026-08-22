@@ -298,7 +298,7 @@ auto box = mlp.adstock()->boxAssignments(); // channel -> box
 auto pi  = mlp.adstock()->routingProbs(7);  // soft routing, channel 7
 ```
 
-Do not enable the entropy penalty from the first epoch — it hardens the routing before the boxes separate and locks in chance-level assignments; warm up with it off (measured: 12/12 channels routed correctly with warmup, chance without). `summarizeBoxedAdstock` extends the ensemble summary to boxed stages with label-switching-safe box bands plus **assignment stability** — "channel 7 routed long in 9/10 members". Design rationale and V2 (feature-based routing) in [`doc/spec-boxed-adstock.md`](doc/spec-boxed-adstock.md).
+Do not enable the entropy penalty from the first epoch — it hardens the routing before the boxes separate and locks in chance-level assignments; warm up with it off (measured: 12/12 channels routed correctly with warmup, chance without). `summarizeBoxedAdstock` extends the ensemble summary to boxed stages with label-switching-safe box bands plus **assignment stability** — "channel 7 routed long in 9/10 members". Full worked example: `examples/mmm_boxed.cc` (50 insertion types = 10 media × 5 messages, 156 weekly obs, seasonality + unemployment + trend; recovers the delayed peak and the S-shaped Hill exponent, and shows where 156 rows stop identifying middle carryover regimes — the stability readout flags exactly those channels). Design rationale and V2 (feature-based routing) in [`doc/spec-boxed-adstock.md`](doc/spec-boxed-adstock.md).
 
 Kernel-parameter uncertainty comes from the ensemble machinery: train members on bootstrap resamples, then summarize the spread of fitted kernels across members:
 
