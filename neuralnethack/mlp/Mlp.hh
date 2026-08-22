@@ -163,6 +163,30 @@ class Mlp {
 	 */
 	const double* propagateBatch(const double* input, uint B);
 
+	/**Constrain a column range of one layer's weights to be
+	 * non-negative (e.g. media effects in an MMM head). Enforced by
+	 * projection: every trainer clamps the masked weights to >= 0 after
+	 * each update (projected gradient), so exact zeros are reachable --
+	 * a dead input gets a clean 0 instead of the vanishing-gradient
+	 * stall a softplus/exp reparameterization would produce near the
+	 * boundary. Optional; off unless requested. Columns are 0-based
+	 * inputs of that layer; the bias column (nPrevious()) may be
+	 * included explicitly if desired. Repeated calls accumulate
+	 * constraints. Not serialized (training-time config; saved weights
+	 * already satisfy it).
+	 * \param layer the layer index.
+	 * \param colFrom first constrained column (inclusive).
+	 * \param colTo last constrained column (inclusive).
+	 */
+	void nonNegative(uint layer, uint colFrom, uint colTo);
+
+	/**Remove all non-negativity constraints. */
+	void clearNonNegative();
+
+	/**Clamp all constrained weights to >= 0. Called by the trainers
+	 * after every update; cheap no-op when no constraint is set. */
+	void projectNonNegative();
+
 	/**Attach a differentiable adstock (parametric lag kernel) input
 	 * stage. Its outputDim() must equal arch[0]; raw inputs then carry
 	 * inputDim() values per pattern. Parameters train jointly with the
@@ -220,6 +244,12 @@ class Mlp {
 
 	/**Skip-connection source per layer; -1 = no skip. */
 	std::vector<int> theSkipFrom;
+
+	/**Non-negativity constraints: (layer, colFrom, colTo) triples. */
+	struct NonNegRange {
+		uint layer, colFrom, colTo;
+	};
+	std::vector<NonNegRange> theNonNegative;
 
 	/**Optional adstock input stage (value type, so copies stay default). */
 	std::optional<Adstock> theAdstock;

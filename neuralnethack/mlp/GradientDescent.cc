@@ -158,6 +158,7 @@ double GradientDescent::train(DataSet& dset) {
 			p[j] += u;
 		}
 	}
+	theMlp->projectNonNegative();
 	return err;
 }
 

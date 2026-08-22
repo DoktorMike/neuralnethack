@@ -65,6 +65,10 @@ void QuasiNewton::train(ostream& os) {
 				wp[j] += vt1[j];
 		}
 		theMlp->weights(w); // Update the weights.
+		// The setter may project constrained weights (Mlp::nonNegative);
+		// read back so the (s, y) curvature pairs match the weights the
+		// gradient is evaluated at.
+		w = theMlp->weights();
 		gPrev = g;
 		theError->gradient(*theMlp, *theData);
 		g = theMlp->gradients(); // Update the gradients.

@@ -193,7 +193,7 @@ add_custom_target(nnh_examples DEPENDS ${EXAMPLES})
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve testConformal testEarlyStopping testEnsembleBuilder testClassWeights testUncertainty testAdstock)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve testConformal testEarlyStopping testEnsembleBuilder testClassWeights testUncertainty testAdstock testNonNegative)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)

@@ -73,6 +73,9 @@ void Mlp::weights(vector<double>& w) {
 	if (theAdstock)
 		for (auto& p : theAdstock->params())
 			p = *itw++;
+	// Covers L-BFGS (and any flat-vector writer): line-search iterates
+	// stay inside the feasible region.
+	projectNonNegative();
 }
 
 vector<double> Mlp::gradients() const {
@@ -119,6 +122,28 @@ uint Mlp::nWeights() const {
 	return tmp;
 }
 
+void Mlp::nonNegative(uint layer, uint colFrom, uint colTo) {
+	assert(layer < theLayers.size());
+	assert(colFrom <= colTo && colTo <= theLayers[layer].nPrevious());
+	theNonNegative.push_back({layer, colFrom, colTo});
+	projectNonNegative();
+}
+
+void Mlp::clearNonNegative() {
+	theNonNegative.clear();
+}
+
+void Mlp::projectNonNegative() {
+	for (const auto& r : theNonNegative) {
+		Layer& l = theLayers[r.layer];
+		const uint stride = l.nPrevious() + 1;
+		double* w = l.weights().data();
+		for (uint i = 0; i < l.nNeurons(); ++i)
+			for (uint j = r.colFrom; j <= r.colTo; ++j)
+				if (w[i * stride + j] < 0.0) w[i * stride + j] = 0.0;
+	}
+}
+
 void Mlp::adstock(const Adstock& a) {
 	assert(a.outputDim() == theArch[0]);
 	theAdstock = a;
@@ -140,6 +165,7 @@ void Mlp::regenerateWeights() {
 	for (auto& l : theLayers)
 		l.regenerateWeights();
 	if (theAdstock) theAdstock->initParams();
+	projectNonNegative();
 }
 
 void Mlp::initScheme(Layer::InitScheme s) {

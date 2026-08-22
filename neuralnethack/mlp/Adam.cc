@@ -172,6 +172,7 @@ double Adam::trainEpoch(DataSet& dset) {
 		}
 		offset += np;
 	}
+	theMlp->projectNonNegative();
 	return err;
 }
 
