@@ -66,6 +66,8 @@ test/               Test suite (7 tests)
 
 **Adstock** is an optional `std::optional<Adstock>` stage on Mlp: raw input carries `channels*lags + passthrough` values, the stage collapses each channel's lag window through a normalized parametric kernel (1-2 unconstrained params per channel), output feeds `arch[0]`. Params are appended to `Mlp::weights()/gradients()` (L-BFGS support for free); Adam and GD have explicit update blocks. `Error::chainAdstock()` backpropagates into the stage via one extra GEMM (deltas w.r.t. layer-0 inputs). Library gradient convention is (1/2) dE/dparam for SSE (delta = t - o, no factor 2) — the adstock grads match it (see testAdstock gradient check).
 
+**Non-negative weights** are an optional projection constraint: `Mlp::nonNegative(layer, colFrom, colTo)` clamps that column range to >= 0 after every trainer update (Adam/GD call `projectNonNegative()`; the flat `weights()` setter projects too, which covers L-BFGS -- whose local weight copy must be read back after the setter, see QuasiNewton.cc). Chosen over softplus/exp reparameterization deliberately: projection reaches exact zeros and has no vanishing gradient at the boundary. Not serialized.
+
 **Dropout** uses inverted dropout (scale by `1/(1-p)` during training). Applied after activation in both single-pattern and batch paths. Mask is propagated through backprop. Only applied to hidden layers. Toggled via `Mlp::training(bool)`.
 
 ## Type strings

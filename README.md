@@ -17,7 +17,7 @@ This is the MLP and ensemble-of-MLPs library I've kept maintained, however infre
 - **Optimizers**: SGD with momentum, Adam/AdamW, L-BFGS
 - **Loss functions**: cross-entropy, summed square error, with optional per-class weights for imbalanced data
 - **Normalization**: batch normalization, layer normalization
-- **Regularization**: dropout (inverted), weight elimination
+- **Regularization**: dropout (inverted), weight elimination, optional non-negative weight constraints (projected gradient, per layer and column range)
 - **Ensembles**: weighted ensemble of MLPs with bootstrap, cross-split, or hold-out sampling, trained in parallel via OpenMP
 - **Model selection**: grid search over regularization with cross-validation
 - **Feature selection**: backward elimination via saliency / clamping

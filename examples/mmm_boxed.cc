@@ -20,11 +20,11 @@
 // Expected results (honest reading): the slow and delayed kernels are
 // recovered nearly exactly -- including the S-shaped Hill exponent
 // (~2.1 vs true 2.0) and the week-5 peak -- fast media route cleanly,
-// and holdout R^2 lands near 0.9. The MIDDLE regimes blur into their
-// neighbors: exact-box routing is ~25/50 but within-one-regime is
-// ~42/50, because separating lambda 0.30 from 0.60 with ~20 flights of
+// and holdout R^2 lands near 0.85. The MIDDLE regimes blur into their
+// neighbors: exact-box routing is ~24/50 but within-one-regime is
+// ~47/50, because separating lambda 0.30 from 0.60 with ~20 flights of
 // evidence per channel is close to the information limit of 156 weekly
-// rows. The ensemble stability readout says exactly that: only ~14/50
+// rows. The ensemble stability readout says exactly that: only ~16/50
 // channels are stable across bootstrap members, which is the honest
 // signal a real engagement should report instead of a confident
 // point-routing.
@@ -172,15 +172,12 @@ int main() {
 	Mlp mlp({C + P, 1}, {"purelin"}, false);
 	mlp.adstock(Adstock(C, L, P, Adstock::Kernel::Weibull, K, Adstock::Saturation::Hill));
 
-	// Media effects are non-negative by construction (a real MMM would
-	// constrain them); a positive head init keeps early routing gradients
-	// pointing the right way instead of inverting for channels whose
-	// randomly-initialized beta starts negative.
-	{
-		auto& w0 = mlp.layer(0).weights();
-		for (uint c = 0; c < C; ++c)
-			w0[c] = 0.2;
-	}
+	// Media effects are non-negative by construction: constrain the head's
+	// media columns (projected gradient; covariates and bias stay free).
+	// Beyond realism this keeps early routing gradients pointing the right
+	// way -- a channel whose randomly-initialized beta starts negative
+	// would otherwise drift toward the wrong box.
+	mlp.nonNegative(0, 0, C - 1);
 
 	SummedSquare loss(mlp, trn);
 	std::ostringstream sink;
@@ -277,11 +274,6 @@ int main() {
 	for (uint m = 0; m < M; ++m) {
 		Mlp member(mlp);
 		member.regenerateWeights();
-		{
-			auto& w0 = member.layer(0).weights();
-			for (uint c = 0; c < C; ++c)
-				w0[c] = 0.2;
-		}
 		std::vector<uint> idx(nTrn);
 		for (auto& v : idx)
 			v = trnIdx[static_cast<uint>(nnh::rand::uniform() * nTrn) % nTrn];
