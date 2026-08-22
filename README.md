@@ -42,7 +42,41 @@ If you want the receipts, a full feature-by-feature comparison with the same lib
 
 ## Speed
 
-At realistic data scale this library is fast. On UCI Covertype (581k rows, 54 features, 7-class softmax MLP, 5 epochs) it lands the **lowest inference latency and the highest test accuracy** in a head-to-head against mlpack, tiny-dnn, and PyTorch under identical config. Against PyTorch on small CPU MLPs the gap is structural: **~28x faster training and ~100x lower inference latency** on Pima (8-32-1), and still ~2.7x faster training at Covertype scale, because an op-by-op framework pays per-op dispatch costs that compiled C++ doesn't (`torch.compile` makes it worse at these sizes). A width sweep puts the training crossover around 10-30k parameters, far above typical tabular nets, and finds no batch-1 inference crossover even at 268k parameters. mlpack still wins small-net training via expression-template fusion. Numbers and the bench harness live in [`doc/comparison.md`](doc/comparison.md#speed-and-accuracy-on-real-benchmarks) and [`bench/`](bench/).
+At realistic data scale this library is fast. Head-to-head against mlpack, tiny-dnn, and PyTorch under identical config (same architecture, Adam lr=0.01, batch 32, medians over trials; harness in [`bench/`](bench/)):
+
+**Pima Indians Diabetes** (768 x 8, binary, arch 8-32-1, 100 epochs):
+
+| lib | train (s) | inference (us / sample) | test accuracy |
+|---|---|---|---|
+| mlpack | 0.001 | 0.10 | 0.768 |
+| neuralnethack | 0.010 | **0.08** | 0.744 |
+| tiny-dnn | 0.262 | 0.93 | 0.741 |
+| PyTorch (eager) | 0.280 | 7.76 | 0.744 |
+| PyTorch (compile) | 0.538 | 13.47 | 0.744 |
+
+**UCI Covertype** (581k x 54, 7-class softmax, arch 54-128-7, 5 epochs):
+
+| lib | train (s) | inference (us / sample) | test accuracy |
+|---|---|---|---|
+| neuralnethack | 5.56 | **0.82** | **0.829** |
+| mlpack | 1.56* | 5.64 | 0.754 |
+| tiny-dnn | 52.5 | 2.01 | 0.823 |
+| PyTorch (eager) | 14.8 | 7.85 | 0.832 |
+| PyTorch (compile) | 21.5 | 15.43 | 0.832 |
+
+\* stopped early on ensmallen's convergence tolerance; treat as a lower bound (see [`doc/comparison.md`](doc/comparison.md#speed-and-accuracy-on-real-benchmarks)).
+
+Against PyTorch on small CPU MLPs the gap is structural: **~28x faster training and ~100x lower inference latency** on Pima, and still ~2.7x faster training at Covertype scale, because an op-by-op framework pays per-op dispatch costs that compiled C++ doesn't (`torch.compile` makes it worse at these sizes — per-call guard checks outweigh fusion). A width sweep (`bench/sweep.sh`) puts the training crossover around 10-30k parameters, far above typical tabular nets, and finds no batch-1 inference crossover even at 268k parameters:
+
+| hidden H | params | nnh s/epoch | torch s/epoch | nnh infer (us) | torch infer (us) |
+|---|---|---|---|---|---|
+| 32 | 2.1k | 0.0075 | 0.0246 | 0.4 | 8.3 |
+| 128 | 8.4k | 0.0113 | 0.0135 | 0.8 | 8.5 |
+| 512 | 33k | 0.0436 | 0.0233 | 5.3 | 12.3 |
+| 1024 | 67k | 0.0817 | 0.0299 | 5.0 | 17.9 |
+| 4096 | 268k | 0.260 | 0.152 | 33.6 | 52.5 |
+
+mlpack still wins small-net training via expression-template fusion. Full analysis and caveats live in [`doc/comparison.md`](doc/comparison.md#speed-and-accuracy-on-real-benchmarks).
 
 ## Build
 
