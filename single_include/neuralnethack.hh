@@ -2443,6 +2443,30 @@ class Mlp {
 	 */
 	const double* propagateBatch(const double* input, uint B);
 
+	/**Constrain a column range of one layer's weights to be
+	 * non-negative (e.g. media effects in an MMM head). Enforced by
+	 * projection: every trainer clamps the masked weights to >= 0 after
+	 * each update (projected gradient), so exact zeros are reachable --
+	 * a dead input gets a clean 0 instead of the vanishing-gradient
+	 * stall a softplus/exp reparameterization would produce near the
+	 * boundary. Optional; off unless requested. Columns are 0-based
+	 * inputs of that layer; the bias column (nPrevious()) may be
+	 * included explicitly if desired. Repeated calls accumulate
+	 * constraints. Not serialized (training-time config; saved weights
+	 * already satisfy it).
+	 * \param layer the layer index.
+	 * \param colFrom first constrained column (inclusive).
+	 * \param colTo last constrained column (inclusive).
+	 */
+	void nonNegative(uint layer, uint colFrom, uint colTo);
+
+	/**Remove all non-negativity constraints. */
+	void clearNonNegative();
+
+	/**Clamp all constrained weights to >= 0. Called by the trainers
+	 * after every update; cheap no-op when no constraint is set. */
+	void projectNonNegative();
+
 	/**Attach a differentiable adstock (parametric lag kernel) input
 	 * stage. Its outputDim() must equal arch[0]; raw inputs then carry
 	 * inputDim() values per pattern. Parameters train jointly with the
@@ -2500,6 +2524,12 @@ class Mlp {
 
 	/**Skip-connection source per layer; -1 = no skip. */
 	std::vector<int> theSkipFrom;
+
+	/**Non-negativity constraints: (layer, colFrom, colTo) triples. */
+	struct NonNegRange {
+		uint layer, colFrom, colTo;
+	};
+	std::vector<NonNegRange> theNonNegative;
 
 	/**Optional adstock input stage (value type, so copies stay default). */
 	std::optional<Adstock> theAdstock;
@@ -8173,6 +8203,9 @@ void Mlp::weights(vector<double>& w) {
 	if (theAdstock)
 		for (auto& p : theAdstock->params())
 			p = *itw++;
+	// Covers L-BFGS (and any flat-vector writer): line-search iterates
+	// stay inside the feasible region.
+	projectNonNegative();
 }
 
 vector<double> Mlp::gradients() const {
@@ -8219,6 +8252,28 @@ uint Mlp::nWeights() const {
 	return tmp;
 }
 
+void Mlp::nonNegative(uint layer, uint colFrom, uint colTo) {
+	assert(layer < theLayers.size());
+	assert(colFrom <= colTo && colTo <= theLayers[layer].nPrevious());
+	theNonNegative.push_back({layer, colFrom, colTo});
+	projectNonNegative();
+}
+
+void Mlp::clearNonNegative() {
+	theNonNegative.clear();
+}
+
+void Mlp::projectNonNegative() {
+	for (const auto& r : theNonNegative) {
+		Layer& l = theLayers[r.layer];
+		const uint stride = l.nPrevious() + 1;
+		double* w = l.weights().data();
+		for (uint i = 0; i < l.nNeurons(); ++i)
+			for (uint j = r.colFrom; j <= r.colTo; ++j)
+				if (w[i * stride + j] < 0.0) w[i * stride + j] = 0.0;
+	}
+}
+
 void Mlp::adstock(const Adstock& a) {
 	assert(a.outputDim() == theArch[0]);
 	theAdstock = a;
@@ -8240,6 +8295,7 @@ void Mlp::regenerateWeights() {
 	for (auto& l : theLayers)
 		l.regenerateWeights();
 	if (theAdstock) theAdstock->initParams();
+	projectNonNegative();
 }
 
 void Mlp::initScheme(Layer::InitScheme s) {
@@ -12039,6 +12095,7 @@ double Adam::trainEpoch(DataSet& dset) {
 		}
 		offset += np;
 	}
+	theMlp->projectNonNegative();
 	return err;
 }
 
@@ -12213,6 +12270,7 @@ double GradientDescent::train(DataSet& dset) {
 			p[j] += u;
 		}
 	}
+	theMlp->projectNonNegative();
 	return err;
 }
 
@@ -12305,6 +12363,10 @@ void QuasiNewton::train(ostream& os) {
 				wp[j] += vt1[j];
 		}
 		theMlp->weights(w); // Update the weights.
+		// The setter may project constrained weights (Mlp::nonNegative);
+		// read back so the (s, y) curvature pairs match the weights the
+		// gradient is evaluated at.
+		w = theMlp->weights();
 		gPrev = g;
 		theError->gradient(*theMlp, *theData);
 		g = theMlp->gradients(); // Update the gradients.
