@@ -141,7 +141,9 @@ void gemmNN(uint M, uint N, uint K, const double* A, uint lda, const double* B, 
 
 void gemmNT(uint M, uint N, uint K, const double* A, uint lda, const double* B, uint ldb, double* C,
             uint ldc) {
-	if (N < 8) {
+	// Packing B^T costs O(K*N) and only amortizes across enough rows of A;
+	// at M=1 (single-pattern inference) it equals the whole FLOP count.
+	if (N < 8 || M < 8) {
 		dotKernelNT(M, N, K, A, lda, B, ldb, C, ldc);
 		return;
 	}
