@@ -135,6 +135,63 @@ bool recovery() {
 	return true;
 }
 
+// Weibull must recover a DELAYED peak (k > 1 regime). Ground truth is a
+// gamma-shaped bump peaking at lag 4 -- deliberately not a Weibull, so
+// this also checks graceful behavior under kernel misspecification --
+// behind a saturating response.
+bool delayedPeakRecovery() {
+	std::cout << "weibull delayed-peak recovery: ";
+	nnh::rand::seed(1);
+	const uint L = 14;
+
+	std::vector<double> w(L);
+	double S = 0;
+	for (uint l = 0; l < L; ++l) {
+		const double t = l;
+		w[l] = t * t * std::exp(-t / 2.0); // peak at lag 4
+		S += w[l];
+	}
+	for (auto& v : w)
+		v /= S;
+
+	auto core = std::make_shared<CoreDataSet>();
+	for (uint i = 0; i < 600; ++i) {
+		std::vector<double> in(L);
+		for (auto& v : in)
+			v = nnh::rand::uniform();
+		double a = 0;
+		for (uint l = 0; l < L; ++l)
+			a += w[l] * in[l];
+		std::vector<double> out = {a / (a + 0.5)}; // saturation
+		core->addPattern(Pattern(std::to_string(i), in, out));
+	}
+	DataSet ds;
+	ds.coreDataSet(core);
+
+	Mlp mlp({1, 4, 1}, {"tansig", "purelin"}, false);
+	mlp.adstock(Adstock(1, L, 0, Adstock::Kernel::Weibull));
+	SummedSquare loss(mlp, ds);
+	Adam opt(mlp, ds, loss, 0.0, 32, 0.02);
+	opt.numEpochs(800);
+	std::ostringstream sink;
+	opt.train(sink);
+
+	const auto r = mlp.adstock()->kernelWeights(0);
+	uint truePeak = 0, recPeak = 0;
+	for (uint l = 1; l < L; ++l) {
+		if (w[l] > w[truePeak]) truePeak = l;
+		if (r[l] > r[recPeak]) recPeak = l;
+	}
+	const int diff = static_cast<int>(recPeak) - static_cast<int>(truePeak);
+	if (recPeak == 0 || std::abs(diff) > 1) {
+		std::cerr << "FAIL (true peak lag " << truePeak << ", recovered lag " << recPeak << ")"
+		          << std::endl;
+		return false;
+	}
+	std::cout << "PASS (peak lag " << recPeak << ", true " << truePeak << ")" << std::endl;
+	return true;
+}
+
 // L-BFGS sees adstock params through the flat weight vector.
 bool quasiNewtonTrains() {
 	std::cout << "L-BFGS trains adstock params: ";
@@ -204,6 +261,7 @@ int main() {
 	allPass &= gradientCheck(Adstock::Kernel::Geometric, "geometric");
 	allPass &= gradientCheck(Adstock::Kernel::Weibull, "weibull");
 	allPass &= recovery();
+	allPass &= delayedPeakRecovery();
 	allPass &= quasiNewtonTrains();
 	allPass &= serializationRoundTrip();
 
