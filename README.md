@@ -86,6 +86,7 @@ make          # configure + build
 make test     # run all tests
 make coverage # build with gcov, run tests, generate HTML report
 make format   # apply clang-format to all source files
+make release  # format + test + amalgamation checks, then standard-version
 make clean    # remove build directories
 ```
 
