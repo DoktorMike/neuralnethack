@@ -17,10 +17,11 @@ decomposition (calibrated total uncertainty is what users actually want).
 Shipped: `mlp/Adstock` differentiable input stage (geometric + Weibull
 kernels, normalized over the window), params trained jointly by
 Adam/GD/L-BFGS, NNH2 serialization, `examples/mmm_adstock.cc` recovers
-known kernels through a saturating net (holdout R^2 0.98). Possible
-follow-ups if a user asks: per-channel kernel families, delayed
-geometric, kernel-parameter uncertainty via the existing ensemble
-machinery.
+known kernels through a saturating net. Kernel-parameter uncertainty
+shipped too: `EvalTools::Uncertainty::summarizeAdstock` gives percentile
+bands over ensemble members for the natural-scale params and the per-lag
+carryover curves. Possible follow-ups if a user asks: per-channel kernel
+families, delayed geometric.
 
 ## Statistics
 - Calculate a P-value for the ROC curve. Bootstrap CI on AUC is the

@@ -280,6 +280,18 @@ opt.train(std::cout);
 auto w = mlp.adstock()->kernelWeights(0); // fitted carryover curve, channel 0
 ```
 
+Kernel-parameter uncertainty comes from the ensemble machinery: train members on bootstrap resamples, then summarize the spread of fitted kernels across members:
+
+```cpp
+#include "evaltools/Uncertainty.hh"
+
+auto s = EvalTools::Uncertainty::summarizeAdstock(ensemble, /*alpha=*/0.1);
+// s.paramMean / s.paramLower / s.paramUpper: 90% band per channel on the
+// natural scale (geometric lambda, or Weibull shape and scale)
+// s.weightMean / s.weightLower / s.weightUpper: per-lag bands on the
+// carryover curve itself
+```
+
 Kernels: **geometric** (1 param/channel, monotone decay) and **Weibull** (2 params/channel, allows a delayed peak). 84 lagged inputs above cost 3 trained lag parameters instead of hundreds of free weights — nothing to prune, and the fitted kernels are directly interpretable as carryover curves. The MLP behind the stage learns saturation and channel interactions. Gradients flow through one extra GEMM; the stage serializes with the model (`NNH2` format, old `NNH1` files still load). Worked example with recovered kernels and holdout R²: `examples/mmm_adstock.cc`.
 
 **Choosing the window length.** The kernel is truncated and renormalized over L lags, so carryover beyond the window is invisible to the model. For geometric decay the truncated tail mass is ≈ λ^L: λ = 0.8 loses 4.4% at L = 14 but 0.2% at L = 28; λ = 0.9 needs L ≈ 44 for a 1% tail. Size L for the slowest decay you consider plausible (L ≥ ln ε / ln λ_max) — the cost is only `channels × L` inputs per pattern and O(L) per GEMM row, and an over-long window costs nothing statistically since the kernel stays a 1-2 parameter family regardless of L. The fixed window is a deliberate trade against recursive adstock (`a_t = x_t + λa_{t-1}`): infinite memory, but stateful patterns would break bootstrap/cross-split resampling and shuffled batches.

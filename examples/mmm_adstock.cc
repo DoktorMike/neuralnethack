@@ -10,8 +10,10 @@
 //
 // Prints true vs recovered kernels and holdout fit.
 
+#include "Ensemble.hh"
 #include "Random.hh"
 #include "datatools/CoreDataSet.hh"
+#include "evaltools/Uncertainty.hh"
 #include "datatools/DataSet.hh"
 #include "datatools/Pattern.hh"
 #include "mlp/Adam.hh"
@@ -156,5 +158,26 @@ int main() {
 		ssTot += (y - mean) * (y - mean);
 	}
 	std::printf("\nHoldout R^2 (last %u days): %.4f\n", n - nTrn, 1.0 - ssRes / ssTot);
+
+	// Kernel-parameter uncertainty: bootstrap ensemble over the training
+	// window, percentile bands on each channel's carryover parameter.
+	const uint M = 10;
+	NeuralNetHack::Ensemble ens;
+	Adam bootOpt(mlp, trn, loss, 0.0, 32, 0.01);
+	bootOpt.numEpochs(400);
+	for (uint m = 0; m < M; ++m) {
+		std::vector<uint> idx(nTrn);
+		for (auto& v : idx)
+			v = trnIdx[static_cast<uint>(nnh::rand::uniform() * nTrn) % nTrn];
+		DataSet boot;
+		boot.coreDataSet(core);
+		boot.indices(idx);
+		ens.addMlp(bootOpt.trainNew(boot, sink), 1.0);
+	}
+	auto s = EvalTools::Uncertainty::summarizeAdstock(ens, 0.1);
+	std::printf("\nCarryover lambda, 90%% bootstrap band over %u members:\n", M);
+	for (uint c = 0; c < C; ++c)
+		std::printf("channel %u: true %.2f  mean %.3f  [%.3f, %.3f]\n", c, trueLambda[c],
+		            s.paramMean[c], s.paramLower[c], s.paramUpper[c]);
 	return 0;
 }
