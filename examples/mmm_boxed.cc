@@ -17,6 +17,9 @@
 // Estimating 50 independent lambdas/(k,s)/saturations from 156 rows
 // would be hopeless; the boxes are what make it identifiable.
 //
+// The same data process is shipped as files in datasets/mmm/ (windowed
+// train/test splits + raw weekly series + ground-truth tables).
+//
 // Expected results (honest reading): the slow and delayed kernels are
 // recovered nearly exactly -- including the S-shaped Hill exponent
 // (~2.1 vs true 2.0) and the week-5 peak -- fast media route cleanly,
