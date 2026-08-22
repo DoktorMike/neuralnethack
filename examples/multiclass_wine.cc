@@ -40,7 +40,8 @@ DataSet loadTab(const std::string& path) {
 	}
 	auto core = std::make_shared<CoreDataSet>();
 	std::vector<uint> inCols;
-	for (uint c = 2; c <= 14; ++c) inCols.push_back(c);
+	for (uint c = 2; c <= 14; ++c)
+		inCols.push_back(c);
 	std::vector<uint> outCols = {15, 16, 17};
 	std::vector<uint> rowRange = {0};
 	Parser::readDataFile(in, /*idCol=*/1, inCols, outCols, rowRange, *core);

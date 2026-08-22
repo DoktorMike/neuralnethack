@@ -110,8 +110,7 @@ int main(int argc, char* argv[]) {
 
 	DataSet data = makeTrainingData(nSamples, dataSeed);
 
-	std::cout << "Training " << nMembers
-	          << " residual MLPs on Amini cubic (y = x^3 + N(0, 3))\n";
+	std::cout << "Training " << nMembers << " residual MLPs on Amini cubic (y = x^3 + N(0, 3))\n";
 	std::cout << "Training data: " << nSamples << " samples on x in [" << kTrainMin << ", "
 	          << kTrainMax << "]\n";
 	std::cout << "Evaluating on x in [" << kEvalMin << ", " << kEvalMax << "]\n\n";
@@ -124,12 +123,14 @@ int main(int argc, char* argv[]) {
 		std::cout << "  member " << i << " done\n";
 	}
 	Ensemble ensemble;
-	for (auto& mlp : trained) ensemble.addMlp(std::move(mlp));
+	for (auto& mlp : trained)
+		ensemble.addMlp(std::move(mlp));
 
 	std::ofstream csv("cubic_ensemble_uncertainty.csv");
 	csv << std::fixed << std::setprecision(6);
 	csv << "x,truth,is_ood";
-	for (uint i = 0; i < nMembers; ++i) csv << ",m" << i;
+	for (uint i = 0; i < nMembers; ++i)
+		csv << ",m" << i;
 	csv << ",mean,std\n";
 
 	double sumSqErrIn = 0.0, sumSqErrOut = 0.0;
@@ -151,7 +152,8 @@ int main(int argc, char* argv[]) {
 		mean /= static_cast<double>(nMembers);
 
 		double var = 0.0;
-		for (double p : preds) var += (p - mean) * (p - mean);
+		for (double p : preds)
+			var += (p - mean) * (p - mean);
 		var /= static_cast<double>(nMembers);
 		double sd = std::sqrt(var);
 
@@ -166,7 +168,8 @@ int main(int argc, char* argv[]) {
 		}
 
 		csv << x << "," << t << "," << (isOod ? 1 : 0);
-		for (double p : preds) csv << "," << p;
+		for (double p : preds)
+			csv << "," << p;
 		csv << "," << mean << "," << sd << "\n";
 	}
 	csv.close();

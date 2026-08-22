@@ -38,7 +38,8 @@ clean:
 	@rm -rf $(BUILD_DIR) $(COV_DIR)
 
 format:
-	@find neuralnethack src test -name '*.cc' -o -name '*.hh' | xargs clang-format -i
+	@find neuralnethack src test examples bench -path bench/third_party -prune -o \
+		\( -name '*.cc' -o -name '*.hh' \) -print | xargs clang-format -i
 	@echo "Formatted all source files"
 
 # Cut a release: format + amalgamation must be committed, tests must pass,

@@ -154,10 +154,12 @@ int main(int argc, char** argv) {
 		for (auto& m : members) {
 			const auto& p = m->propagate(x);
 			probs.emplace_back(p.begin(), p.end());
-			for (uint k = 0; k < K; ++k) mean[k] += p[k];
+			for (uint k = 0; k < K; ++k)
+				mean[k] += p[k];
 		}
 		const double inv = 1.0 / members.size();
-		for (double& v : mean) v *= inv;
+		for (double& v : mean)
+			v *= inv;
 		auto d = EvalTools::Uncertainty::decomposeEntropy(probs);
 		return std::tuple<std::vector<double>, double, double>{mean, d.total, d.aleatoric};
 	};

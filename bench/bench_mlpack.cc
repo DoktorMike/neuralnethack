@@ -30,13 +30,15 @@ namespace {
 arma::mat toMat(const std::vector<std::vector<double>>& X) {
 	arma::mat M(X.front().size(), X.size());
 	for (std::size_t i = 0; i < X.size(); ++i)
-		for (std::size_t j = 0; j < X.front().size(); ++j) M(j, i) = X[i][j];
+		for (std::size_t j = 0; j < X.front().size(); ++j)
+			M(j, i) = X[i][j];
 	return M;
 }
 
 arma::mat toRow(const std::vector<int>& y) {
 	arma::mat M(1, y.size());
-	for (std::size_t i = 0; i < y.size(); ++i) M(0, i) = y[i];
+	for (std::size_t i = 0; i < y.size(); ++i)
+		M(0, i) = y[i];
 	return M;
 }
 
@@ -99,8 +101,8 @@ int main(int argc, char** argv) {
 		const double infer_us = 1e6 * bench::seconds(i0, i1) / (reps * tst.y.size());
 		const double acc = double(correct) / tst.y.size();
 
-		bench::emit("mlpack", "pima", "8-32-1", epochs, batch, threads, "openblas", t + 1,
-		            train_s, infer_us, acc);
+		bench::emit("mlpack", "pima", "8-32-1", epochs, batch, threads, "openblas", t + 1, train_s,
+		            infer_us, acc);
 	}
 	return 0;
 }

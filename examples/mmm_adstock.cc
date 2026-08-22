@@ -33,7 +33,7 @@ using namespace DataTools;
 
 namespace {
 
-constexpr uint C = 3;   // media channels
+constexpr uint C = 3; // media channels
 // Lag window: geometric tail mass beyond the window is ~lambda^L, so
 // size L for the slowest plausible decay. Here lambda_max = 0.8 and
 // 0.8^28 = 0.2%; L = 14 would truncate ~4.4% of the slow channel.

@@ -68,8 +68,8 @@ std::unique_ptr<Mlp> makeNet(bool residual, uint seed) {
 	// 12 width-16 hidden layers + 1 output. Tanh saturates, so a plain
 	// 12-layer net's gradient vanishes long before reaching layer 0.
 	std::vector<uint> arch = {1, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 1};
-	std::vector<std::string> types = {"tansig", "tansig", "tansig",  "tansig", "tansig",
-	                                  "tansig", "tansig", "tansig",  "tansig", "tansig",
+	std::vector<std::string> types = {"tansig", "tansig", "tansig", "tansig", "tansig",
+	                                  "tansig", "tansig", "tansig", "tansig", "tansig",
 	                                  "tansig", "tansig", "purelin"};
 	auto mlp = std::make_unique<Mlp>(arch, types, false);
 	if (residual) {
@@ -125,13 +125,12 @@ int main() {
 	double finalR = lossResi.outputError();
 
 	std::cout << std::fixed << std::setprecision(6);
-	std::cout << "12-layer tanh MLP regression on y = x + 0.3 sin(5x) + noise ("
-	          << nSamples << " samples)\n\n";
+	std::cout << "12-layer tanh MLP regression on y = x + 0.3 sin(5x) + noise (" << nSamples
+	          << " samples)\n\n";
 	std::cout << "Final training MSE after " << (nChunks * epochsPerChunk) << " epochs:\n";
 	std::cout << "  plain     : " << finalP << "\n";
 	std::cout << "  residual  : " << finalR << "\n";
-	std::cout << "  plain / residual ratio: " << (finalP / std::max(finalR, 1e-12))
-	          << "x\n";
+	std::cout << "  plain / residual ratio: " << (finalP / std::max(finalR, 1e-12)) << "x\n";
 	std::cout << "\nLoss curve: residual_vs_plain.csv\n";
 
 	return finalR < finalP ? 0 : 1;

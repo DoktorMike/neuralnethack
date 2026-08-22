@@ -81,14 +81,16 @@ int main(int argc, char* argv[]) {
 		trained[i] = trainResidualXor(data, /*seed=*/100 + i, epochs);
 	}
 	Ensemble ensemble;
-	for (auto& mlp : trained) ensemble.addMlp(std::move(mlp));
+	for (auto& mlp : trained)
+		ensemble.addMlp(std::move(mlp));
 
 	std::cout << std::fixed << std::setprecision(4);
 	std::cout << "Residual XOR ensemble (" << nMembers << " members, "
 	          << "arch 2-4-4-1, skip 0->1, " << epochs << " epochs each)\n\n";
 
 	std::cout << "input        target   ";
-	for (uint i = 0; i < nMembers; ++i) std::cout << "  m" << i << "    ";
+	for (uint i = 0; i < nMembers; ++i)
+		std::cout << "  m" << i << "    ";
 	std::cout << "  ensemble  pred\n";
 	std::cout << std::string(20 + nMembers * 8 + 18, '-') << "\n";
 
@@ -98,8 +100,7 @@ int main(int argc, char* argv[]) {
 		std::vector<double>& in = pat.input();
 		const double tgt = pat.output()[0];
 
-		std::cout << "(" << in[0] << ", " << in[1] << ")    "
-		          << static_cast<int>(tgt) << "      ";
+		std::cout << "(" << in[0] << ", " << in[1] << ")    " << static_cast<int>(tgt) << "      ";
 		for (uint i = 0; i < ensemble.size(); ++i) {
 			Mlp& m = const_cast<Mlp&>(ensemble.mlp(i));
 			std::cout << " " << m.propagate(in)[0];

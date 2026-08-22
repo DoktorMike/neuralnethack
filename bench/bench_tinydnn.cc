@@ -30,9 +30,12 @@ int main(int argc, char** argv) {
 
 	std::vector<vec_t> Xtrn, Xtst;
 	std::vector<vec_t> Ytrn;
-	for (auto& r : trn.X) Xtrn.push_back(vec_t(r.begin(), r.end()));
-	for (auto& r : tst.X) Xtst.push_back(vec_t(r.begin(), r.end()));
-	for (int v : trn.y) Ytrn.push_back(vec_t{static_cast<float_t>(v)});
+	for (auto& r : trn.X)
+		Xtrn.push_back(vec_t(r.begin(), r.end()));
+	for (auto& r : tst.X)
+		Xtst.push_back(vec_t(r.begin(), r.end()));
+	for (int v : trn.y)
+		Ytrn.push_back(vec_t{static_cast<float_t>(v)});
 
 #ifdef _OPENMP
 	const int threads = omp_get_max_threads();

@@ -28,7 +28,8 @@ inline CovType loadCovType(const std::string& path) {
 		row.reserve(55);
 		std::stringstream ss(line);
 		std::string field;
-		while (std::getline(ss, field, ',')) row.push_back(std::stod(field));
+		while (std::getline(ss, field, ','))
+			row.push_back(std::stod(field));
 		if (row.size() != 55)
 			throw std::runtime_error("Covtype row must have 55 fields, got " +
 			                         std::to_string(row.size()));
@@ -44,11 +45,15 @@ inline void zNormaliseContinuous(CovType& train, CovType& test) {
 	constexpr std::size_t CONT_DIMS = 10;
 	std::vector<double> mean(CONT_DIMS, 0.0), sd(CONT_DIMS, 0.0);
 	for (const auto& r : train.X)
-		for (std::size_t j = 0; j < CONT_DIMS; ++j) mean[j] += r[j];
-	for (std::size_t j = 0; j < CONT_DIMS; ++j) mean[j] /= train.X.size();
+		for (std::size_t j = 0; j < CONT_DIMS; ++j)
+			mean[j] += r[j];
+	for (std::size_t j = 0; j < CONT_DIMS; ++j)
+		mean[j] /= train.X.size();
 	for (const auto& r : train.X)
-		for (std::size_t j = 0; j < CONT_DIMS; ++j) sd[j] += (r[j] - mean[j]) * (r[j] - mean[j]);
-	for (std::size_t j = 0; j < CONT_DIMS; ++j) sd[j] = std::sqrt(sd[j] / train.X.size());
+		for (std::size_t j = 0; j < CONT_DIMS; ++j)
+			sd[j] += (r[j] - mean[j]) * (r[j] - mean[j]);
+	for (std::size_t j = 0; j < CONT_DIMS; ++j)
+		sd[j] = std::sqrt(sd[j] / train.X.size());
 	for (auto* d : {&train, &test})
 		for (auto& r : d->X)
 			for (std::size_t j = 0; j < CONT_DIMS; ++j)

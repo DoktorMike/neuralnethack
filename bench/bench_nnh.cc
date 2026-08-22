@@ -98,8 +98,8 @@ int main(int argc, char** argv) {
 		const double infer_us = 1e6 * bench::seconds(i0, i1) / (reps * tst.X.size());
 		const double acc = double(correct) / tst.X.size();
 
-		bench::emit("neuralnethack", "pima", "8-32-1", epochs, batch, threads, blas, t + 1,
-		            train_s, infer_us, acc);
+		bench::emit("neuralnethack", "pima", "8-32-1", epochs, batch, threads, blas, t + 1, train_s,
+		            infer_us, acc);
 	}
 	return 0;
 }

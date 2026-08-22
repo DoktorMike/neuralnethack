@@ -61,7 +61,9 @@ constexpr uint K = 5;            // boxes (architectural choice)
 constexpr uint T = 156 + L - 1;  // simulate enough weeks for 156 usable rows
 
 // Regime of media m: two media per regime.
-uint regimeOf(uint media) { return media / 2; }
+uint regimeOf(uint media) {
+	return media / 2;
+}
 
 // True carryover kernels, normalized over the window. Regimes 0-3 decay
 // geometrically at increasing lambda; regime 4 peaks at week 5.
@@ -259,8 +261,8 @@ int main() {
 		}
 		std::printf("\n");
 	}
-	std::printf("exact box: %u / %u, within one carryover regime: %u / %u\n", correct, C,
-	            within1, C);
+	std::printf("exact box: %u / %u, within one carryover regime: %u / %u\n", correct, C, within1,
+	            C);
 
 	// Holdout fit.
 	double ssRes = 0, ssTot = 0, mean = 0;

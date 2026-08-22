@@ -28,7 +28,8 @@ inline Pima loadPima(const std::string& path) {
 		std::istringstream iss(line);
 		std::vector<double> row;
 		double v;
-		while (iss >> v) row.push_back(v);
+		while (iss >> v)
+			row.push_back(v);
 		if (row.size() != 9)
 			throw std::runtime_error("Pima row must have 9 values, got " +
 			                         std::to_string(row.size()));
@@ -43,11 +44,15 @@ inline void zNormalise(Pima& train, Pima& test) {
 	const std::size_t D = train.X.front().size();
 	std::vector<double> mean(D, 0.0), sd(D, 0.0);
 	for (const auto& r : train.X)
-		for (std::size_t j = 0; j < D; ++j) mean[j] += r[j];
-	for (std::size_t j = 0; j < D; ++j) mean[j] /= train.X.size();
+		for (std::size_t j = 0; j < D; ++j)
+			mean[j] += r[j];
+	for (std::size_t j = 0; j < D; ++j)
+		mean[j] /= train.X.size();
 	for (const auto& r : train.X)
-		for (std::size_t j = 0; j < D; ++j) sd[j] += (r[j] - mean[j]) * (r[j] - mean[j]);
-	for (std::size_t j = 0; j < D; ++j) sd[j] = std::sqrt(sd[j] / train.X.size());
+		for (std::size_t j = 0; j < D; ++j)
+			sd[j] += (r[j] - mean[j]) * (r[j] - mean[j]);
+	for (std::size_t j = 0; j < D; ++j)
+		sd[j] = std::sqrt(sd[j] / train.X.size());
 	for (auto* d : {&train, &test})
 		for (auto& r : d->X)
 			for (std::size_t j = 0; j < D; ++j)

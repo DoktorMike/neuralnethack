@@ -26,13 +26,15 @@ namespace {
 arma::mat toMat(const std::vector<std::vector<double>>& X) {
 	arma::mat M(X.front().size(), X.size());
 	for (std::size_t i = 0; i < X.size(); ++i)
-		for (std::size_t j = 0; j < X.front().size(); ++j) M(j, i) = X[i][j];
+		for (std::size_t j = 0; j < X.front().size(); ++j)
+			M(j, i) = X[i][j];
 	return M;
 }
 
 arma::mat toLabelRow(const std::vector<int>& y) {
 	arma::mat M(1, y.size());
-	for (std::size_t i = 0; i < y.size(); ++i) M(0, i) = y[i];
+	for (std::size_t i = 0; i < y.size(); ++i)
+		M(0, i) = y[i];
 	return M;
 }
 

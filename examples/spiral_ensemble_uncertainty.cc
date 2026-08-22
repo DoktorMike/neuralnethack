@@ -122,8 +122,7 @@ int main(int argc, char** argv) {
 	}
 
 	std::cout << "Training " << nMembers << " ensemble members ("
-	          << "arch=2-32-32-32-3, residual skip 0->2, " << epochs << " epochs)..."
-	          << std::endl;
+	          << "arch=2-32-32-32-3, residual skip 0->2, " << epochs << " epochs)..." << std::endl;
 	std::vector<std::unique_ptr<Mlp>> members;
 	members.reserve(nMembers);
 	for (uint i = 0; i < nMembers; ++i) {
@@ -138,10 +137,12 @@ int main(int argc, char** argv) {
 		for (auto& m : members) {
 			const auto& p = m->propagate(x);
 			probs.emplace_back(p.begin(), p.end());
-			for (uint k = 0; k < K; ++k) mean[k] += p[k];
+			for (uint k = 0; k < K; ++k)
+				mean[k] += p[k];
 		}
 		const double inv = 1.0 / members.size();
-		for (double& v : mean) v *= inv;
+		for (double& v : mean)
+			v *= inv;
 		auto d = EvalTools::Uncertainty::decomposeEntropy(probs);
 		return std::tuple<std::vector<double>, double, double>{mean, d.total, d.aleatoric};
 	};
