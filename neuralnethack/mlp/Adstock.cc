@@ -109,6 +109,20 @@ void Adstock::computeKernels() const {
 	theKernelsFresh = true;
 }
 
+vector<double> Adstock::naturalParams() const {
+	const uint ppc = nParamsPerChannel();
+	vector<double> out(theParams.size());
+	for (uint c = 0; c < theChannels; ++c) {
+		if (theKernel == Kernel::Geometric) {
+			out[c] = 1.0 / (1.0 + std::exp(-theParams[c]));
+		} else {
+			out[c * ppc + 0] = std::exp(theParams[c * ppc + 0]);
+			out[c * ppc + 1] = std::exp(theParams[c * ppc + 1]);
+		}
+	}
+	return out;
+}
+
 vector<double> Adstock::kernelWeights(uint c) const {
 	assert(c < theChannels);
 	vector<double> w(theLags), dw(static_cast<size_t>(nParamsPerChannel()) * theLags);

@@ -76,6 +76,11 @@ class Adstock {
 	 * parameters (length L). For inspection/reporting. */
 	std::vector<double> kernelWeights(uint c) const;
 
+	/**Kernel parameters on their natural scale, channel-major:
+	 * geometric decay lambda in (0,1) per channel; Weibull shape k and
+	 * scale s (both > 0) per channel. For reporting. */
+	std::vector<double> naturalParams() const;
+
 	/**Transform a batch [B x inputDim] row-major; returns pointer to the
 	 * internal output buffer [B x outputDim]. Also refreshes the cached
 	 * kernels used by accumulateGradients. */

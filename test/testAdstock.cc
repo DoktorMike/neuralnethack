@@ -1,5 +1,7 @@
+#include "Ensemble.hh"
 #include "Random.hh"
 #include "datatools/CoreDataSet.hh"
+#include "evaltools/Uncertainty.hh"
 #include "datatools/DataSet.hh"
 #include "datatools/Pattern.hh"
 #include "mlp/Adam.hh"
@@ -221,6 +223,72 @@ bool quasiNewtonTrains() {
 	return true;
 }
 
+// Bootstrap-ensemble kernel-parameter uncertainty: the percentile band
+// over member lambdas should cover the true lambda and have nonzero
+// width; the kernel-weight bands should cover the true kernel.
+bool ensembleUncertainty() {
+	std::cout << "ensemble kernel uncertainty: ";
+	nnh::rand::seed(17);
+	const uint C = 1, L = 10, P = 0;
+	const double trueLambda = 0.6;
+
+	std::vector<double> w(L);
+	double S = 0;
+	for (uint l = 0; l < L; ++l) {
+		w[l] = std::pow(trueLambda, l);
+		S += w[l];
+	}
+	for (auto& v : w)
+		v /= S;
+
+	auto core = std::make_shared<CoreDataSet>();
+	for (uint i = 0; i < 300; ++i) {
+		std::vector<double> in(L);
+		for (auto& v : in)
+			v = nnh::rand::uniform();
+		double a = 0;
+		for (uint l = 0; l < L; ++l)
+			a += w[l] * in[l];
+		// mild noise so resamples actually disagree
+		std::vector<double> out = {a + 0.02 * (2.0 * nnh::rand::uniform() - 1.0)};
+		core->addPattern(Pattern(std::to_string(i), in, out));
+	}
+	DataSet full;
+	full.coreDataSet(core);
+
+	Mlp proto({C, 1}, {"purelin"}, false);
+	proto.adstock(Adstock(C, L, P, Adstock::Kernel::Geometric));
+	SummedSquare loss(proto, full);
+	Adam opt(proto, full, loss, 0.0, 32, 0.05);
+	opt.numEpochs(250);
+
+	NeuralNetHack::Ensemble ens;
+	const uint M = 8;
+	std::ostringstream sink;
+	for (uint m = 0; m < M; ++m) {
+		std::vector<uint> idx(core->size());
+		for (auto& v : idx)
+			v = static_cast<uint>(nnh::rand::uniform() * core->size()) % core->size();
+		DataSet boot;
+		boot.coreDataSet(core);
+		boot.indices(idx);
+		ens.addMlp(opt.trainNew(boot, sink), 1.0);
+	}
+
+	auto s = EvalTools::Uncertainty::summarizeAdstock(ens, 0.1);
+	const double lo = s.paramLower[0], hi = s.paramUpper[0];
+	bool ok = lo < trueLambda && trueLambda < hi && hi - lo > 1e-4 && hi - lo < 0.3;
+	for (uint l = 0; l < L && ok; ++l)
+		ok = s.weightLower[0][l] <= w[l] + 0.02 && w[l] - 0.02 <= s.weightUpper[0][l];
+	if (!ok) {
+		std::cerr << "FAIL (lambda band [" << lo << ", " << hi << "], true " << trueLambda << ")"
+		          << std::endl;
+		return false;
+	}
+	std::cout << "PASS (lambda 90% band [" << lo << ", " << hi << "])" << std::endl;
+	return true;
+}
+
 // Save/load round-trip preserves adstock meta, params, and predictions.
 bool serializationRoundTrip() {
 	std::cout << "NNH2 serialization round-trip: ";
@@ -263,6 +331,7 @@ int main() {
 	allPass &= recovery();
 	allPass &= delayedPeakRecovery();
 	allPass &= quasiNewtonTrains();
+	allPass &= ensembleUncertainty();
 	allPass &= serializationRoundTrip();
 
 	std::cout << std::endl << (allPass ? "ALL PASS" : "SOME FAILED") << std::endl;

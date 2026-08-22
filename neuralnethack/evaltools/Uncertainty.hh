@@ -57,6 +57,39 @@ EntropyDecomposition decomposeEntropy(const std::vector<std::vector<double>>& me
 EntropyDecomposition decomposeEntropy(NeuralNetHack::Ensemble& ensemble,
                                       const std::vector<double>& input);
 
+/**Ensemble summary of fitted adstock (carryover) kernels.
+ *
+ * Every ensemble member trained on a resample carries its own fitted
+ * kernel parameters, so the spread across members is a bootstrap-style
+ * uncertainty estimate for the carryover structure itself -- the part of
+ * a marketing-mix readout people actually argue about.
+ */
+struct AdstockSummary {
+	uint channels;         ///< media channels C
+	uint lags;             ///< window length L
+	uint paramsPerChannel; ///< 1 (geometric) or 2 (Weibull)
+
+	/**Per-channel per-lag kernel weights across members: mean and the
+	 * alpha/2, 1-alpha/2 percentile band. Each is [C][L]. */
+	std::vector<std::vector<double>> weightMean, weightLower, weightUpper;
+
+	/**Natural-scale kernel parameters (lambda, or k and s), channel-major
+	 * [C * paramsPerChannel]: member mean and percentile band. */
+	std::vector<double> paramMean, paramLower, paramUpper;
+};
+
+/**Summarize the adstock kernels across an ensemble's members with
+ * percentile intervals (linear-interpolated quantiles, matching the ROC
+ * bootstrap CI convention). Members are weighted uniformly.
+ * \param ensemble ensemble whose members all carry an adstock stage of
+ * identical shape and kernel family (throws std::invalid_argument
+ * otherwise, or when the ensemble is empty).
+ * \param alpha miscoverage: the band is [alpha/2, 1-alpha/2] (default 0.1
+ * = an 90% interval).
+ * \return per-channel kernel-weight bands and natural-parameter bands.
+ */
+AdstockSummary summarizeAdstock(NeuralNetHack::Ensemble& ensemble, double alpha = 0.1);
+
 } // namespace Uncertainty
 } // namespace EvalTools
 
