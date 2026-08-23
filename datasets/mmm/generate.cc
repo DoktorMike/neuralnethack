@@ -47,9 +47,11 @@ std::vector<double> trueKernel(uint r) {
 	return w;
 }
 
-// Spends are in currency units (~10k weekly scale, like a real MMM);
-// Hill half-saturations live on the adstocked-spend scale accordingly.
+// Real-world units: spends in currency (~10k weekly scale), sales in
+// thousands of units (~2000-8000). Hill half-saturations live on the
+// adstocked-spend scale accordingly.
 constexpr double SPEND_SCALE = 10000.0;
+constexpr double SALES_SCALE = 1000.0;
 const double trueHalf[5] = {0.6 * SPEND_SCALE, 0.8 * SPEND_SCALE, 1.0 * SPEND_SCALE,
                             1.2 * SPEND_SCALE, 0.9 * SPEND_SCALE};
 const double trueExp[5] = {1.0, 1.0, 1.0, 2.0, 1.0};
@@ -112,6 +114,7 @@ int main() {
 		}
 		s += 0.5 * season[t] - 0.8 * unemployment[t] + 1.0 * trend[t];
 		s += 0.03 * (2.0 * nnh::rand::uniform() - 1.0);
+		s *= SALES_SCALE;
 		sales[t] = s;
 		std::fprintf(out, "%.6g\t%.6g\t%.6g\t%.6g\n", season[t], unemployment[t], trend[t], s);
 	}
