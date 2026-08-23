@@ -33,6 +33,28 @@ through one extra GEMM; the stage serializes with the model (`NNH2` format,
 old `NNH1` files still load). Worked example with recovered kernels and
 holdout R²: `examples/mmm_adstock.cc`.
 
+## Turnkey CLI: the `mmm` binary
+
+A traditional MMM table — CSV or whitespace, optional header, one row per
+week with media spends, covariates, and the KPI — runs end to end with one
+command:
+
+```sh
+./build/mmm config.toml     # see datasets/mmm/config-mmm-raw.toml
+```
+
+The binary windows the raw table into lag columns itself
+(`adstock.window_raw = true` + `DataTools::windowLagged`), splits the last
+`data.holdout_weeks` chronologically when no test file is given, applies
+grouped max-abs scaling, trains with the entropy penalty OFF during warmup
+and hardens the routing afterwards (`adstock.harden_epochs` at a quarter of
+the learning rate — the two-phase schedule is built in, so
+`entropy_penalty` in the config is safe here), optionally as a bootstrap
+ensemble (`ensemble.runs`), and writes a report: fit metrics in natural
+units, box kernels with percentile bands, per-channel routing with
+stability flags ("UNSTABLE -- do not present as known"), and per-channel
+max spends for converting half-saturations to currency.
+
 ## Boxed mode
 
 **Boxed mode** scales this to many channels (say 100 channels, 156 weekly

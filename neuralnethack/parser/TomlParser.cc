@@ -310,7 +310,15 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 	} else if (path == "adstock.nonnegative_betas") {
 		config.adstock().enabled = true;
 		config.adstock().nonNegativeBetas = asBool(v, path, lineno);
-	} else if (path == "training.method")
+	} else if (path == "adstock.window_raw") {
+		config.adstock().enabled = true;
+		config.adstock().windowRaw = asBool(v, path, lineno);
+	} else if (path == "adstock.harden_epochs") {
+		config.adstock().enabled = true;
+		config.adstock().hardenEpochs = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "data.holdout_weeks")
+		config.holdoutWeeks(static_cast<uint>(asInt(v, path, lineno)));
+	else if (path == "training.method")
 		config.minMethod(asString(v, path, lineno));
 	else if (path == "training.max_epochs")
 		config.maxEpochs(static_cast<uint>(asInt(v, path, lineno)));

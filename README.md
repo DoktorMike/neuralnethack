@@ -12,7 +12,7 @@ This is the MLP and ensemble-of-MLPs library I've kept maintained, however infre
 
 - **Activations**: Sigmoid, TanH, Linear, ReLU, Leaky ReLU, ELU
 - **Topology**: sequential MLP with optional [residual (skip) connections](doc/residual-connections.md), merged pre-activation between same-width layers
-- **Lag structure (adstock)**: optional differentiable input stage collapsing per-channel lag windows through parametric carryover kernels (geometric or Weibull), 1-2 trained parameters per channel — built for [marketing-mix-style time-series regression](doc/adstock.md)
+- **Lag structure (adstock)**: optional differentiable input stage collapsing per-channel lag windows through parametric carryover kernels (geometric or Weibull), 1-2 trained parameters per channel — built for [marketing-mix-style time-series regression](doc/adstock.md); the `mmm` binary runs a traditional weekly CSV end to end (windowing, scaling, two-phase training, bootstrap-stability report) from one config file
 - **Output heads**: linear or sigmoid output, plus optional [softmax for multi-class classification](doc/multiclass.md)
 - **Optimizers**: SGD with momentum, Adam/AdamW, L-BFGS
 - **Loss functions**: cross-entropy, summed square error, with optional per-class weights for imbalanced data

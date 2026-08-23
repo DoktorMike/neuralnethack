@@ -2,6 +2,7 @@
 #include "TomlParser.hh"
 
 #include <algorithm>
+#include <cstdlib>
 #include <iterator>
 #include <sstream>
 
@@ -33,12 +34,24 @@ void Parser::readDataFile(istream& in, const int idCol, vector<uint> inCols, vec
 		const bool match = takeAll || (validRow != rowRange.end() && rowCount == *validRow);
 		if (match) {
 			if (!takeAll && validRow != rowRange.end()) ++validRow;
+			// CSV tolerance: treat commas/semicolons as field separators.
+			for (auto& ch : line)
+				if (ch == ',' || ch == ';') ch = ' ';
 			row.clear();
 			istringstream iss(line);
 			copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(row));
 			if (!row.size()) {
 				cerr << "Found empty line." << endl;
 				continue;
+			}
+			// Header tolerance: a first line whose first field is not
+			// numeric is a column-header row; skip it without counting
+			// it against rowRange (rowCount already advanced; headers
+			// only make sense as line 1).
+			if (rowCount == 1) {
+				char* end = nullptr;
+				std::strtod(row.front().c_str(), &end);
+				if (end == row.front().c_str()) continue;
 			}
 			selectInserter inp = for_each(inCols.begin(), inCols.end(), selectInserter(row));
 			selectInserter outp = for_each(outCols.begin(), outCols.end(), selectInserter(row));

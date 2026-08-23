@@ -29,8 +29,12 @@ Mlp& Error::mlp() {
 }
 
 void Error::mlp(Mlp& mlp) {
-	// Rebinding to a borrowed Mlp; release any previously-owned one.
-	theOwnedMlp.reset();
+	// Rebind to a borrowed Mlp. Do NOT destroy a previously-owned one:
+	// Trainer::trainNew rebinds the Error to a temporary copy while the
+	// trainer still holds a raw pointer to the owned prototype, and
+	// destroying it here is a use-after-free on the next trainNew from
+	// the same trainer. The owned Mlp stays alive (as storage) until the
+	// Error itself is destroyed.
 	theMlp = &mlp;
 }
 

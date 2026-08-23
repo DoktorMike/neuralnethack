@@ -71,6 +71,15 @@ g++ -std=c++23 -O2 -Ineuralnethack datasets/mmm/generate.cc \
 cd datasets/mmm && /tmp/gen_mmm
 ```
 
+## Turnkey quickstart
+
+`mmm.raw.csv` is a traditional MMM file (header, commas, one row per
+week). One command fits the whole boxed model and writes the report:
+
+```sh
+cd datasets/mmm && ../../build/mmm config-mmm-raw.toml
+```
+
 ## Config file
 
 `config-mmm.toml` configures the whole boxed model — data columns,

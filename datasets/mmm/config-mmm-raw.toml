@@ -1,0 +1,65 @@
+# Turnkey MMM from a traditional CSV: one row per week, header line,
+# comma-separated, columns = week id, 50 media spends, 3 covariates,
+# sales. The mmm binary windows the lag structure itself
+# (adstock.window_raw), splits the last holdout_weeks chronologically,
+# scales spends (grouped max-abs) and the target (unit sd), trains with
+# an entropy-penalty warmup-then-harden schedule, and writes the report:
+#
+#   cd datasets/mmm && ../../build/mmm config-mmm-raw.toml
+
+suffix = "mmm-raw"
+seed = 4711
+normalization = "maxabs"
+problem_type = "regr"
+
+[data.train]
+file = "./mmm.raw.csv"
+id_col = 1                   # week column
+in_cols = "2-54"             # 50 spends + season, unemployment, trend
+out_cols = "55"              # sales
+row_range = "0"
+
+[data]
+holdout_weeks = 32           # no test file: last 32 windowed weeks
+
+[network]
+size = [53, 1]               # adstock output: 50 channels + 3 covariates
+activations = ["purelin"]
+error_fcn = "sumsqr"
+
+[adstock]
+window_raw = true            # expand the raw table into lag windows
+channels = 50
+lags = 13
+passthrough = 3
+kernel = "weibull"
+boxes = 5
+saturation = "hill"
+nonnegative_betas = true
+entropy_penalty = 0.01       # used ONLY in the hardening phase below
+harden_epochs = 300          # warmup (max_epochs) runs with the penalty off
+
+[training]
+method = "adam"
+max_epochs = 2500
+
+[training.gd]
+batch_size = 32              # batch size is shared with adam
+
+[training.adam]
+learning_rate = 0.04
+
+[ensemble]
+runs = 5                     # bootstrap members: bands + routing stability
+method = "bagg"
+parts = 2
+split = "rnd"
+
+[model_selection]
+method = "none"
+runs = 1
+parts = 1
+
+[output]
+save_session = false
+save_output_list = false

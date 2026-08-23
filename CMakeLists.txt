@@ -111,6 +111,7 @@ set(LIB_SOURCES
     neuralnethack/datatools/HoldOutSampler.cc
     neuralnethack/datatools/DummySampler.cc
     neuralnethack/datatools/Normaliser.cc
+    neuralnethack/datatools/Windowing.cc
     # evaltools
     neuralnethack/evaltools/EvalTools.cc
     neuralnethack/evaltools/Evaluator.cc
@@ -161,7 +162,7 @@ endif()
 # ---------------------------------------------------------------------------
 # Executables
 # ---------------------------------------------------------------------------
-set(EXECUTABLES neuralnethack_bin ann modelselector featureselector featureselector2 saliency auc)
+set(EXECUTABLES neuralnethack_bin ann modelselector featureselector featureselector2 saliency auc mmm)
 set(neuralnethack_bin_SOURCE src/neuralnethack.cc)
 set(ann_SOURCE src/ann.cc)
 set(modelselector_SOURCE src/modelselector.cc)
@@ -169,6 +170,7 @@ set(featureselector_SOURCE src/featureselector.cc)
 set(featureselector2_SOURCE src/featureselector2.cc)
 set(saliency_SOURCE src/saliency.cc)
 set(auc_SOURCE src/auc.cc)
+set(mmm_SOURCE src/mmm.cc)
 
 foreach(exe ${EXECUTABLES})
     add_executable(${exe} ${${exe}_SOURCE})
@@ -193,7 +195,7 @@ add_custom_target(nnh_examples DEPENDS ${EXAMPLES})
 # ---------------------------------------------------------------------------
 enable_testing()
 
-set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve testConformal testEarlyStopping testEnsembleBuilder testClassWeights testUncertainty testAdstock testNonNegative)
+set(TESTS testing testSampler testNormaliser testGof testMatrix testSaliency testParser testXor testNorm testActivations testTrainers testEnsemble testFactory testEval testRegressionMetrics testConfusionMatrix testResidual testSoftmax testLearningCurve testConformal testEarlyStopping testEnsembleBuilder testClassWeights testUncertainty testAdstock testNonNegative testWindowing)
 
 foreach(test ${TESTS})
     add_executable(${test} test/${test}.cc)

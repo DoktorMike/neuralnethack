@@ -136,6 +136,17 @@ class Config {
 		double temperature = 1.0;
 		double entropyPenalty = 0.0;
 		bool nonNegativeBetas = false; ///< constrain layer-0 media columns >= 0
+		/**Data files are RAW weekly tables ([channels..., covariates...]
+		 * inputs + target per row, chronological); the consumer windows
+		 * them via DataTools::windowLagged before training. */
+		bool windowRaw = false;
+		/**Epochs for the routing-hardening phase (entropy penalty on,
+		 * reduced learning rate) run by the mmm binary AFTER the warmup
+		 * training. 0 = no hardening phase. The penalty coefficient is
+		 * entropyPenalty; the mmm binary keeps it OFF during warmup, so
+		 * setting both here is safe (unlike applying the penalty from
+		 * epoch one). */
+		uint hardenEpochs = 0;
 	};
 	const adstockParam_t& adstock() const { return theAdstockParam; }
 	adstockParam_t& adstock() { return theAdstockParam; }
@@ -275,6 +286,12 @@ class Config {
 	const uint& seed() const { return theSeed; }
 	void seed(const uint& theSeed) { this->theSeed = theSeed; }
 
+	/**Holdout size in periods for a chronological split when no test
+	 * file is given (mmm binary): the last N windowed rows become the
+	 * holdout. 0 = require a test file. */
+	uint holdoutWeeks() const { return theHoldoutWeeks; }
+	void holdoutWeeks(uint n) { theHoldoutWeeks = n; }
+
 	const std::string& normalization() const { return theNormalization; }
 	void normalization(const std::string& theNormalization) {
 		this->theNormalization = theNormalization;
@@ -404,6 +421,9 @@ class Config {
 	bool theSaveOutputList;
 	/**The seed to pass to srand. */
 	uint theSeed;
+	/**Chronological holdout periods when no test file is given. */
+	uint theHoldoutWeeks = 0;
+
 	/**The normalization to perform on the data. */
 	std::string theNormalization;
 };
@@ -1290,6 +1310,37 @@ class HoldOutSampler : public Sampler {
 	/**The index to which split we are currently at. */
 	uint index;
 };
+} // namespace DataTools
+
+// ===== datatools/Windowing.hh =====
+#include <memory>
+
+namespace DataTools {
+
+/**Expand a raw weekly table into the channel-major lag-window layout
+ * the Adstock stage consumes.
+ *
+ * The raw DataSet must be in chronological order, one row per period,
+ * with inputs laid out as [channel_0 .. channel_{C-1}, covariate_0 ..
+ * covariate_{P-1}] and the target(s) as outputs. The result has one
+ * pattern per period t >= lags-1 with inputs
+ *   [c0 lag0..lagL-1, c1 lag0..lagL-1, ..., covariates of period t]
+ * (lag 0 = period t, older lags after) and period t's outputs. The
+ * first lags-1 rows serve as warmup history only; their targets are
+ * not used.
+ *
+ * This is the missing step between "a traditional MMM CSV" and this
+ * library: with it, a raw table goes straight into
+ * `Adstock(channels, lags, passthrough, ...)`.
+ *
+ * \param raw the chronological raw table (see layout above).
+ * \param channels number of media channels C.
+ * \param lags window length L.
+ * \param passthrough trailing covariate columns copied per period.
+ * \return a new CoreDataSet with raw.size() - lags + 1 windowed rows.
+ */
+std::shared_ptr<CoreDataSet> windowLagged(DataSet& raw, uint channels, uint lags, uint passthrough);
+
 } // namespace DataTools
 
 // ===== evaltools/Gof.hh =====
@@ -6568,6 +6619,45 @@ void HoldOutSampler::numRuns(uint n) {
 
 // PRIVATE
 
+// ===== datatools/Windowing.cc =====
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+using namespace DataTools;
+using std::vector;
+
+std::shared_ptr<CoreDataSet> DataTools::windowLagged(DataSet& raw, uint channels, uint lags,
+                                                     uint passthrough) {
+	const uint T = raw.size();
+	if (channels == 0 || lags == 0)
+		throw std::invalid_argument("windowLagged: channels and lags must be > 0");
+	if (T < lags)
+		throw std::invalid_argument("windowLagged: need at least `lags` rows, got " +
+		                            std::to_string(T));
+	if (raw.nInput() != channels + passthrough)
+		throw std::invalid_argument(
+		    "windowLagged: raw rows must carry channels + passthrough inputs (got " +
+		    std::to_string(raw.nInput()) + ", expected " + std::to_string(channels + passthrough) +
+		    ")");
+
+	auto core = std::make_shared<CoreDataSet>();
+	vector<double> in;
+	in.reserve(static_cast<size_t>(channels) * lags + passthrough);
+	for (uint t = lags - 1; t < T; ++t) {
+		in.clear();
+		for (uint c = 0; c < channels; ++c)
+			for (uint l = 0; l < lags; ++l)
+				in.push_back(raw.pattern(t - l).input()[c]);
+		Pattern& now = raw.pattern(t);
+		for (uint p = 0; p < passthrough; ++p)
+			in.push_back(now.input()[channels + p]);
+		vector<double> out = now.output();
+		core->addPattern(Pattern(raw.pattern(t).idstring(), in, out));
+	}
+	return core;
+}
+
 // ===== evaltools/Gof.cc =====
 #include <vector>
 #include <cassert>
@@ -10338,8 +10428,12 @@ Mlp& Error::mlp() {
 }
 
 void Error::mlp(Mlp& mlp) {
-	// Rebinding to a borrowed Mlp; release any previously-owned one.
-	theOwnedMlp.reset();
+	// Rebind to a borrowed Mlp. Do NOT destroy a previously-owned one:
+	// Trainer::trainNew rebinds the Error to a temporary copy while the
+	// trainer still holds a raw pointer to the owned prototype, and
+	// destroying it here is a use-after-free on the next trainNew from
+	// the same trainer. The owned Mlp stays alive (as storage) until the
+	// Error itself is destroyed.
 	theMlp = &mlp;
 }
 
@@ -13244,6 +13338,7 @@ Normaliser* NetworkParser::parseXMLnormalisation(istream& is) {
 
 // ===== parser/Parser.cc =====
 #include <algorithm>
+#include <cstdlib>
 #include <iterator>
 #include <sstream>
 
@@ -13275,12 +13370,24 @@ void Parser::readDataFile(istream& in, const int idCol, vector<uint> inCols, vec
 		const bool match = takeAll || (validRow != rowRange.end() && rowCount == *validRow);
 		if (match) {
 			if (!takeAll && validRow != rowRange.end()) ++validRow;
+			// CSV tolerance: treat commas/semicolons as field separators.
+			for (auto& ch : line)
+				if (ch == ',' || ch == ';') ch = ' ';
 			row.clear();
 			istringstream iss(line);
 			copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter(row));
 			if (!row.size()) {
 				cerr << "Found empty line." << endl;
 				continue;
+			}
+			// Header tolerance: a first line whose first field is not
+			// numeric is a column-header row; skip it without counting
+			// it against rowRange (rowCount already advanced; headers
+			// only make sense as line 1).
+			if (rowCount == 1) {
+				char* end = nullptr;
+				std::strtod(row.front().c_str(), &end);
+				if (end == row.front().c_str()) continue;
 			}
 			selectInserter inp = for_each(inCols.begin(), inCols.end(), selectInserter(row));
 			selectInserter outp = for_each(outCols.begin(), outCols.end(), selectInserter(row));
@@ -13613,7 +13720,15 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 	} else if (path == "adstock.nonnegative_betas") {
 		config.adstock().enabled = true;
 		config.adstock().nonNegativeBetas = asBool(v, path, lineno);
-	} else if (path == "training.method")
+	} else if (path == "adstock.window_raw") {
+		config.adstock().enabled = true;
+		config.adstock().windowRaw = asBool(v, path, lineno);
+	} else if (path == "adstock.harden_epochs") {
+		config.adstock().enabled = true;
+		config.adstock().hardenEpochs = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "data.holdout_weeks")
+		config.holdoutWeeks(static_cast<uint>(asInt(v, path, lineno)));
+	else if (path == "training.method")
 		config.minMethod(asString(v, path, lineno));
 	else if (path == "training.max_epochs")
 		config.maxEpochs(static_cast<uint>(asInt(v, path, lineno)));

@@ -18,7 +18,10 @@ cd datasets/wine   && ../../build/neuralnethack config-wine.toml
 ```
 
 The other CLI tools (`ann`, `modelselector`, `featureselector`, `saliency`,
-`auc`) all read the same config format. Pick the one that matches what you're
+`auc`, and `mmm` — the turnkey marketing-mix front-end, see
+[adstock.md](adstock.md#turnkey-cli-the-mmm-binary)) all read the same
+config format. Data files may be whitespace- or comma-separated; a header
+line is skipped automatically. Pick the one that matches what you're
 after.
 
 ## Output files
@@ -59,6 +62,9 @@ in_cols = "1-8"              # range string, 1-indexed
 out_cols = "9"
 row_range = "0"              # "0" = all rows
 
+# holdout_weeks = 32  # ([data] section) mmm binary: chronological holdout
+#                      # from the train file when no test file is given
+
 [data.test]
 file = "data/test.tab"
 id_col = 0
@@ -98,6 +104,10 @@ weight_init = "glorot"             # "glorot" (default) or "legacy_uniform".
 #                            # which hardens routing before the boxes separate.
 #                            # Harden in a second phase via the API instead.
 # nonnegative_betas = false  # constrain first-layer media columns >= 0
+# window_raw = false         # data files are RAW weekly tables; the mmm
+#                            # binary windows them into lag columns itself
+# harden_epochs = 0          # mmm binary: routing-hardening phase length
+#                            # (entropy_penalty applies only in that phase)
 
 [training]
 method = "adam"              # "gd", "adam", "qn"

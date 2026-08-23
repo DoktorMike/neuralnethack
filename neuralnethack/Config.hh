@@ -117,6 +117,17 @@ class Config {
 		double temperature = 1.0;
 		double entropyPenalty = 0.0;
 		bool nonNegativeBetas = false; ///< constrain layer-0 media columns >= 0
+		/**Data files are RAW weekly tables ([channels..., covariates...]
+		 * inputs + target per row, chronological); the consumer windows
+		 * them via DataTools::windowLagged before training. */
+		bool windowRaw = false;
+		/**Epochs for the routing-hardening phase (entropy penalty on,
+		 * reduced learning rate) run by the mmm binary AFTER the warmup
+		 * training. 0 = no hardening phase. The penalty coefficient is
+		 * entropyPenalty; the mmm binary keeps it OFF during warmup, so
+		 * setting both here is safe (unlike applying the penalty from
+		 * epoch one). */
+		uint hardenEpochs = 0;
 	};
 	const adstockParam_t& adstock() const { return theAdstockParam; }
 	adstockParam_t& adstock() { return theAdstockParam; }
@@ -256,6 +267,12 @@ class Config {
 	const uint& seed() const { return theSeed; }
 	void seed(const uint& theSeed) { this->theSeed = theSeed; }
 
+	/**Holdout size in periods for a chronological split when no test
+	 * file is given (mmm binary): the last N windowed rows become the
+	 * holdout. 0 = require a test file. */
+	uint holdoutWeeks() const { return theHoldoutWeeks; }
+	void holdoutWeeks(uint n) { theHoldoutWeeks = n; }
+
 	const std::string& normalization() const { return theNormalization; }
 	void normalization(const std::string& theNormalization) {
 		this->theNormalization = theNormalization;
@@ -385,6 +402,9 @@ class Config {
 	bool theSaveOutputList;
 	/**The seed to pass to srand. */
 	uint theSeed;
+	/**Chronological holdout periods when no test file is given. */
+	uint theHoldoutWeeks = 0;
+
 	/**The normalization to perform on the data. */
 	std::string theNormalization;
 };

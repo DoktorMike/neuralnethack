@@ -1,0 +1,119 @@
+=== MMM report (mmm-raw) ===
+
+fit: train R^2 0.9615, holdout R^2 0.7801, holdout RMSE 826.2226 (natural units)
+
+boxes (canonical fast -> slow; kernel mean over 5 members):
+box 0: 0.9904 0.0090 0.0006 0.0001 0.0000 0.0000 0.0000 0.0000 ...
+   half-sat 1.2048 [0.5228, 2.0654], exponent 0.1649 [0.0827, 0.2660] (normalized-spend scale)
+box 1: 0.7034 0.2461 0.0230 0.0121 0.0066 0.0037 0.0021 0.0012 ...
+   half-sat 0.7604 [0.4404, 1.1469], exponent 32.9171 [0.1189, 130.3891] (normalized-spend scale)
+box 2: 0.1194 0.5503 0.1913 0.0755 0.0264 0.0089 0.0064 0.0052 ...
+   half-sat 1.8257 [0.6466, 4.1764], exponent 0.9891 [0.1995, 2.2610] (normalized-spend scale)
+box 3: 0.1871 0.1522 0.1560 0.1776 0.1374 0.0573 0.0349 0.0259 ...
+   half-sat 1.1107 [0.2954, 3.0309], exponent 1.5346 [0.4401, 4.4754] (normalized-spend scale)
+box 4: 0.1167 0.0991 0.0893 0.0826 0.0777 0.0740 0.0713 0.0693 ...
+   half-sat 0.6972 [0.4423, 1.0339], exponent 1.1606 [0.7623, 1.3276] (normalized-spend scale)
+
+channel routing (modal box, stability = fraction of members agreeing):
+channel 0: box 0  stability 0.8000
+channel 1: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 2: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 3: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 4: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 5: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 6: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 7: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 8: box 0  stability 0.8000
+channel 9: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 10: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 11: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 12: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 13: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 14: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 15: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 16: box 1  stability 0.4000  UNSTABLE -- do not present as known
+channel 17: box 0  stability 0.8000
+channel 18: box 1  stability 0.6000  UNSTABLE -- do not present as known
+channel 19: box 1  stability 0.4000  UNSTABLE -- do not present as known
+channel 20: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 21: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 22: box 1  stability 0.4000  UNSTABLE -- do not present as known
+channel 23: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 24: box 1  stability 0.4000  UNSTABLE -- do not present as known
+channel 25: box 1  stability 0.4000  UNSTABLE -- do not present as known
+channel 26: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 27: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 28: box 1  stability 0.4000  UNSTABLE -- do not present as known
+channel 29: box 0  stability 1.0000
+channel 30: box 3  stability 0.6000  UNSTABLE -- do not present as known
+channel 31: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 32: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 33: box 3  stability 0.6000  UNSTABLE -- do not present as known
+channel 34: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 35: box 3  stability 0.4000  UNSTABLE -- do not present as known
+channel 36: box 3  stability 0.4000  UNSTABLE -- do not present as known
+channel 37: box 0  stability 0.4000  UNSTABLE -- do not present as known
+channel 38: box 0  stability 0.6000  UNSTABLE -- do not present as known
+channel 39: box 3  stability 0.4000  UNSTABLE -- do not present as known
+channel 40: box 3  stability 0.4000  UNSTABLE -- do not present as known
+channel 41: box 4  stability 0.4000  UNSTABLE -- do not present as known
+channel 42: box 3  stability 0.4000  UNSTABLE -- do not present as known
+channel 43: box 4  stability 0.8000
+channel 44: box 1  stability 0.4000  UNSTABLE -- do not present as known
+channel 45: box 3  stability 0.4000  UNSTABLE -- do not present as known
+channel 46: box 3  stability 0.4000  UNSTABLE -- do not present as known
+channel 47: box 2  stability 0.4000  UNSTABLE -- do not present as known
+channel 48: box 0  stability 0.2000  UNSTABLE -- do not present as known
+channel 49: box 1  stability 0.6000  UNSTABLE -- do not present as known
+
+real-unit half-saturation per channel = (normalized half-sat) x (channel max spend); channel scales from the normalizer:
+channel 0: max spend 29917.3000
+channel 1: max spend 29601.0000
+channel 2: max spend 29892.2000
+channel 3: max spend 29943.0000
+channel 4: max spend 29966.3000
+channel 5: max spend 29577.2000
+channel 6: max spend 29824.3000
+channel 7: max spend 29779.1000
+channel 8: max spend 29497.8000
+channel 9: max spend 29890.5000
+channel 10: max spend 29085.9000
+channel 11: max spend 29292.6000
+channel 12: max spend 29900.9000
+channel 13: max spend 29571.9000
+channel 14: max spend 29533.8000
+channel 15: max spend 29995.7000
+channel 16: max spend 29841.5000
+channel 17: max spend 29855.5000
+channel 18: max spend 29901.4000
+channel 19: max spend 29993.0000
+channel 20: max spend 29975.5000
+channel 21: max spend 29805.6000
+channel 22: max spend 28358.3000
+channel 23: max spend 29702.3000
+channel 24: max spend 29732.4000
+channel 25: max spend 29965.8000
+channel 26: max spend 29979.6000
+channel 27: max spend 29837.3000
+channel 28: max spend 29040.3000
+channel 29: max spend 29552.0000
+channel 30: max spend 29829.1000
+channel 31: max spend 29718.0000
+channel 32: max spend 29521.5000
+channel 33: max spend 29886.7000
+channel 34: max spend 29973.6000
+channel 35: max spend 29649.8000
+channel 36: max spend 29924.2000
+channel 37: max spend 29432.2000
+channel 38: max spend 29467.6000
+channel 39: max spend 29727.1000
+channel 40: max spend 29863.5000
+channel 41: max spend 29960.0000
+channel 42: max spend 29842.6000
+channel 43: max spend 29788.9000
+channel 44: max spend 29814.7000
+channel 45: max spend 29834.0000
+channel 46: max spend 29820.3000
+channel 47: max spend 29494.6000
+channel 48: max spend 29863.1000
+channel 49: max spend 29825.1000
