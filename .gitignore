@@ -109,3 +109,4 @@ build-asan/
 *.csv
 .claude/
 CLAUDE.md
+result.mmm.*
