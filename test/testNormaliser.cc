@@ -73,8 +73,10 @@ int testMaxAbs() {
 	// Sign preserved, scaled by max|x| = 0.5
 	if (fabs(d.pattern(0).input()[2] - (-1.0)) > tol) return -1;
 	if (fabs(d.pattern(1).input()[2] - 0.5) > tol) return -1;
-	// Outputs untouched (target keeps natural units)
-	if (fabs(d.pattern(1).output()[0] - 3.0) > tol) return -1;
+	// Output divided by its train sd (no centering): outputs {5,3,4},
+	// sd = sqrt(2/3), so 3 -> 3/sd
+	const double outSd = std::sqrt(2.0 / 3.0);
+	if (fabs(d.pattern(1).output()[0] - 3.0 / outSd) > 1e-9) return -1;
 
 	// Round-trip
 	norm.unnormalise(d);

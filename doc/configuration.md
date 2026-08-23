@@ -47,7 +47,9 @@ normalization = "Z"                # "Z", "maxabs", or "no". maxabs scales
                                    # stays zero) — use it with [adstock]:
                                    # Z-centering breaks the Hill domain, and
                                    # lag columns of one channel share one
-                                   # scale automatically. Target never scaled.
+                                   # scale automatically. Target scaled to
+                                   # unit sd (no centering); unnormalise()
+                                   # maps predictions back.
 problem_type = "class"       # "class" or "regr"
 
 [data.train]

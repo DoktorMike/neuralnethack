@@ -71,14 +71,35 @@ DataSet& Normaliser::calcAndNormaliseMaxAbs(DataSet& d, const vector<uint>& colG
 
 	const uint nIn = d.nInput();
 
-	// Per-column max|x| over the data set, INPUTS ONLY: the max-abs
-	// rationale (zero preservation, Hill domain) is input-side; scaling
-	// the target rescales the loss and destabilises training (measured:
-	// holdout R^2 0.90 vs junk on the mmm dataset). Outputs keep scale 1.
+	// INPUTS: per-column max|x| — the max-abs rationale (zero
+	// preservation, Hill domain) is input-side.
+	// OUTPUTS: divided by their train standard deviation, no centering.
+	// Training is only stable when the target sd is O(1): measured on the
+	// mmm dataset, sd ~1.6 gives holdout R^2 0.90, sd 0.1-0.2 collapses
+	// to ~0.3 (Adam's absolute step noise swamps the signal), sd ~17
+	// diverges to NaN, sd ~1600 never gets off the ground. Dividing by
+	// sd makes the mode robust to targets on any scale while keeping
+	// zero meaningful (no shift).
 	for (uint i = 0; i < d.size(); ++i) {
 		Pattern& p = d.pattern(i);
 		for (uint j = 0; j < p.nInput(); ++j)
 			theStdDev[j] = max(theStdDev[j], fabs(p.input()[j]));
+	}
+	{
+		const uint nOut = d.nOutput();
+		vector<double> mean(nOut, 0.0), var(nOut, 0.0);
+		for (uint i = 0; i < d.size(); ++i)
+			for (uint j = 0; j < nOut; ++j)
+				mean[j] += d.pattern(i).output()[j];
+		for (auto& m : mean)
+			m /= d.size();
+		for (uint i = 0; i < d.size(); ++i)
+			for (uint j = 0; j < nOut; ++j) {
+				const double dv = d.pattern(i).output()[j] - mean[j];
+				var[j] += dv * dv;
+			}
+		for (uint j = 0; j < nOut; ++j)
+			theStdDev[nIn + j] = sqrt(var[j] / d.size());
 	}
 
 	// Share one scale per group: the max over the group's columns

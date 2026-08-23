@@ -113,7 +113,12 @@ the a >= 0 Hill domain survives — Z-normalisation would break both. All lag
 columns of one channel share a single scale (per-column maxima differ near
 the series edges and would warp the kernel); with an `[adstock]` config
 section the grouping is automatic via `Factory::adstockColumnGroups`. The
-target is never scaled — rescaling the loss destabilises training
-(measured: holdout R^2 0.90 vs junk on the mmm dataset). Interpretation:
+target is scaled to unit standard deviation (no centering): training is
+only stable when the target sd is O(1) — measured on the mmm dataset,
+sd ~1 trains cleanly, sd ~0.1 collapses (the optimizer's absolute step
+noise swamps the signal), sd ~17 diverges to NaN, sd ~1600 never gets
+off the ground. Unit sd makes the fit invariant to whether sales come
+in units, thousands, or millions, and gives learning rates a stable
+reference scale; `unnormalise()` maps predictions back. Interpretation:
 a shared box half-saturation s then reads "saturates at fraction s of the
 channel's max spend"; real-unit half-sat per channel = s x max spend_c.

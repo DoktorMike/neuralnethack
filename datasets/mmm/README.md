@@ -81,7 +81,7 @@ auto trainer = Factory::createTrainer(config, trainData);
 auto mlp = trainer->trainNew(trainData, std::cout);
 ```
 
-Lands around holdout R^2 0.90 with the shipped settings (grouped max-abs input scaling, natural-unit target). The stock
+Lands around holdout R^2 0.8 with the shipped settings (grouped max-abs input scaling, unit-sd target — invariant to sales being in units, thousands, or millions). The 32-week holdout makes single-fit R^2 wobble ~0.1 across nearby hyperparameters; ensemble over bootstrap members for a stable readout. The stock
 `neuralnethack` binary is classification-oriented (it reports AUC), so
 consume this config through the API as above. `entropy_penalty` stays 0
 in the config on purpose — harden routing in a second phase via

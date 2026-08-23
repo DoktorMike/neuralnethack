@@ -65,9 +65,13 @@ class Normaliser {
 	 * non-negativity are preserved, and the shape of the series is
 	 * untouched — the right scaling for adstock/Hill stages where
 	 * Z-centering would break the a >= 0 domain (see doc/adstock.md).
-	 * Outputs are left at scale 1: rescaling the target rescales the
-	 * loss and destabilises training. Internally stored as mean 0 /
-	 * std max|x|, so normalise()/unnormalise() work as usual.
+	 * Outputs are divided by their train standard deviation (no
+	 * centering): training is only stable when the target sd is O(1) —
+	 * too small and the optimizer's absolute step noise swamps the
+	 * signal, too large and the weights cannot reach the needed scale.
+	 * Internally stored as mean 0 / per-column scale, so
+	 * normalise()/unnormalise() work as usual (unnormalise predictions
+	 * to report in natural units).
 	 *
 	 * colGroup optionally maps each INPUT column (length nInput) to a
 	 * group id; columns in the same group share one scale (the max over

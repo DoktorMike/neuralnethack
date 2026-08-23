@@ -50,13 +50,13 @@ nonnegative_betas = true     # media effects >= 0 (projected gradient)
 
 [training]
 method = "adam"
-max_epochs = 2000
+max_epochs = 2500
 
 [training.gd]
 batch_size = 32              # batch size is shared with adam
 
 [training.adam]
-learning_rate = 0.02
+learning_rate = 0.04
 
 [ensemble]
 method = "bagg"
