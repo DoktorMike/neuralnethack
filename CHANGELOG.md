@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.5.0](https://github.com/DoktorMike/neuralnethack/compare/v4.4.0...v4.5.0) (2026-08-23)
+
+
+### Features
+
+* **config:** adstock stage configurable via toml ([193f38f](https://github.com/DoktorMike/neuralnethack/commit/193f38f13db44e5df24799f58b72749ff254708f))
+* **datasets:** mmm sales in thousands for realistic units ([ac3c146](https://github.com/DoktorMike/neuralnethack/commit/ac3c146696d1cc02c03085a8b57e09247995ad8a))
+* **datasets:** synthetic mmm dataset from boxed example ([7e14ef6](https://github.com/DoktorMike/neuralnethack/commit/7e14ef6cb2787f707ae7a7dd6d390fc192f55916))
+* **datatools:** grouped max-abs normalization for adstock data ([cca4e2f](https://github.com/DoktorMike/neuralnethack/commit/cca4e2f8bd7fead8c2fd2269f149f00ae2512cdd))
+* **datatools:** scale maxabs targets to unit sd ([14ecf4e](https://github.com/DoktorMike/neuralnethack/commit/14ecf4ed118f002be2d981641965b1c2c06303f3))
+* **mmm:** realistic decomposition via media ridge and bounded hill ([a1da266](https://github.com/DoktorMike/neuralnethack/commit/a1da266d08e5018c38abbbcf39e4d59f6edb0acc))
+* **mmm:** response curves and sales decomposition ([b7bfe64](https://github.com/DoktorMike/neuralnethack/commit/b7bfe6439f9c5f1bc0d8a203445d1630f3fab837))
+* turnkey mmm pipeline from traditional csv ([6154d35](https://github.com/DoktorMike/neuralnethack/commit/6154d35a01389b1970c311e239e27e4ae424e97b))
+
+
+### Documentation
+
+* **adstock:** link mmm dataset ([adad03e](https://github.com/DoktorMike/neuralnethack/commit/adad03e0a58cacd84db3f61ff921079d0efe5a80))
+* point boxed example and readme at mmm dataset ([491353c](https://github.com/DoktorMike/neuralnethack/commit/491353cb22e6628f189c4703015a55564a1920de))
+* **readme:** document make release ([f421bdf](https://github.com/DoktorMike/neuralnethack/commit/f421bdf4feb4b06bb64fad4c7401634786bc7d6c))
+* release includes github publish step ([6f39bf3](https://github.com/DoktorMike/neuralnethack/commit/6f39bf3117c77456cd0306b5f3ed2655abb90363))
+* split deep dives into doc/, slim README and AGENTS ([0ea5da5](https://github.com/DoktorMike/neuralnethack/commit/0ea5da504989dd887f4920407f267d852d2b8b1e))
+
+
+### Other
+
+* apply clang-format ([b91e660](https://github.com/DoktorMike/neuralnethack/commit/b91e6603b8394b267ecabc2b1d9f06ef02b9eceb))
+* format examples and bench, widen format target ([dc66f27](https://github.com/DoktorMike/neuralnethack/commit/dc66f2738be4478cef17735518d3765acd735877))
+* update badges [skip ci] ([218dbdc](https://github.com/DoktorMike/neuralnethack/commit/218dbdcce476372cf5d849d591962f498037c1b9))
+* update badges [skip ci] ([ff49ca0](https://github.com/DoktorMike/neuralnethack/commit/ff49ca08ab63ceb90ac7bad53f70f7eeabf2c3fd))
+* update badges [skip ci] ([0926bbd](https://github.com/DoktorMike/neuralnethack/commit/0926bbdeff11b5f0d882a68374095b03ce6cbce8))
+* update badges [skip ci] ([ce9a2b5](https://github.com/DoktorMike/neuralnethack/commit/ce9a2b55d198761ac009404a7fc0a7c45b161957))
+* update badges [skip ci] ([9c946d6](https://github.com/DoktorMike/neuralnethack/commit/9c946d62629738af0053d8868482c80e161eed7c))
+
 ## [4.4.0](https://github.com/DoktorMike/neuralnethack/compare/v4.3.0...v4.4.0) (2026-08-22)
 
 
