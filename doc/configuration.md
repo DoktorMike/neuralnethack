@@ -108,6 +108,10 @@ weight_init = "glorot"             # "glorot" (default) or "legacy_uniform".
 #                            # binary windows them into lag columns itself
 # harden_epochs = 0          # mmm binary: routing-hardening phase length
 #                            # (entropy_penalty applies only in that phase)
+# media_ridge = 0.0          # L2 on the head's media betas only (base and
+#                            # covariates free) -- without it many flighted
+#                            # channels soak up base/season/trend; see
+#                            # adstock.md 'Media shrinkage'
 
 [training]
 method = "adam"              # "gd", "adam", "qn"

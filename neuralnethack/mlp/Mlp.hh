@@ -183,6 +183,27 @@ class Mlp {
 	/**Remove all non-negativity constraints. */
 	void clearNonNegative();
 
+	/**Add an L2 (ridge) penalty on a column range of one layer's weights:
+	 * the loss gains lambda/2 * sum w^2 over those columns (the Error
+	 * classes add lambda * w to the gradients). Selective shrinkage for
+	 * MMM heads: penalize the media betas while base, covariates, and
+	 * bias stay free -- with many flighted channels the unpenalized media
+	 * betas act as random basis functions and soak up the smooth
+	 * base/seasonality/trend components. Repeated calls accumulate.
+	 * Not serialized (training-time config).
+	 */
+	void ridge(uint layer, uint colFrom, uint colTo, double lambda);
+
+	/**Remove all ridge penalties. */
+	void clearRidge();
+
+	/**The ridge ranges, for the Error classes. */
+	struct RidgeRange {
+		uint layer, colFrom, colTo;
+		double lambda;
+	};
+	const std::vector<RidgeRange>& ridgeRanges() const { return theRidge; }
+
 	/**Clamp all constrained weights to >= 0. Called by the trainers
 	 * after every update; cheap no-op when no constraint is set. */
 	void projectNonNegative();
@@ -250,6 +271,9 @@ class Mlp {
 		uint layer, colFrom, colTo;
 	};
 	std::vector<NonNegRange> theNonNegative;
+
+	/**Ridge penalties: (layer, colFrom, colTo, lambda). */
+	std::vector<RidgeRange> theRidge;
 
 	/**Optional adstock input stage (value type, so copies stay default). */
 	std::optional<Adstock> theAdstock;

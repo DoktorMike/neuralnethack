@@ -128,6 +128,10 @@ class Config {
 		 * setting both here is safe (unlike applying the penalty from
 		 * epoch one). */
 		uint hardenEpochs = 0;
+		/**L2 (ridge) penalty on the first layer's media columns: selective
+		 * shrinkage so many flighted channels cannot soak up the smooth
+		 * base/seasonality/trend components. 0 = off. */
+		double mediaRidge = 0.0;
 	};
 	const adstockParam_t& adstock() const { return theAdstockParam; }
 	adstockParam_t& adstock() { return theAdstockParam; }

@@ -48,7 +48,7 @@ using uint = unsigned int;
  *   Weibull:   w_l ~ z^(k-1) exp(-z^k), z = (l+1)/s, k = exp(kappa),
  *              s = exp(sigma). 2 params. Allows a delayed peak.
  * Saturation (boxed mode only): hill(a; s, n) = a^n / (a^n + s^n) with
- * s = exp(sigma), n = exp(nu); n starts at 1 (plain diminishing
+ * s = exp(sigma), n bounded to [0.5, 3] via sigmoid; n starts at 1 (plain diminishing
  * returns), n > 1 learns an S-shaped response.
  * All free parameters are unconstrained reals; the positivity/interval
  * constraints live in the transform, so any gradient trainer works.
@@ -187,6 +187,16 @@ class Adstock {
 	/**Normalized kernel + d/dparam from one param set p (length ppk). */
 	void kernelFromParams(const double* p, double* w, double* dw) const;
 	void softmaxRouting(uint c, double* pi) const;
+
+	/**Hill exponent bounds (natural scale): the trainable exponent is
+	 * n = HILL_EXP_MIN + (HILL_EXP_MAX - HILL_EXP_MIN) * sigmoid(nu).
+	 * Bounded so the response cannot degenerate to a step function on
+	 * flighted data (see Adstock.cc). */
+	static constexpr double HILL_EXP_MIN = 0.5;
+	static constexpr double HILL_EXP_MAX = 3.0;
+	static double hillExpFromRaw(double nu);
+	static double hillExpGradFactor(double nu);
+	static double hillExpToRaw(double n);
 
 	// Hill helpers (natural-scale s, n); value and partials at a >= 0.
 	static double hill(double a, double s, double n);

@@ -101,7 +101,10 @@ int main() {
 	FILE* tst = std::fopen("mmm.tst.tab", "w");
 	for (uint t = L - 1; t < T; ++t) {
 		FILE* out = (t - (L - 1) < nTrn) ? trn : tst;
-		double s = 2.0; // base
+		// Realistic decomposition: base + season + macro + trend carry the
+		// bulk of sales; media contributes ~20% of the total (typical MMM
+		// range is 10-30%).
+		double s = 10.0; // base
 		for (uint c = 0; c < C; ++c) {
 			const uint media = c / MSGS, msg = c % MSGS, r = regimeOf(media);
 			double a = 0;
@@ -110,10 +113,10 @@ int main() {
 				std::fprintf(out, "%.6g\t", x);
 				a += tk[r][l] * x;
 			}
-			s += 0.8 * msgBeta[msg] * hillFn(a, trueHalf[r], trueExp[r]);
+			s += 0.12 * msgBeta[msg] * hillFn(a, trueHalf[r], trueExp[r]);
 		}
-		s += 0.5 * season[t] - 0.8 * unemployment[t] + 1.0 * trend[t];
-		s += 0.03 * (2.0 * nnh::rand::uniform() - 1.0);
+		s += 1.0 * season[t] - 1.5 * unemployment[t] + 2.0 * trend[t];
+		s += 0.05 * (2.0 * nnh::rand::uniform() - 1.0);
 		s *= SALES_SCALE;
 		sales[t] = s;
 		std::fprintf(out, "%.6g\t%.6g\t%.6g\t%.6g\n", season[t], unemployment[t], trend[t], s);

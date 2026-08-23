@@ -151,3 +151,21 @@ in units, thousands, or millions, and gives learning rates a stable
 reference scale; `unnormalise()` maps predictions back. Interpretation:
 a shared box half-saturation s then reads "saturates at fraction s of the
 channel's max spend"; real-unit half-sat per channel = s x max spend_c.
+
+## Media shrinkage (ridge)
+
+With many flighted channels the sum of media contributions is nearly
+constant over time, and 50 free non-negative betas form a random-features
+basis that can absorb the smooth base/seasonality/trend components — the
+model then attributes most of sales to media even when the true media
+share is ~20%. The fix every practical MMM applies is shrinkage on the
+media effects: `adstock.media_ridge` puts an L2 penalty on the head's
+media columns only (base, covariates, and bias stay free), via
+`Mlp::ridge(layer, colFrom, colTo, lambda)`. Measured on the shipped
+dataset (true media share ~20%): lambda 0 recovers 76% media share and a
+negative holdout R^2; lambda 0.005 recovers 21.6% and holdout R^2 0.93.
+Tune lambda by holdout fit — the decomposition is very sensitive to it,
+which is the honest reflection of how weakly identified the base/media
+split is at this sample size. The Hill exponent is bounded to [0.5, 3]
+for the same reason: an unbounded exponent degenerates to a near-binary
+response that soaks up the base on flighted data.

@@ -50,10 +50,12 @@ effectiveness. Media m belongs to regime `m / 2`; channel c is media
 | 4 | 8-9 | delayed peak at week ~5: w_l ~ (l+1)^2 exp(-(l+1)/3) | 0.9 | 1 |
 
 Kernels are normalized over the 13-week window. Message betas: 0.6, 0.8,
-1.0, 1.2, 1.4 (message 0..4), media effect scale 0.8. Sales = 1000 x
-(2.0 base + saturated media effects + 0.5*season - 0.8*unemployment
-+ 1.0*trend + U(-0.03, 0.03) noise). Checksum: sum of the 156 sales values =
-2909493.261409.
+1.0, 1.2, 1.4 (message 0..4), media effect scale 0.12. Sales = 1000 x
+(10.0 base + saturated media effects +
+1.0*season - 1.5*unemployment + 2.0*trend + U(-0.05, 0.05) noise).
+True decomposition: media ~20% of sales, base + covariates ~80% —
+realistic MMM proportions. Checksum: sum of the 156 sales values =
+2103299.076029.
 
 ## Expected model performance
 
@@ -93,7 +95,7 @@ auto trainer = Factory::createTrainer(config, trainData);
 auto mlp = trainer->trainNew(trainData, std::cout);
 ```
 
-Lands around holdout R^2 0.8 with the shipped settings (grouped max-abs input scaling, unit-sd target — invariant to sales being in units, thousands, or millions). The 32-week holdout makes single-fit R^2 wobble ~0.1 across nearby hyperparameters; ensemble over bootstrap members for a stable readout. The stock
+Lands around holdout R^2 0.93 with the shipped settings (grouped max-abs input scaling, unit-sd target, media ridge 0.005), recovering a media share of ~22% against the true ~20%. Without the media ridge the 50 flighted channels absorb the base and seasonality (76% media share, negative holdout R^2) — see doc/adstock.md 'Media shrinkage'. Single-fit R^2 wobbles across nearby hyperparameters on a 32-week holdout; ensemble over bootstrap members for a stable readout. The stock
 `neuralnethack` binary is classification-oriented (it reports AUC), so
 consume this config through the API as above. `entropy_penalty` stays 0
 in the config on purpose — harden routing in a second phase via

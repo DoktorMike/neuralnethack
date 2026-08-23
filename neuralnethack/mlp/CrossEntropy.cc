@@ -173,6 +173,15 @@ double CrossEntropy::gradient() {
 			div(layer.betaGradients(), -denom);
 		}
 	}
+	for (const auto& rr : theMlp->ridgeRanges()) {
+		Layer& rl = theMlp->layer(rr.layer);
+		const uint stride = rl.nPrevious() + 1;
+		double* g = rl.gradients().data();
+		const double* w = rl.weights().data();
+		for (uint i = 0; i < rl.nNeurons(); ++i)
+			for (uint j = rr.colFrom; j <= rr.colTo; ++j)
+				g[i * stride + j] += rr.lambda * w[i * stride + j];
+	}
 	if (Adstock* a = theMlp->adstock()) {
 		div(a->gradients(), -denom);
 		a->applyEntropyPenaltyGradient();

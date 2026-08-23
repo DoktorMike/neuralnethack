@@ -133,6 +133,16 @@ void Mlp::clearNonNegative() {
 	theNonNegative.clear();
 }
 
+void Mlp::ridge(uint layer, uint colFrom, uint colTo, double lambda) {
+	assert(layer < theLayers.size());
+	assert(colFrom <= colTo && colTo <= theLayers[layer].nPrevious());
+	theRidge.push_back({layer, colFrom, colTo, lambda});
+}
+
+void Mlp::clearRidge() {
+	theRidge.clear();
+}
+
 void Mlp::projectNonNegative() {
 	for (const auto& r : theNonNegative) {
 		Layer& l = theLayers[r.layer];

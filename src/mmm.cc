@@ -198,6 +198,9 @@ int main(int argc, char** argv) {
 		if (harden && member->adstock()) {
 			member->adstock()->entropyPenalty(ap.entropyPenalty);
 			SummedSquare loss(*member, boot);
+			loss.weightElimOn(config.weightElimOn());
+			loss.weightElimAlpha(config.weightElimAlpha());
+			loss.weightElimW0(config.weightElimW0());
 			Adam opt(*member, boot, loss, 0.0, config.batchSize(), config.adamLearningRate() / 4.0,
 			         config.adamBeta1(), config.adamBeta2(), config.adamEpsilon(),
 			         config.adamWeightDecay());

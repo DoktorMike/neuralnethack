@@ -47,6 +47,7 @@ saturation = "hill"
 temperature = 1.0
 entropy_penalty = 0.0        # keep 0; see note above
 nonnegative_betas = true     # media effects >= 0 (projected gradient)
+media_ridge = 0.005          # shrink media betas; base/covariates stay free
 
 [training]
 method = "adam"

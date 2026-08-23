@@ -95,6 +95,39 @@ bool unconstrainedUnaffected() {
 	return true;
 }
 
+// Ridge on a column range shrinks those weights relative to the
+// unpenalized fit, leaving other columns free.
+bool ridgeShrinks() {
+	std::cout << "column-range ridge shrinks: ";
+	nnh::rand::seed(5);
+	DataSet ds = buildData(300);
+	auto fit = [&](double lambda) {
+		nnh::rand::seed(5);
+		DataSet d = buildData(300);
+		Mlp mlp({3, 1}, {"purelin"}, false);
+		if (lambda > 0) mlp.ridge(0, 0, 0, lambda); // penalize x0 only
+		SummedSquare loss(mlp, d);
+		Adam opt(mlp, d, loss, 0.0, 32, 0.02);
+		opt.numEpochs(300);
+		std::ostringstream sink;
+		opt.train(sink);
+		return mlp.layer(0).weights();
+	};
+	const auto w0 = fit(0.0);
+	const auto w1 = fit(2.0);
+	if (!(std::fabs(w1[0]) < 0.8 * std::fabs(w0[0]))) {
+		std::cerr << "FAIL (x0 beta " << w0[0] << " -> " << w1[0] << ")" << std::endl;
+		return false;
+	}
+	// unpenalized column stays close to truth
+	if (std::fabs(w1[1] - w0[1]) > 0.3) {
+		std::cerr << "FAIL (x1 beta moved " << w0[1] << " -> " << w1[1] << ")" << std::endl;
+		return false;
+	}
+	std::cout << "PASS (x0 beta " << w0[0] << " -> " << w1[0] << ")" << std::endl;
+	return true;
+}
+
 } // namespace
 
 int main() {
@@ -104,6 +137,7 @@ int main() {
 	allPass &= adamProjects();
 	allPass &= qnProjects();
 	allPass &= unconstrainedUnaffected();
+	allPass &= ridgeShrinks();
 
 	std::cout << std::endl << (allPass ? "ALL PASS" : "SOME FAILED") << std::endl;
 	return allPass ? 0 : 1;

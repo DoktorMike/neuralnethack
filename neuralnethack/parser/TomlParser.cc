@@ -316,6 +316,9 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 	} else if (path == "adstock.harden_epochs") {
 		config.adstock().enabled = true;
 		config.adstock().hardenEpochs = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.media_ridge") {
+		config.adstock().enabled = true;
+		config.adstock().mediaRidge = asNumber(v, path, lineno);
 	} else if (path == "data.holdout_weeks")
 		config.holdoutWeeks(static_cast<uint>(asInt(v, path, lineno)));
 	else if (path == "training.method")

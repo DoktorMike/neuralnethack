@@ -85,6 +85,7 @@ unique_ptr<Mlp> Factory::createMlp(const Config& config) {
 			mlp->adstock(Adstock(ap.channels, ap.lags, ap.passthrough, kern));
 		}
 		if (ap.nonNegativeBetas) mlp->nonNegative(0, 0, ap.channels - 1);
+		if (ap.mediaRidge > 0.0) mlp->ridge(0, 0, ap.channels - 1, ap.mediaRidge);
 	}
 	return mlp;
 }

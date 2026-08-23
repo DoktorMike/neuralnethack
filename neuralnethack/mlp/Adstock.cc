@@ -72,8 +72,8 @@ void Adstock::initParams() {
 		}
 		if (theSaturation == Saturation::Hill) {
 			for (uint k = 0; k < theNBoxes; ++k) {
-				theParams[sigOff() + k] = 0.0; // half-saturation 1
-				theParams[nuOff() + k] = 0.0;  // exponent 1
+				theParams[sigOff() + k] = 0.0;              // half-saturation 1
+				theParams[nuOff() + k] = hillExpToRaw(1.0); // exponent 1
 			}
 		}
 		// logits stay 0: uniform routing over already-distinct boxes
@@ -214,7 +214,7 @@ vector<double> Adstock::naturalParams() const {
 		for (uint k = 0; k < theNBoxes; ++k)
 			out.push_back(std::exp(theParams[sigOff() + k]));
 		for (uint k = 0; k < theNBoxes; ++k)
-			out.push_back(std::exp(theParams[nuOff() + k]));
+			out.push_back(hillExpFromRaw(theParams[nuOff() + k]));
 	}
 	return out;
 }
@@ -251,7 +251,7 @@ double Adstock::boxSaturation(uint k) const {
 
 double Adstock::boxHillExponent(uint k) const {
 	assert(boxed() && theSaturation == Saturation::Hill && k < theNBoxes);
-	return std::exp(theParams[nuOff() + k]);
+	return hillExpFromRaw(theParams[nuOff() + k]);
 }
 
 // hill(a; s, n) = a^n / (a^n + s^n) for a >= 0.
@@ -274,6 +274,26 @@ void Adstock::hillPartials(double a, double s, double n, double& dha, double& dh
 	dha = n * std::pow(a, n - 1.0) * sn / D2;
 	dhs = -an * n * std::pow(s, n - 1.0) / D2;
 	dhn = an * sn * (std::log(a) - std::log(s)) / D2;
+}
+
+// Hill exponent on a bounded natural scale: n = NMIN + (NMAX-NMIN)*sigmoid(nu).
+// An unbounded exponent lets the fit degenerate to a near-binary response
+// (n -> 0: any nonzero spend gives full effect), which soaks up the base
+// level on flighted data where the low-spend region is unobserved. The
+// bounds act as the shape prior every practical MMM applies.
+double Adstock::hillExpFromRaw(double nu) {
+	const double sig = 1.0 / (1.0 + std::exp(-nu));
+	return HILL_EXP_MIN + (HILL_EXP_MAX - HILL_EXP_MIN) * sig;
+}
+
+double Adstock::hillExpGradFactor(double nu) {
+	const double sig = 1.0 / (1.0 + std::exp(-nu));
+	return (HILL_EXP_MAX - HILL_EXP_MIN) * sig * (1.0 - sig);
+}
+
+double Adstock::hillExpToRaw(double n) {
+	const double f = (n - HILL_EXP_MIN) / (HILL_EXP_MAX - HILL_EXP_MIN);
+	return std::log(f / (1.0 - f));
 }
 
 void Adstock::transform(const double* in, double* out) const {
@@ -306,7 +326,7 @@ void Adstock::transform(const double* in, double* out) const {
 				double h = 0.0;
 				for (uint k = 0; k < K; ++k)
 					h += pi[k] * hill(a, std::exp(theParams[sigOff() + k]),
-					                  std::exp(theParams[nuOff() + k]));
+					                  hillExpFromRaw(theParams[nuOff() + k]));
 				out[c] = h;
 			} else {
 				out[c] = a;
@@ -353,7 +373,7 @@ const double* Adstock::transformBatch(const double* in, uint B) {
 				double h = 0.0;
 				for (uint k = 0; k < K; ++k)
 					h += pi[k] * hill(a, std::exp(theParams[sigOff() + k]),
-					                  std::exp(theParams[nuOff() + k]));
+					                  hillExpFromRaw(theParams[nuOff() + k]));
 				orow[c] = h;
 			} else {
 				orow[c] = a;
@@ -398,7 +418,7 @@ void Adstock::accumulateGradients(const double* rawIn, const double* outDelta, u
 	if (hillOn)
 		for (uint k = 0; k < K; ++k) {
 			sNat[k] = std::exp(theParams[sigOff() + k]);
-			nNat[k] = std::exp(theParams[nuOff() + k]);
+			nNat[k] = hillExpFromRaw(theParams[nuOff() + k]);
 		}
 
 	vector<double> hk(K), dha_k(K), dhs_k(K), dhn_k(K), contrib(K);
@@ -422,7 +442,8 @@ void Adstock::accumulateGradients(const double* rawIn, const double* outDelta, u
 					dha += pi[k] * dha_k[k];
 					// hill param grads (chain exp): sigma, nu
 					theGradients[sigOff() + k] += g * pi[k] * dhs_k[k] * sNat[k];
-					theGradients[nuOff() + k] += g * pi[k] * dhn_k[k] * nNat[k];
+					theGradients[nuOff() + k] +=
+					    g * pi[k] * dhn_k[k] * hillExpGradFactor(theParams[nuOff() + k]);
 				}
 			}
 

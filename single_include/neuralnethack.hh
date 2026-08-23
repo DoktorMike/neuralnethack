@@ -147,6 +147,10 @@ class Config {
 		 * setting both here is safe (unlike applying the penalty from
 		 * epoch one). */
 		uint hardenEpochs = 0;
+		/**L2 (ridge) penalty on the first layer's media columns: selective
+		 * shrinkage so many flighted channels cannot soak up the smooth
+		 * base/seasonality/trend components. 0 = off. */
+		double mediaRidge = 0.0;
 	};
 	const adstockParam_t& adstock() const { return theAdstockParam; }
 	adstockParam_t& adstock() { return theAdstockParam; }
@@ -1796,7 +1800,7 @@ using uint = unsigned int;
  *   Weibull:   w_l ~ z^(k-1) exp(-z^k), z = (l+1)/s, k = exp(kappa),
  *              s = exp(sigma). 2 params. Allows a delayed peak.
  * Saturation (boxed mode only): hill(a; s, n) = a^n / (a^n + s^n) with
- * s = exp(sigma), n = exp(nu); n starts at 1 (plain diminishing
+ * s = exp(sigma), n bounded to [0.5, 3] via sigmoid; n starts at 1 (plain diminishing
  * returns), n > 1 learns an S-shaped response.
  * All free parameters are unconstrained reals; the positivity/interval
  * constraints live in the transform, so any gradient trainer works.
@@ -1935,6 +1939,16 @@ class Adstock {
 	/**Normalized kernel + d/dparam from one param set p (length ppk). */
 	void kernelFromParams(const double* p, double* w, double* dw) const;
 	void softmaxRouting(uint c, double* pi) const;
+
+	/**Hill exponent bounds (natural scale): the trainable exponent is
+	 * n = HILL_EXP_MIN + (HILL_EXP_MAX - HILL_EXP_MIN) * sigmoid(nu).
+	 * Bounded so the response cannot degenerate to a step function on
+	 * flighted data (see Adstock.cc). */
+	static constexpr double HILL_EXP_MIN = 0.5;
+	static constexpr double HILL_EXP_MAX = 3.0;
+	static double hillExpFromRaw(double nu);
+	static double hillExpGradFactor(double nu);
+	static double hillExpToRaw(double n);
 
 	// Hill helpers (natural-scale s, n); value and partials at a >= 0.
 	static double hill(double a, double s, double n);
@@ -2564,6 +2578,27 @@ class Mlp {
 	/**Remove all non-negativity constraints. */
 	void clearNonNegative();
 
+	/**Add an L2 (ridge) penalty on a column range of one layer's weights:
+	 * the loss gains lambda/2 * sum w^2 over those columns (the Error
+	 * classes add lambda * w to the gradients). Selective shrinkage for
+	 * MMM heads: penalize the media betas while base, covariates, and
+	 * bias stay free -- with many flighted channels the unpenalized media
+	 * betas act as random basis functions and soak up the smooth
+	 * base/seasonality/trend components. Repeated calls accumulate.
+	 * Not serialized (training-time config).
+	 */
+	void ridge(uint layer, uint colFrom, uint colTo, double lambda);
+
+	/**Remove all ridge penalties. */
+	void clearRidge();
+
+	/**The ridge ranges, for the Error classes. */
+	struct RidgeRange {
+		uint layer, colFrom, colTo;
+		double lambda;
+	};
+	const std::vector<RidgeRange>& ridgeRanges() const { return theRidge; }
+
 	/**Clamp all constrained weights to >= 0. Called by the trainers
 	 * after every update; cheap no-op when no constraint is set. */
 	void projectNonNegative();
@@ -2631,6 +2666,9 @@ class Mlp {
 		uint layer, colFrom, colTo;
 	};
 	std::vector<NonNegRange> theNonNegative;
+
+	/**Ridge penalties: (layer, colFrom, colTo, lambda). */
+	std::vector<RidgeRange> theRidge;
 
 	/**Optional adstock input stage (value type, so copies stay default). */
 	std::optional<Adstock> theAdstock;
@@ -7509,8 +7547,8 @@ void Adstock::initParams() {
 		}
 		if (theSaturation == Saturation::Hill) {
 			for (uint k = 0; k < theNBoxes; ++k) {
-				theParams[sigOff() + k] = 0.0; // half-saturation 1
-				theParams[nuOff() + k] = 0.0;  // exponent 1
+				theParams[sigOff() + k] = 0.0;              // half-saturation 1
+				theParams[nuOff() + k] = hillExpToRaw(1.0); // exponent 1
 			}
 		}
 		// logits stay 0: uniform routing over already-distinct boxes
@@ -7651,7 +7689,7 @@ vector<double> Adstock::naturalParams() const {
 		for (uint k = 0; k < theNBoxes; ++k)
 			out.push_back(std::exp(theParams[sigOff() + k]));
 		for (uint k = 0; k < theNBoxes; ++k)
-			out.push_back(std::exp(theParams[nuOff() + k]));
+			out.push_back(hillExpFromRaw(theParams[nuOff() + k]));
 	}
 	return out;
 }
@@ -7688,7 +7726,7 @@ double Adstock::boxSaturation(uint k) const {
 
 double Adstock::boxHillExponent(uint k) const {
 	assert(boxed() && theSaturation == Saturation::Hill && k < theNBoxes);
-	return std::exp(theParams[nuOff() + k]);
+	return hillExpFromRaw(theParams[nuOff() + k]);
 }
 
 // hill(a; s, n) = a^n / (a^n + s^n) for a >= 0.
@@ -7711,6 +7749,26 @@ void Adstock::hillPartials(double a, double s, double n, double& dha, double& dh
 	dha = n * std::pow(a, n - 1.0) * sn / D2;
 	dhs = -an * n * std::pow(s, n - 1.0) / D2;
 	dhn = an * sn * (std::log(a) - std::log(s)) / D2;
+}
+
+// Hill exponent on a bounded natural scale: n = NMIN + (NMAX-NMIN)*sigmoid(nu).
+// An unbounded exponent lets the fit degenerate to a near-binary response
+// (n -> 0: any nonzero spend gives full effect), which soaks up the base
+// level on flighted data where the low-spend region is unobserved. The
+// bounds act as the shape prior every practical MMM applies.
+double Adstock::hillExpFromRaw(double nu) {
+	const double sig = 1.0 / (1.0 + std::exp(-nu));
+	return HILL_EXP_MIN + (HILL_EXP_MAX - HILL_EXP_MIN) * sig;
+}
+
+double Adstock::hillExpGradFactor(double nu) {
+	const double sig = 1.0 / (1.0 + std::exp(-nu));
+	return (HILL_EXP_MAX - HILL_EXP_MIN) * sig * (1.0 - sig);
+}
+
+double Adstock::hillExpToRaw(double n) {
+	const double f = (n - HILL_EXP_MIN) / (HILL_EXP_MAX - HILL_EXP_MIN);
+	return std::log(f / (1.0 - f));
 }
 
 void Adstock::transform(const double* in, double* out) const {
@@ -7743,7 +7801,7 @@ void Adstock::transform(const double* in, double* out) const {
 				double h = 0.0;
 				for (uint k = 0; k < K; ++k)
 					h += pi[k] * hill(a, std::exp(theParams[sigOff() + k]),
-					                  std::exp(theParams[nuOff() + k]));
+					                  hillExpFromRaw(theParams[nuOff() + k]));
 				out[c] = h;
 			} else {
 				out[c] = a;
@@ -7790,7 +7848,7 @@ const double* Adstock::transformBatch(const double* in, uint B) {
 				double h = 0.0;
 				for (uint k = 0; k < K; ++k)
 					h += pi[k] * hill(a, std::exp(theParams[sigOff() + k]),
-					                  std::exp(theParams[nuOff() + k]));
+					                  hillExpFromRaw(theParams[nuOff() + k]));
 				orow[c] = h;
 			} else {
 				orow[c] = a;
@@ -7835,7 +7893,7 @@ void Adstock::accumulateGradients(const double* rawIn, const double* outDelta, u
 	if (hillOn)
 		for (uint k = 0; k < K; ++k) {
 			sNat[k] = std::exp(theParams[sigOff() + k]);
-			nNat[k] = std::exp(theParams[nuOff() + k]);
+			nNat[k] = hillExpFromRaw(theParams[nuOff() + k]);
 		}
 
 	vector<double> hk(K), dha_k(K), dhs_k(K), dhn_k(K), contrib(K);
@@ -7859,7 +7917,8 @@ void Adstock::accumulateGradients(const double* rawIn, const double* outDelta, u
 					dha += pi[k] * dha_k[k];
 					// hill param grads (chain exp): sigma, nu
 					theGradients[sigOff() + k] += g * pi[k] * dhs_k[k] * sNat[k];
-					theGradients[nuOff() + k] += g * pi[k] * dhn_k[k] * nNat[k];
+					theGradients[nuOff() + k] +=
+					    g * pi[k] * dhn_k[k] * hillExpGradFactor(theParams[nuOff() + k]);
 				}
 			}
 
@@ -8478,6 +8537,16 @@ void Mlp::nonNegative(uint layer, uint colFrom, uint colTo) {
 
 void Mlp::clearNonNegative() {
 	theNonNegative.clear();
+}
+
+void Mlp::ridge(uint layer, uint colFrom, uint colTo, double lambda) {
+	assert(layer < theLayers.size());
+	assert(colFrom <= colTo && colTo <= theLayers[layer].nPrevious());
+	theRidge.push_back({layer, colFrom, colTo, lambda});
+}
+
+void Mlp::clearRidge() {
+	theRidge.clear();
 }
 
 void Mlp::projectNonNegative() {
@@ -10807,6 +10876,15 @@ double CrossEntropy::gradient() {
 			div(layer.betaGradients(), -denom);
 		}
 	}
+	for (const auto& rr : theMlp->ridgeRanges()) {
+		Layer& rl = theMlp->layer(rr.layer);
+		const uint stride = rl.nPrevious() + 1;
+		double* g = rl.gradients().data();
+		const double* w = rl.weights().data();
+		for (uint i = 0; i < rl.nNeurons(); ++i)
+			for (uint j = rr.colFrom; j <= rr.colTo; ++j)
+				g[i * stride + j] += rr.lambda * w[i * stride + j];
+	}
 	if (Adstock* a = theMlp->adstock()) {
 		div(a->gradients(), -denom);
 		a->applyEntropyPenaltyGradient();
@@ -11319,6 +11397,15 @@ double SummedSquare::gradient() {
 			std::transform(bg.begin(), bg.end(), bg.begin(),
 			               [denom](double v) { return v / -denom; });
 		}
+	}
+	for (const auto& rr : theMlp->ridgeRanges()) {
+		Layer& rl = theMlp->layer(rr.layer);
+		const uint stride = rl.nPrevious() + 1;
+		double* g = rl.gradients().data();
+		const double* w = rl.weights().data();
+		for (uint i = 0; i < rl.nNeurons(); ++i)
+			for (uint j = rr.colFrom; j <= rr.colTo; ++j)
+				g[i * stride + j] += rr.lambda * w[i * stride + j];
 	}
 	if (Adstock* a = theMlp->adstock()) {
 		auto& ag = a->gradients();
@@ -12995,6 +13082,7 @@ unique_ptr<Mlp> Factory::createMlp(const Config& config) {
 			mlp->adstock(Adstock(ap.channels, ap.lags, ap.passthrough, kern));
 		}
 		if (ap.nonNegativeBetas) mlp->nonNegative(0, 0, ap.channels - 1);
+		if (ap.mediaRidge > 0.0) mlp->ridge(0, 0, ap.channels - 1, ap.mediaRidge);
 	}
 	return mlp;
 }
@@ -13726,6 +13814,9 @@ void apply(const std::string& path, const Value& v, Config& config, VaryEntry& v
 	} else if (path == "adstock.harden_epochs") {
 		config.adstock().enabled = true;
 		config.adstock().hardenEpochs = static_cast<uint>(asInt(v, path, lineno));
+	} else if (path == "adstock.media_ridge") {
+		config.adstock().enabled = true;
+		config.adstock().mediaRidge = asNumber(v, path, lineno);
 	} else if (path == "data.holdout_weeks")
 		config.holdoutWeeks(static_cast<uint>(asInt(v, path, lineno)));
 	else if (path == "training.method")
