@@ -110,3 +110,5 @@ build-asan/
 .claude/
 CLAUDE.md
 result.mmm.*
+response.mmm.*
+decomp.mmm.*

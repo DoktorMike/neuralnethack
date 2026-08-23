@@ -52,8 +52,15 @@ the learning rate — the two-phase schedule is built in, so
 `entropy_penalty` in the config is safe here), optionally as a bootstrap
 ensemble (`ensemble.runs`), and writes a report: fit metrics in natural
 units, box kernels with percentile bands, per-channel routing with
-stability flags ("UNSTABLE -- do not present as known"), and per-channel
-max spends for converting half-saturations to currency.
+stability flags ("UNSTABLE -- do not present as known"), per-channel
+max spends for converting half-saturations to currency, **steady-state
+response curves** per channel (incremental sales vs constant weekly
+spend, ensemble bands, written to `response.mmm.<suffix>.dat`; the
+region below the lowest observed spend is flagged as extrapolation),
+and a **sales decomposition** (per-period contribution of every channel
+and covariate by the zero-out method, exact for the linear head — the
+report prints the interaction residual as a self-check — written to
+`decomp.mmm.<suffix>.dat` with contribution shares in the report).
 
 ## Boxed mode
 

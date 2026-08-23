@@ -279,6 +279,155 @@ int main(int argc, char** argv) {
 			rep << "channel " << c << ": max spend " << norm.stdDev()[c * L] << "\n";
 	}
 
+	// ---- Response curves and decomposition -------------------------------
+	// Both use the zero-out reference: max-abs never shifts, so a zeroed
+	// driver is the genuine "dark" scenario, and predictions are ensemble
+	// means over the members. Contributions are exact for the linear head;
+	// with a nonlinear head the interaction residual below reports the gap.
+	const uint C = a->nChannels();
+	const uint P = a->nPassthrough();
+	const uint din = a->inputDim();
+
+	auto evalMembers = [&](const vector<double>& x) {
+		vector<double> ys(M);
+		vector<double> xc = x;
+		for (uint m = 0; m < M; ++m)
+			ys[m] = ens.mlp(m).propagate(xc)[0];
+		return ys;
+	};
+	auto evalMean = [&](const vector<double>& x) {
+		const auto ys = evalMembers(x);
+		double s = 0;
+		for (double y : ys)
+			s += y;
+		return s / M;
+	};
+	auto chanScale = [&](uint c) {
+		return config.normalization() == "maxabs" ? norm.stdDev()[c * L] : 1.0;
+	};
+
+	// Response curves: steady-state (constant weekly spend; the kernel is
+	// normalized, so the adstocked level equals the spend level). Grid over
+	// [0, channel max]; incremental sales vs zero spend, natural units.
+	{
+		const uint GRID = 21;
+		const std::string curvePath = "response.mmm." + config.suffix() + ".dat";
+		std::ofstream cf(curvePath);
+		cf << "# channel  spend  incr_sales_mean  incr_sales_lo  incr_sales_hi\n";
+		vector<double> ref(din, 0.0); // all media dark, covariates neutral
+		const auto refYs = evalMembers(ref);
+		rep << "\nresponse curves (steady-state, natural units; full grid in " << curvePath
+		    << "):\n";
+		rep << "NOTE: flighted spend data often has no observations between zero and the "
+		       "flight level -- the curve below the lowest observed nonzero spend is "
+		       "extrapolation, not evidence.\n";
+		for (uint c = 0; c < C; ++c) {
+			double maxResp = 0, spendAtHalf = 0;
+			vector<double> meanCurve(GRID);
+			for (uint g = 0; g < GRID; ++g) {
+				// quadratic spacing: dense near zero, where Hill curves bend
+				const double f = static_cast<double>(g) / (GRID - 1);
+				const double xn = f * f;
+				vector<double> x = ref;
+				for (uint l = 0; l < L; ++l)
+					x[c * L + l] = xn;
+				auto ys = evalMembers(x);
+				vector<double> incr(M);
+				for (uint m = 0; m < M; ++m)
+					incr[m] = (ys[m] - refYs[m]) * targetScale;
+				std::sort(incr.begin(), incr.end());
+				double mean = 0;
+				for (double v : incr)
+					mean += v;
+				mean /= M;
+				meanCurve[g] = mean;
+				cf << c << "\t" << xn * chanScale(c) << "\t" << mean << "\t" << incr.front() << "\t"
+				   << incr.back() << "\n";
+			}
+			maxResp = meanCurve.back();
+			for (uint g = 1; g < GRID; ++g)
+				if (meanCurve[g] >= 0.5 * maxResp) {
+					const double f = static_cast<double>(g) / (GRID - 1);
+					spendAtHalf = f * f * chanScale(c);
+					break;
+				}
+			rep << "channel " << c << ": max incremental sales " << maxResp
+			    << " at max spend, half of that reached at spend ~" << spendAtHalf << "\n";
+		}
+	}
+
+	// Decomposition: per period, contribution of each driver = prediction
+	// minus the prediction with that driver zeroed; base = everything
+	// zeroed. Written for train + holdout in chronological order.
+	{
+		const std::string decompPath = "decomp.mmm." + config.suffix() + ".dat";
+		std::ofstream df(decompPath);
+		df << "# period  set  actual  pred  base";
+		for (uint c = 0; c < C; ++c)
+			df << "  media_" << c;
+		for (uint p = 0; p < P; ++p)
+			df << "  cov_" << p;
+		df << "  interaction\n";
+
+		vector<double> share(C, 0.0), covShare(P, 0.0);
+		double predSum = 0, maxInteraction = 0;
+		auto decompose = [&](DataSet& ds, const char* tag) {
+			for (uint i = 0; i < ds.size(); ++i) {
+				Pattern& pat = ds.pattern(i);
+				const vector<double>& x = pat.input();
+				const double pred = evalMean(x);
+				vector<double> zeroAll(x);
+				for (uint j = 0; j < din; ++j)
+					zeroAll[j] = 0.0;
+				const double base = evalMean(zeroAll);
+				df << pat.idstring() << "  " << tag << "  " << pat.output()[0] * targetScale << "  "
+				   << pred * targetScale << "  " << base * targetScale;
+				double sum = base;
+				for (uint c = 0; c < C; ++c) {
+					vector<double> xz = x;
+					for (uint l = 0; l < L; ++l)
+						xz[c * L + l] = 0.0;
+					const double contrib = pred - evalMean(xz);
+					df << "  " << contrib * targetScale;
+					share[c] += contrib;
+					sum += contrib;
+				}
+				for (uint p = 0; p < P; ++p) {
+					vector<double> xz = x;
+					xz[C * L + p] = 0.0;
+					const double contrib = pred - evalMean(xz);
+					df << "  " << contrib * targetScale;
+					covShare[p] += contrib;
+					sum += contrib;
+				}
+				const double interaction = pred - sum;
+				maxInteraction = std::max(maxInteraction, std::fabs(interaction));
+				df << "  " << interaction * targetScale << "\n";
+				predSum += pred;
+			}
+		};
+		decompose(trn, "train");
+		decompose(tst, "holdout");
+
+		rep << "\nsales decomposition (share of total predicted sales; per-period detail in "
+		    << decompPath << "):\n";
+		vector<uint> order(C);
+		for (uint c = 0; c < C; ++c)
+			order[c] = c;
+		std::sort(order.begin(), order.end(), [&](uint i, uint j) { return share[i] > share[j]; });
+		double mediaTotal = 0;
+		for (uint c = 0; c < C; ++c)
+			mediaTotal += share[c];
+		for (uint c = 0; c < C; ++c)
+			rep << "channel " << order[c] << ": " << 100.0 * share[order[c]] / predSum << " %\n";
+		for (uint p = 0; p < P; ++p)
+			rep << "covariate " << p << ": " << 100.0 * covShare[p] / predSum << " %\n";
+		rep << "all media together: " << 100.0 * mediaTotal / predSum
+		    << " %, base + covariates the rest\n";
+		rep << "interaction residual (0 for a linear head): max |" << maxInteraction * targetScale
+		    << "| natural units\n";
+	}
+
 	std::cout << "\n" << rep.str();
 	const std::string outPath = "result.mmm." + config.suffix() + ".txt";
 	std::ofstream out(outPath);

@@ -74,7 +74,7 @@ cd datasets/mmm && /tmp/gen_mmm
 ## Turnkey quickstart
 
 `mmm.raw.csv` is a traditional MMM file (header, commas, one row per
-week). One command fits the whole boxed model and writes the report:
+week). One command fits the whole boxed model and writes the report, per-channel response curves, and the per-period sales decomposition:
 
 ```sh
 cd datasets/mmm && ../../build/mmm config-mmm-raw.toml
